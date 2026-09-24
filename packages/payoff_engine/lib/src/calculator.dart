@@ -5,6 +5,9 @@ import 'package:payoff_engine/src/payoff_result.dart';
 import 'package:payoff_engine/src/rounding.dart';
 import 'package:payoff_engine/src/strategy.dart';
 
+const String kConsolidationDebtId = 'consolidation';
+const String kBalanceTransferDebtId = 'balance-transfer';
+
 /// A balance above this (in minor units) means the debt is growing without
 /// bound; it also keeps `balance * aprBps` well inside 64-bit integers.
 const int kBalanceCeilingMinor = 10000000000000;
@@ -46,7 +49,7 @@ PayoffResult calculate({
     final interest = List.filled(n, 0);
     for (var i = 0; i < n; i++) {
       if (balances[i] <= 0) continue;
-      final apr = ordered[i].aprBps;
+      final apr = _aprFor(strategy, ordered[i], month);
       interest[i] = divideHalfEven(balances[i] * apr, 120000);
       balances[i] += interest[i];
       if (balances[i] > kBalanceCeilingMinor) {
@@ -115,6 +118,16 @@ PayoffResult calculate({
   );
 }
 
+/// Runs every strategy in [standardStrategies], in that order.
+List<PayoffResult> calculateAll({
+  required List<Debt> debts,
+  required Money monthlyBudget,
+  required StrategyParameters parameters,
+}) => [
+  for (final strategy in standardStrategies(parameters))
+    calculate(debts: debts, monthlyBudget: monthlyBudget, strategy: strategy),
+];
+
 List<Debt> _debtsFor(
   Strategy strategy,
   List<Debt> debts,
@@ -125,8 +138,37 @@ List<Debt> _debtsFor(
   return switch (strategy) {
     Avalanche() || Boosted() => [...debts]..sort(compareHighestAprFirst),
     LowestAprFirst() => [...debts]..sort(compareLowestAprFirst),
-    Consolidation() || BalanceTransfer() => throw UnimplementedError(
-      'Consolidation and balance transfer are added in Task 7',
-    ),
+    Consolidation(:final aprBps) => [
+      Debt(
+        id: kConsolidationDebtId,
+        name: 'Consolidation loan',
+        type: DebtType.loan,
+        balance: total,
+        aprBps: aprBps,
+        minPaymentPercentBps: 0,
+        minPaymentFloor: budget,
+        allowsOverpayment: false,
+      ),
+    ],
+    BalanceTransfer(:final feeBps) => [
+      Debt(
+        id: kBalanceTransferDebtId,
+        name: 'Balance transfer card',
+        type: DebtType.creditCard,
+        balance:
+            total +
+            Money(divideHalfEven(total.minor * feeBps, 10000), total.currency),
+        aprBps: 0,
+        minPaymentPercentBps: 0,
+        minPaymentFloor: budget,
+        allowsOverpayment: false,
+      ),
+    ],
   };
 }
+
+int _aprFor(Strategy strategy, Debt debt, int month) => switch (strategy) {
+  BalanceTransfer(:final promoMonths, :final revertAprBps) =>
+    month <= promoMonths ? 0 : revertAprBps,
+  _ => debt.aprBps,
+};

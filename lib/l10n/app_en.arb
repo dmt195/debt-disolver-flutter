@@ -181,5 +181,18 @@
   "scenarioSaved": "Scenario saved",
   "errorScenarioNameEmpty": "Enter a name",
   "errorScenarioNameDuplicate": "You already have a scenario with that name",
-  "errorScenarioInvalid": "This scenario's budget or settings aren't valid"
+  "errorScenarioInvalid": "This scenario's budget or settings aren't valid",
+
+  "scenariosTitle": "Scenarios",
+  "scenariosTabSaved": "Saved",
+  "scenariosTabCompare": "Compare",
+  "scenariosEmpty": "No saved scenarios yet. Move the slider on the Strategies screen, then save it as a scenario.",
+  "scenarioBudget": "{budget} a month",
+  "@scenarioBudget": {"placeholders": {"budget": {"type": "String"}}},
+  "deleteScenarioTitle": "Delete {name}?",
+  "@deleteScenarioTitle": {"placeholders": {"name": {"type": "String"}}},
+  "editScenarioTitle": "Edit scenario",
+  "compareBest": "{strategy}: debt-free in {duration}, {interest} interest",
+  "@compareBest": {"placeholders": {"strategy": {"type": "String"}, "duration": {"type": "String"}, "interest": {"type": "String"}}},
+  "compareNoPlan": "No plan clears these debts"
 }

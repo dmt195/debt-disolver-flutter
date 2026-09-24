@@ -282,4 +282,33 @@ void main() {
     );
     expect(app.scenarios.stored, hasLength(1));
   });
+
+  testWidgets('opens the scenarios screen', (tester) async {
+    final app = await pumpApp(
+      tester,
+      debts: [simple],
+      location: Routes.strategies,
+    );
+    await tester.tap(find.byTooltip('Scenarios'));
+    await tester.pumpAndSettle();
+    expect(app.router.location, Routes.scenarios);
+  });
+
+  testWidgets('the limit link edits the scenario being viewed', (tester) async {
+    final app = await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')],
+      scenarios: [bonus],
+      location: Routes.strategies,
+    );
+    await tester.tap(find.byKey(const ValueKey('scenario')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bonus').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Set yours'), 100);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Set yours'));
+    await tester.pumpAndSettle();
+    expect(app.router.location, Routes.editScenario('s1'));
+  });
 }

@@ -65,7 +65,16 @@ class StrategiesScreen extends ConsumerWidget {
       };
     }
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.strategiesTitle)),
+      appBar: AppBar(
+        title: Text(l10n.strategiesTitle),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bookmarks_outlined),
+            tooltip: l10n.scenariosTitle,
+            onPressed: () => context.push(Routes.scenarios),
+          ),
+        ],
+      ),
       body: body,
       bottomNavigationBar: const AdBanner(),
     );
@@ -203,7 +212,7 @@ class _StrategyCard extends ConsumerWidget {
   }
 }
 
-class _FeasibleDetails extends StatelessWidget {
+class _FeasibleDetails extends ConsumerWidget {
   const _FeasibleDetails({
     required this.plan,
     required this.baseline,
@@ -215,7 +224,7 @@ class _FeasibleDetails extends StatelessWidget {
   final String locale;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     if (plan.monthsToClear == 0) return Text(l10n.alreadyDebtFree);
     return Column(
@@ -252,7 +261,14 @@ class _FeasibleDetails extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => context.push(Routes.settings),
+                onPressed: () {
+                  final id = ref.read(activeScenarioProvider).value?.id;
+                  unawaited(
+                    context.push(
+                      id == null ? Routes.settings : Routes.editScenario(id),
+                    ),
+                  );
+                },
                 child: Text(l10n.setCreditLimit),
               ),
             ],

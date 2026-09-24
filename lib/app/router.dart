@@ -2,6 +2,8 @@ import 'package:debt_destroyer/features/analysis/presentation/plan_detail_screen
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenario_form_screen.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenarios_screen.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_screen.dart';
 import 'package:debt_destroyer/features/strategies/presentation/strategies_screen.dart';
@@ -19,10 +21,13 @@ abstract final class Routes {
   static const onboarding = '/onboarding';
   static const strategies = '/strategies';
   static const settings = '/settings';
+  static const scenarios = '/scenarios';
 
   static String plan(StrategyId id) => '$strategies/${id.name}';
 
   static String editDebt(String id) => '/debts/$id';
+
+  static String editScenario(String id) => '$scenarios/$id';
 }
 
 /// App navigation. Until onboarding is complete every location redirects to
@@ -84,6 +89,18 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.scenarios,
+        builder: (context, state) => const ScenariosScreen(),
+        routes: [
+          GoRoute(
+            path: ':scenarioId',
+            builder: (context, state) => ScenarioFormScreen(
+              scenarioId: state.pathParameters['scenarioId']!,
+            ),
+          ),
+        ],
       ),
     ],
   );

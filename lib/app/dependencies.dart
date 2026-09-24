@@ -5,6 +5,8 @@ import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/debts/data/drift_debt_repository.dart';
 import 'package:debt_destroyer/features/debts/domain/debt_repository.dart';
+import 'package:debt_destroyer/features/scenarios/data/drift_scenario_repository.dart';
+import 'package:debt_destroyer/features/scenarios/domain/scenario_repository.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/settings/domain/settings_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -36,3 +38,7 @@ DebtRepository debtRepository(Ref ref) => DriftDebtRepository(
   ref.watch(appDatabaseProvider),
   now: ref.watch(clockProvider),
 );
+
+@Riverpod(keepAlive: true)
+ScenarioRepository scenarioRepository(Ref ref) =>
+    DriftScenarioRepository(ref.watch(appDatabaseProvider));

@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/debts/data/drift_debt_repository.dart';
+import 'package:debt_destroyer/features/scenarios/data/drift_scenario_repository.dart';
+import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -177,6 +179,29 @@ void main() {
       for (final d in await all()) {
         expect(validateDebt(d), isEmpty);
       }
+    });
+
+    test('converting amounts rescales saved scenarios too', () async {
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      final scenarios = DriftScenarioRepository(db);
+      await scenarios.save(
+        Scenario(
+          id: 's',
+          name: 'Bonus',
+          monthlyBudget: const Money(45050, 'GBP'),
+          parameters: const StrategyParameters(
+            transferCreditLimit: Money(12345, 'GBP'),
+          ),
+          createdAt: DateTime(2026, 9, 24),
+        ),
+      );
+      await repo.convertAmounts(toCurrencyCode: 'JPY');
+      final s = (await scenarios.loadAll('JPY')).single;
+      expect(
+        s.monthlyBudget,
+        const Money(450, 'JPY'),
+      ); // 450.50 → 450 (half-even)
+      expect(s.parameters.transferCreditLimit, const Money(123, 'JPY'));
     });
   });
 

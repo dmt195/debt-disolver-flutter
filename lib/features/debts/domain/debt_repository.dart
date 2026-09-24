@@ -29,8 +29,9 @@ abstract interface class DebtRepository {
 
   /// Makes [toCurrencyCode] the currency of the stored amounts. If they are
   /// in a currency with a different number of decimal digits, every balance
-  /// and floor is rescaled to keep its major-unit value, clamped to the valid
-  /// range (balances stay at least 1). Rescaling and recording the currency
+  /// and floor, and every saved scenario's budget and credit limit, is
+  /// rescaled to keep its major-unit value, clamped to the valid range
+  /// (balances stay at least 1). Rescaling and recording the currency
   /// happen in one transaction, so repeating a call is harmless.
   Future<void> convertAmounts({required String toCurrencyCode});
 }

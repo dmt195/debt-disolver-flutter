@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/app/app.dart';
 import 'package:debt_destroyer/app/dependencies.dart';
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 import 'in_memory_debt_repository.dart';
+import 'in_memory_scenario_repository.dart';
 import 'test_container.dart';
 
 /// The whole app for a widget test, opened at [location], with in-memory
@@ -19,10 +21,12 @@ Future<AppHarness> pumpApp(
   WidgetTester tester, {
   String location = Routes.debts,
   List<Debt> debts = const [],
+  List<Scenario> scenarios = const [],
   Map<String, Object?> settings = const {},
   List<Override> overrides = const [],
 }) async {
   final repository = InMemoryDebtRepository(debts);
+  final scenarioRepository = InMemoryScenarioRepository(scenarios);
   await tester.pumpWidget(
     ProviderScope(
       // Surface failures at once rather than after Riverpod's retries.
@@ -35,6 +39,7 @@ Future<AppHarness> pumpApp(
           }),
         ),
         debtRepositoryProvider.overrideWithValue(repository),
+        scenarioRepositoryProvider.overrideWithValue(scenarioRepository),
         planCalculatorProvider.overrideWithValue(
           (debts, budget, parameters) async =>
               calculatePlanSet(debts, budget, parameters),
@@ -52,14 +57,15 @@ Future<AppHarness> pumpApp(
     container.read(routerProvider).go(location);
     await tester.pumpAndSettle();
   }
-  return AppHarness(container, repository);
+  return AppHarness(container, repository, scenarioRepository);
 }
 
 class AppHarness {
-  AppHarness(this.container, this.repository);
+  AppHarness(this.container, this.repository, this.scenarios);
 
   final ProviderContainer container;
   final InMemoryDebtRepository repository;
+  final InMemoryScenarioRepository scenarios;
 
   GoRouterNavigator get router => GoRouterNavigator(container);
 }

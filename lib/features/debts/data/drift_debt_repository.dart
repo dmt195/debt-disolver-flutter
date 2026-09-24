@@ -113,6 +113,25 @@ class DriftDebtRepository implements DebtRepository {
                 ),
               );
             }
+            // Scenarios hold amounts in the same app-wide currency.
+            final scenarios = await _db.select(_db.scenarioRows).get();
+            for (final row in scenarios) {
+              await (_db.update(
+                _db.scenarioRows,
+              )..where((t) => t.id.equals(row.id))).write(
+                ScenarioRowsCompanion(
+                  monthlyBudgetMinor: Value(
+                    rescale(row.monthlyBudgetMinor, min: 1),
+                  ),
+                  transferCreditLimitMinor: Value(
+                    switch (row.transferCreditLimitMinor) {
+                      final limit? => rescale(limit, min: 1),
+                      null => null,
+                    },
+                  ),
+                ),
+              );
+            }
           }
         }
         await _db

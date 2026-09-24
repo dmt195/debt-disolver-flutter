@@ -12,6 +12,7 @@ Debt debt({
   int minPaymentPercentBps = 0,
   int minPaymentFloor = 0,
   bool allowsOverpayment = true,
+  Promo? promo,
 }) => Debt(
   id: id,
   name: name ?? id,
@@ -21,6 +22,7 @@ Debt debt({
   minPaymentPercentBps: minPaymentPercentBps,
   minPaymentFloor: gbp(minPaymentFloor),
   allowsOverpayment: allowsOverpayment,
+  promo: promo,
 );
 
 PayoffPlan planOf(PayoffResult result) => switch (result) {

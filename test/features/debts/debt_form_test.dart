@@ -31,6 +31,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> chooseType(WidgetTester tester, String label) async {
+    await tester.tap(find.byKey(const ValueKey('type')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(label).last);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('adds a debt with exactly the amounts typed', (tester) async {
     final app = await pumpApp(tester, location: Routes.newDebt);
     await fill(tester);
@@ -93,15 +100,32 @@ void main() {
     expect(app.repository.stored.single.aprBps, 1500);
   });
 
-  testWidgets('choosing Loan for a new debt turns off overpaying', (
+  testWidgets('offers every kind of debt', (tester) async {
+    await pumpApp(tester, location: Routes.newDebt);
+    await tester.tap(find.byKey(const ValueKey('type')));
+    await tester.pumpAndSettle();
+    for (final label in [
+      'Credit card',
+      'Store card or buy now, pay later',
+      'Loan',
+      'Overdraft',
+      'Student loan',
+      'Mortgage',
+      'Friends & family',
+      'Other',
+    ]) {
+      expect(find.text(label), findsWidgets);
+    }
+  });
+
+  testWidgets('choosing Student loan for a new debt turns off overpaying', (
     tester,
   ) async {
     final app = await pumpApp(tester, location: Routes.newDebt);
-    await tester.tap(find.text('Loan'));
-    await tester.pumpAndSettle();
+    await chooseType(tester, 'Student loan');
     await fill(tester);
     await save(tester);
-    expect(app.repository.stored.single.type, DebtType.loan);
+    expect(app.repository.stored.single.type, DebtType.studentLoan);
     expect(app.repository.stored.single.allowsOverpayment, isFalse);
   });
 

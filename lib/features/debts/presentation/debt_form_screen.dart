@@ -110,7 +110,8 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       ),
     };
     _type = d?.type ?? DebtType.creditCard;
-    _allowsOverpayment = d?.allowsOverpayment ?? true;
+    _allowsOverpayment =
+        d?.allowsOverpayment ?? defaultAllowsOverpayment(_type);
   }
 
   @override
@@ -185,18 +186,26 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           field(_Field.name, l10n.fieldName),
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: SegmentedButton<DebtType>(
-              segments: [
+            child: DropdownButtonFormField<DebtType>(
+              key: const ValueKey('type'),
+              initialValue: _type,
+              decoration: InputDecoration(
+                labelText: l10n.fieldType,
+                border: const OutlineInputBorder(),
+              ),
+              items: [
                 for (final t in DebtType.values)
-                  ButtonSegment(value: t, label: Text(debtTypeLabel(l10n, t))),
+                  DropdownMenuItem(
+                    value: t,
+                    child: Text(debtTypeLabel(l10n, t)),
+                  ),
               ],
-              selected: {_type},
-              onSelectionChanged: (s) => setState(() {
-                _type = s.single;
-                // Loans usually have fixed repayments; suggest that for new
-                // debts only, never overriding a saved choice.
+              onChanged: (t) => setState(() {
+                _type = t!;
+                // Suggest the usual choice for new debts only, never
+                // overriding a saved one.
                 if (widget.existing == null) {
-                  _allowsOverpayment = _type != DebtType.loan;
+                  _allowsOverpayment = defaultAllowsOverpayment(_type);
                 }
               }),
             ),
@@ -310,6 +319,9 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           byField[_Field.minFloor] = l10n.errorTooLarge;
         case DebtValidationError.floorCurrencyMismatch:
           break; // not reachable from this form: one currency throughout
+        case DebtValidationError.promoAprOutOfRange:
+        case DebtValidationError.promoMonthsOutOfRange:
+          break; // the form has no promo fields until Task 8
       }
     }
     setState(() => _errors = byField);

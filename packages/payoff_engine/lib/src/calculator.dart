@@ -181,5 +181,5 @@ List<Debt> _debtsFor(
 int _aprFor(Strategy strategy, Debt debt, int month) => switch (strategy) {
   BalanceTransfer(:final promoMonths, :final revertAprBps) =>
     month <= promoMonths ? 0 : revertAprBps,
-  _ => debt.aprBps,
+  _ => aprInMonth(debt, month),
 };

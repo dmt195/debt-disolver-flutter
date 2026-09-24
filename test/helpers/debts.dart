@@ -11,6 +11,7 @@ Debt testDebt({
   bool allowsOverpayment = true,
   DebtType type = DebtType.creditCard,
   String currency = 'GBP',
+  Promo? promo,
 }) => Debt(
   id: id,
   name: name ?? 'Debt $id',
@@ -20,4 +21,5 @@ Debt testDebt({
   minPaymentPercentBps: minPaymentPercentBps,
   minPaymentFloor: Money(minPaymentFloor, currency),
   allowsOverpayment: allowsOverpayment,
+  promo: promo,
 );

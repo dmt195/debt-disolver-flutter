@@ -38,6 +38,12 @@
   "debtTypeCreditCard": "Credit card",
   "debtTypeLoan": "Loan",
   "debtTypePersonal": "Friends & family",
+  "debtTypeStoreCard": "Store card or buy now, pay later",
+  "debtTypeOverdraft": "Overdraft",
+  "debtTypeStudentLoan": "Student loan",
+  "debtTypeMortgage": "Mortgage",
+  "debtTypeOther": "Other",
+  "fieldType": "Type",
 
   "newDebtTitle": "Add debt",
   "editDebtTitle": "Edit debt",

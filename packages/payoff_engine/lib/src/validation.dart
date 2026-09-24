@@ -21,6 +21,8 @@ enum DebtValidationError {
   minPaymentFloorNegative,
   minPaymentFloorTooLarge,
   floorCurrencyMismatch,
+  promoAprOutOfRange,
+  promoMonthsOutOfRange,
 }
 
 enum DebtListValidationError { tooMany, duplicateId, mixedCurrencies }
@@ -47,6 +49,11 @@ Set<DebtValidationError> validateDebt(Debt debt) => {
     DebtValidationError.minPaymentFloorTooLarge,
   if (debt.minPaymentFloor.currency != debt.balance.currency)
     DebtValidationError.floorCurrencyMismatch,
+  if (debt.promo case final promo? when !_isRate(promo.aprBps))
+    DebtValidationError.promoAprOutOfRange,
+  if (debt.promo case final promo?
+      when promo.months < 1 || promo.months > kMaxPromoMonths)
+    DebtValidationError.promoMonthsOutOfRange,
 };
 
 Set<BudgetValidationError> validateBudget(Money budget) => {

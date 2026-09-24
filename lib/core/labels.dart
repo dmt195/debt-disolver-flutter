@@ -4,8 +4,13 @@ import 'package:payoff_engine/payoff_engine.dart';
 
 String debtTypeLabel(AppLocalizations l10n, DebtType type) => switch (type) {
   DebtType.creditCard => l10n.debtTypeCreditCard,
+  DebtType.storeCard => l10n.debtTypeStoreCard,
   DebtType.loan => l10n.debtTypeLoan,
+  DebtType.overdraft => l10n.debtTypeOverdraft,
+  DebtType.studentLoan => l10n.debtTypeStudentLoan,
+  DebtType.mortgage => l10n.debtTypeMortgage,
   DebtType.personal => l10n.debtTypePersonal,
+  DebtType.other => l10n.debtTypeOther,
 };
 
 String strategyName(AppLocalizations l10n, StrategyId id) => switch (id) {

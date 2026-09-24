@@ -1,4 +1,6 @@
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
+import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +24,18 @@ void main() {
     await container.read(debtsProvider.future);
     return await container.read(plansProvider.future);
   }
+
+  // 3,000.00 at 0% with no minimum; the default budget is 300.00.
+  Debt interestFree() => testDebt(
+    id: '',
+    balance: 300000,
+    aprBps: 0,
+    minPaymentPercentBps: 0,
+    minPaymentFloor: 0,
+  );
+  int avalancheMonths(PlanSet plans) => (plans.ranked.firstWhere(
+    (r) => r.strategyId == StrategyId.avalanche,
+  ) as Feasible).plan.monthsToClear;
 
   test('with no debts every strategy is an empty feasible plan', () async {
     final plans = await settledPlans();
@@ -79,18 +93,6 @@ void main() {
   });
 
   group('extra payment', () {
-    // 3,000.00 at 0% with no minimum; the default budget is 300.00.
-    Debt interestFree() => testDebt(
-      id: '',
-      balance: 300000,
-      aprBps: 0,
-      minPaymentPercentBps: 0,
-      minPaymentFloor: 0,
-    );
-    int avalancheMonths(PlanSet plans) => (plans.ranked.firstWhere(
-      (r) => r.strategyId == StrategyId.avalanche,
-    ) as Feasible).plan.monthsToClear;
-
     test('is added to the budget', () async {
       await container.read(debtActionsProvider.notifier).add(interestFree());
       container.read(extraPaymentProvider.notifier).set(20000);
@@ -109,6 +111,42 @@ void main() {
           .read(settingsControllerProvider.notifier)
           .setCurrency('JPY');
       expect(container.read(extraPaymentProvider), 0);
+    });
+  });
+
+  group('scenarios', () {
+    Future<Scenario> saveBonus() async =>
+        ((await container
+                    .read(scenarioActionsProvider.notifier)
+                    .create(
+                      name: 'Bonus',
+                      monthlyBudget: const Money(60000, 'GBP'),
+                      parameters: const StrategyParameters(),
+                    ))
+                as ScenarioSaved)
+            .scenario;
+
+    test("plans use the selected scenario's budget", () async {
+      await container.read(debtActionsProvider.notifier).add(interestFree());
+      final bonus = await saveBonus();
+      container.read(selectedScenarioIdProvider.notifier).select(bonus.id);
+      expect(avalancheMonths(await settledPlans()), 5); // 600.00 a month
+    });
+
+    test('choosing a scenario resets the extra payment', () async {
+      final bonus = await saveBonus();
+      container.read(extraPaymentProvider.notifier).set(5000);
+      container.read(selectedScenarioIdProvider.notifier).select(bonus.id);
+      expect(container.read(extraPaymentProvider), 0);
+    });
+
+    test('deleting the selected scenario falls back to Current', () async {
+      await container.read(debtActionsProvider.notifier).add(interestFree());
+      final bonus = await saveBonus();
+      container.read(selectedScenarioIdProvider.notifier).select(bonus.id);
+      await container.read(scenarioActionsProvider.notifier).delete(bonus.id);
+      expect(container.read(selectedScenarioIdProvider), isNull);
+      expect(avalancheMonths(await settledPlans()), 10); // 300.00 a month
     });
   });
 }

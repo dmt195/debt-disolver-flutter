@@ -173,5 +173,13 @@
   "@transferLimitAssumed": {"placeholders": {"limit": {"type": "String"}}},
   "setCreditLimit": "Set yours",
   "privacyChoices": "Privacy choices",
-  "privacyChoicesHint": "Change how ads use your data"
+  "privacyChoicesHint": "Change how ads use your data",
+
+  "scenarioCurrent": "Current",
+  "saveAsScenario": "Save as scenario",
+  "scenarioNameLabel": "Name",
+  "scenarioSaved": "Scenario saved",
+  "errorScenarioNameEmpty": "Enter a name",
+  "errorScenarioNameDuplicate": "You already have a scenario with that name",
+  "errorScenarioInvalid": "This scenario's budget or settings aren't valid"
 }

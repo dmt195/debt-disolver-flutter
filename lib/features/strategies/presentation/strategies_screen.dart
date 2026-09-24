@@ -6,7 +6,9 @@ import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
-import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
+import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenario_name_dialog.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/domain/savings.dart';
@@ -24,32 +26,39 @@ class StrategiesScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final debts = ref.watch(debtsProvider).value;
     final plans = ref.watch(plansProvider);
-    final settings = ref.watch(settingsControllerProvider).value;
+    final active = ref.watch(activeScenarioProvider);
 
     final Widget body;
     if (debts != null && debts.isEmpty) {
       body = _Message(l10n.strategiesEmpty);
     } else {
-      body = switch ((plans, settings)) {
-        (AsyncData(:final value), final AppSettings settings) => ListView(
-          padding: const EdgeInsets.all(12),
-          children: [
-            _PayMoreSlider(budget: settings.monthlyBudget),
-            _BaselineLine(value.baseline),
-            for (final (i, result) in value.ranked.indexed)
-              _StrategyCard(
-                result: result,
-                baseline: value.baseline,
-                parameters: settings.strategyParameters,
-                cheapest: i == 0 && result is Feasible,
-              ),
-          ],
-        ),
+      body = switch ((plans, active)) {
+        (
+          AsyncData(:final value),
+          AsyncData(value: final ActiveScenario scenario),
+        ) =>
+          ListView(
+            padding: const EdgeInsets.all(12),
+            children: [
+              const _ScenarioPicker(),
+              _PayMoreSlider(budget: scenario.monthlyBudget),
+              _SaveAsScenarioButton(active: scenario),
+              _BaselineLine(value.baseline),
+              for (final (i, result) in value.ranked.indexed)
+                _StrategyCard(
+                  result: result,
+                  baseline: value.baseline,
+                  parameters: scenario.parameters,
+                  cheapest: i == 0 && result is Feasible,
+                ),
+            ],
+          ),
         (AsyncError(), _) => _Message(
           l10n.plansError,
           // Plans depend on settings, which may be what failed.
           onRetry: () => ref
             ..invalidate(settingsControllerProvider)
+            ..invalidate(activeScenarioProvider)
             ..invalidate(plansProvider),
         ),
         _ => const Center(child: CircularProgressIndicator()),
@@ -334,5 +343,91 @@ class _PayMoreSliderState extends ConsumerState<_PayMoreSlider> {
         ],
       ),
     );
+  }
+}
+
+/// Current, then each saved scenario. Hidden until something is saved.
+class _ScenarioPicker extends ConsumerWidget {
+  const _ScenarioPicker();
+
+  /// Stands for Current in the menu: a null item value would read as "no
+  /// selection". Scenario ids are UUIDs, so it can't clash.
+  static const _current = '';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final saved = ref.watch(scenariosProvider).value ?? const <Scenario>[];
+    if (saved.isEmpty) return const SizedBox.shrink();
+    final selected = ref.watch(selectedScenarioIdProvider);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: DropdownButton<String>(
+        key: const ValueKey('scenario'),
+        isExpanded: true,
+        // A selection that was just deleted shows as Current.
+        value: saved.any((s) => s.id == selected) ? selected : _current,
+        items: [
+          DropdownMenuItem(value: _current, child: Text(l10n.scenarioCurrent)),
+          for (final s in saved)
+            DropdownMenuItem(value: s.id, child: Text(s.name)),
+        ],
+        onChanged: (id) => ref
+            .read(selectedScenarioIdProvider.notifier)
+            .select(id == null || id == _current ? null : id),
+      ),
+    );
+  }
+}
+
+/// Saves the scenario being viewed (plus any extra from the slider) under a
+/// new name, then switches to it.
+class _SaveAsScenarioButton extends ConsumerWidget {
+  const _SaveAsScenarioButton({required this.active});
+
+  final ActiveScenario active;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final extra = ref
+        .watch(extraPaymentProvider)
+        .clamp(0, active.monthlyBudget.minor);
+    // A saved scenario with nothing added would only be a copy of itself.
+    if (active.id != null && extra == 0) return const SizedBox.shrink();
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        icon: const Icon(Icons.bookmark_add_outlined),
+        label: Text(l10n.saveAsScenario),
+        onPressed: () => _save(context, ref, extra),
+      ),
+    );
+  }
+
+  Future<void> _save(BuildContext context, WidgetRef ref, int extra) async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final budget =
+        active.monthlyBudget + Money(extra, active.monthlyBudget.currency);
+    Scenario? created;
+    final saved = await showScenarioNameDialog(
+      context,
+      title: l10n.saveAsScenario,
+      submit: (name) async {
+        final outcome = await ref
+            .read(scenarioActionsProvider.notifier)
+            .create(
+              name: name,
+              monthlyBudget: budget,
+              parameters: active.parameters,
+            );
+        if (outcome case ScenarioSaved(:final scenario)) created = scenario;
+        return scenarioOutcomeMessage(l10n, outcome);
+      },
+    );
+    if (!saved || created == null) return;
+    ref.read(selectedScenarioIdProvider.notifier).select(created!.id);
+    messenger.showSnackBar(SnackBar(content: Text(l10n.scenarioSaved)));
   }
 }

@@ -68,8 +68,12 @@ class ScenarioActions extends _$ScenarioActions {
   Future<ScenarioSaveOutcome> update(Scenario scenario) =>
       _serialised(() => _save(scenario.copyWith(name: scenario.name.trim())));
 
-  Future<void> delete(String id) =>
-      _serialised(() => ref.read(scenarioRepositoryProvider).delete(id));
+  Future<void> delete(String id) => _serialised(() async {
+    await ref.read(scenarioRepositoryProvider).delete(id);
+    if (ref.read(selectedScenarioIdProvider) == id) {
+      ref.read(selectedScenarioIdProvider.notifier).select(null);
+    }
+  });
 
   Future<ScenarioSaveOutcome> _save(Scenario scenario) async {
     final settings = await ref.read(settingsControllerProvider.future);
@@ -97,4 +101,51 @@ class ScenarioActions extends _$ScenarioActions {
     _pending = result.then<void>((_) {}, onError: (_) {});
     return result;
   }
+}
+
+/// The saved scenario shown on Strategies, or null for Current. Kept for the
+/// session only.
+@Riverpod(keepAlive: true)
+class SelectedScenarioId extends _$SelectedScenarioId {
+  @override
+  String? build() => null;
+
+  // Named to read well at the call site (`.select(id)`); a setter would read
+  // as an assignment rather than an action.
+  // ignore: use_setters_to_change_properties
+  void select(String? id) => state = id;
+}
+
+/// The budget and strategy settings Strategies uses: the selected saved
+/// scenario's, or Current's (from Settings). `id` and `name` are null for
+/// Current.
+typedef ActiveScenario = ({
+  String? id,
+  String? name,
+  Money monthlyBudget,
+  StrategyParameters parameters,
+});
+
+/// Falls back to Current if the selected scenario no longer exists.
+@riverpod
+Future<ActiveScenario> activeScenario(Ref ref) async {
+  final settings = await ref.watch(settingsControllerProvider.future);
+  final id = ref.watch(selectedScenarioIdProvider);
+  if (id != null) {
+    final saved = await ref.watch(scenariosProvider.future);
+    if (saved.where((s) => s.id == id).firstOrNull case final s?) {
+      return (
+        id: s.id,
+        name: s.name,
+        monthlyBudget: s.monthlyBudget,
+        parameters: s.parameters,
+      );
+    }
+  }
+  return (
+    id: null,
+    name: null,
+    monthlyBudget: settings.monthlyBudget,
+    parameters: settings.strategyParameters,
+  );
 }

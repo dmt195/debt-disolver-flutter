@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,14 @@ void main() {
     aprBps: 0,
     minPaymentPercentBps: 0,
     minPaymentFloor: 0,
+  );
+
+  final bonus = Scenario(
+    id: 's1',
+    name: 'Bonus',
+    monthlyBudget: const Money(50000, 'GBP'),
+    parameters: const StrategyParameters(),
+    createdAt: DateTime(2026, 9),
   );
 
   testWidgets('ranks every strategy and marks the cheapest', (tester) async {
@@ -210,5 +219,67 @@ void main() {
     expect(find.text('Pay £125.00 more a month'), findsOneWidget);
     expect(find.text('£375.00 a month in total'), findsOneWidget);
     expect(find.text('Debt-free in 3 months'), findsWidgets);
+  });
+
+  testWidgets('shows plans for a chosen scenario', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [simple],
+      scenarios: [bonus],
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.strategies,
+    );
+    expect(find.text('Debt-free in 4 months'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('scenario')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bonus').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Debt-free in 2 months'), findsWidgets);
+  });
+
+  testWidgets('saves the slider as a scenario and switches to it', (
+    tester,
+  ) async {
+    final app = await pumpApp(
+      tester,
+      debts: [simple],
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.strategies,
+    );
+    await tester.tap(find.byKey(const ValueKey('payMore'))); // +£125
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save as scenario'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('scenarioName')), 'Bonus');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    final saved = app.scenarios.stored.single;
+    expect(saved.name, 'Bonus');
+    expect(saved.monthlyBudget, const Money(37500, 'GBP'));
+    expect(find.text('Scenario saved'), findsOneWidget);
+    // Now on the saved scenario: its budget includes the extra.
+    expect(find.text('Pay £0.00 more a month'), findsOneWidget);
+    expect(find.text('Debt-free in 3 months'), findsWidgets);
+  });
+
+  testWidgets('a duplicate name is explained in the dialog', (tester) async {
+    final app = await pumpApp(
+      tester,
+      debts: [simple],
+      scenarios: [bonus],
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.strategies,
+    );
+    await tester.tap(find.text('Save as scenario'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('scenarioName')), 'bonus');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('You already have a scenario with that name'),
+      findsOneWidget,
+    );
+    expect(app.scenarios.stored, hasLength(1));
   });
 }

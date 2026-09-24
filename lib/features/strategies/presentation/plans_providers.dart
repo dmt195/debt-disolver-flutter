@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/domain/rank_results.dart';
 import 'package:flutter/foundation.dart';
@@ -50,25 +51,27 @@ class ExtraPayment extends _$ExtraPayment {
   @override
   int build() {
     ref.watch(settingsControllerProvider.select((s) => s.value?.currencyCode));
+    ref.watch(selectedScenarioIdProvider);
     return 0;
   }
 
   void set(int minor) => state = minor < 0 ? 0 : minor;
 }
 
-/// Every strategy's result for the current debts and settings, ranked by
-/// [rankResults], and the baseline. Recalculated whenever either changes.
+/// Every strategy's result for the current debts and the active scenario,
+/// ranked by [rankResults], and the baseline. Recalculated whenever either
+/// changes.
 @riverpod
 Future<PlanSet> plans(Ref ref) async {
   final debts = await ref.watch(debtsProvider.future);
-  final settings = await ref.watch(settingsControllerProvider.future);
-  final budget = settings.monthlyBudget;
+  final active = await ref.watch(activeScenarioProvider.future);
+  final budget = active.monthlyBudget;
   // Never more than the budget again, even if the budget has since shrunk.
   final extra = ref.watch(extraPaymentProvider).clamp(0, budget.minor);
   final set = await ref.watch(planCalculatorProvider)(
     debts,
     budget + Money(extra, budget.currency),
-    settings.strategyParameters,
+    active.parameters,
   );
   return (ranked: rankResults(set.ranked), baseline: set.baseline);
 }

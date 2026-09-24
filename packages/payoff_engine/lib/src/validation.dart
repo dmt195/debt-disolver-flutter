@@ -12,6 +12,13 @@ const int kMaxDebts = 50;
 /// Longest accepted 0% promotional period.
 const int kMaxPromoMonths = 120;
 
+/// Accepted consolidation loan terms, in months.
+const int kMinConsolidationTermMonths = 6;
+const int kMaxConsolidationTermMonths = 120;
+
+/// Highest accepted arrangement fee: 20%.
+const int kMaxConsolidationFeeBps = 2000;
+
 enum DebtValidationError {
   nameEmpty,
   balanceNotPositive,
@@ -29,9 +36,13 @@ enum DebtListValidationError { tooMany, duplicateId, mixedCurrencies }
 
 enum StrategyParametersValidationError {
   consolidationAprOutOfRange,
+  consolidationTermOutOfRange,
+  consolidationFeeOutOfRange,
   transferFeeOutOfRange,
   promoMonthsOutOfRange,
   revertAprOutOfRange,
+  creditLimitNotPositive,
+  creditLimitTooLarge,
 }
 
 enum BudgetValidationError { notPositive, tooLarge }
@@ -76,12 +87,23 @@ Set<StrategyParametersValidationError> validateStrategyParameters(
 ) => {
   if (!_isRate(p.consolidationAprBps))
     StrategyParametersValidationError.consolidationAprOutOfRange,
+  if (p.consolidationTermMonths < kMinConsolidationTermMonths ||
+      p.consolidationTermMonths > kMaxConsolidationTermMonths)
+    StrategyParametersValidationError.consolidationTermOutOfRange,
+  if (p.consolidationFeeBps < 0 ||
+      p.consolidationFeeBps > kMaxConsolidationFeeBps)
+    StrategyParametersValidationError.consolidationFeeOutOfRange,
   if (!_isRate(p.transferFeeBps))
     StrategyParametersValidationError.transferFeeOutOfRange,
   if (p.promoMonths < 0 || p.promoMonths > kMaxPromoMonths)
     StrategyParametersValidationError.promoMonthsOutOfRange,
   if (!_isRate(p.revertAprBps))
     StrategyParametersValidationError.revertAprOutOfRange,
+  if (p.transferCreditLimit case final limit? when !limit.isPositive)
+    StrategyParametersValidationError.creditLimitNotPositive,
+  if (p.transferCreditLimit case final limit?
+      when limit.minor > kMaxAmountMinor)
+    StrategyParametersValidationError.creditLimitTooLarge,
 };
 
 bool _isRate(int bps) => bps >= 0 && bps <= 10000;

@@ -60,18 +60,26 @@ class SettingsController extends _$SettingsController {
       await ref
           .read(debtRepositoryProvider)
           .convertAmounts(toCurrencyCode: currencyCode);
-      final budgetMinor = rescaleMinor(
-        current.monthlyBudget.minor,
-        fromDigits: currencyDecimalDigits(current.currencyCode),
-        toDigits: currencyDecimalDigits(currencyCode),
-      );
+      final fromDigits = currencyDecimalDigits(current.currencyCode);
+      final toDigits = currencyDecimalDigits(currencyCode);
+      int rescale(int minor) => rescaleMinor(
+        minor,
+        fromDigits: fromDigits,
+        toDigits: toDigits,
+      ).clamp(1, kMaxAmountMinor);
+      final limit = current.strategyParameters.transferCreditLimit;
       await _save(
         current.copyWith(
           currencyCode: currencyCode,
-          // Keep the rescaled budget valid: never zero, never over the limit.
+          // Keep rescaled amounts valid: never zero, never over the limit.
           monthlyBudget: Money(
-            budgetMinor.clamp(1, kMaxAmountMinor),
+            rescale(current.monthlyBudget.minor),
             currencyCode,
+          ),
+          strategyParameters: current.strategyParameters.copyWith(
+            transferCreditLimit: limit == null
+                ? null
+                : Money(rescale(limit.minor), currencyCode),
           ),
         ),
       );

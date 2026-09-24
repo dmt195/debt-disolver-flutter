@@ -175,6 +175,24 @@ class _FeasibleDetails extends StatelessWidget {
         if (plan.totalFees.isPositive)
           Text('${l10n.fees}: ${formatMoney(plan.totalFees, locale)}'),
         Text('${l10n.totalPaid}: ${formatMoney(plan.totalPaid, locale)}'),
+        if (plan.change case TransferChange(
+          limitAssumed: true,
+          :final creditLimit,
+        ))
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.transferLimitAssumed(formatMoney(creditLimit, locale)),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.push(Routes.settings),
+                child: Text(l10n.setCreditLimit),
+              ),
+            ],
+          ),
       ],
     );
   }

@@ -132,6 +132,17 @@ void main() {
         );
       },
     );
+
+    test('rescales the credit limit with the budget', () async {
+      await controller().setStrategyParameters(
+        const StrategyParameters(transferCreditLimit: Money(12345, 'GBP')),
+      );
+      await controller().setCurrency('JPY');
+      expect(
+        (await settings()).strategyParameters.transferCreditLimit,
+        const Money(123, 'JPY'),
+      );
+    });
   });
 
   test(

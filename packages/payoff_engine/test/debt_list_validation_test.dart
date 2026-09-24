@@ -95,5 +95,47 @@ void main() {
         {StrategyParametersValidationError.promoMonthsOutOfRange},
       );
     });
+
+    test('checks the consolidation term and fee', () {
+      expect(
+        validateStrategyParameters(
+          const StrategyParameters(
+            consolidationTermMonths: kMinConsolidationTermMonths,
+            consolidationFeeBps: kMaxConsolidationFeeBps,
+          ),
+        ),
+        isEmpty,
+      );
+      expect(
+        validateStrategyParameters(
+          const StrategyParameters(
+            consolidationTermMonths: kMaxConsolidationTermMonths + 1,
+            consolidationFeeBps: kMaxConsolidationFeeBps + 1,
+          ),
+        ),
+        {
+          StrategyParametersValidationError.consolidationTermOutOfRange,
+          StrategyParametersValidationError.consolidationFeeOutOfRange,
+        },
+      );
+      expect(
+        validateStrategyParameters(
+          const StrategyParameters(consolidationTermMonths: 5),
+        ),
+        {StrategyParametersValidationError.consolidationTermOutOfRange},
+      );
+    });
+
+    test('an optional credit limit must be positive and not too large', () {
+      StrategyParameters limit(int minor) =>
+          StrategyParameters(transferCreditLimit: Money(minor, 'GBP'));
+      expect(validateStrategyParameters(limit(1)), isEmpty);
+      expect(validateStrategyParameters(limit(0)), {
+        StrategyParametersValidationError.creditLimitNotPositive,
+      });
+      expect(validateStrategyParameters(limit(kMaxAmountMinor + 1)), {
+        StrategyParametersValidationError.creditLimitTooLarge,
+      });
+    });
   });
 }

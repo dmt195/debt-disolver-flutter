@@ -15,9 +15,12 @@ abstract final class SettingsKeys {
   static const currencyCode = 'currencyCode';
   static const monthlyBudgetMinor = 'monthlyBudgetMinor';
   static const consolidationAprBps = 'consolidationAprBps';
+  static const consolidationTermMonths = 'consolidationTermMonths';
+  static const consolidationFeeBps = 'consolidationFeeBps';
   static const transferFeeBps = 'transferFeeBps';
   static const promoMonths = 'promoMonths';
   static const revertAprBps = 'revertAprBps';
+  static const transferCreditLimitMinor = 'transferCreditLimitMinor';
   static const onboardingComplete = 'onboardingComplete';
 }
 
@@ -49,13 +52,22 @@ class PrefsSettingsRepository implements SettingsRepository {
         : Money(budgetMinor, currencyCode);
 
     const d = StrategyParameters();
+    final limitMinor = field<int>(SettingsKeys.transferCreditLimitMinor);
     final parameters = StrategyParameters(
       consolidationAprBps:
           field<int>(SettingsKeys.consolidationAprBps) ?? d.consolidationAprBps,
+      consolidationTermMonths:
+          field<int>(SettingsKeys.consolidationTermMonths) ??
+          d.consolidationTermMonths,
+      consolidationFeeBps:
+          field<int>(SettingsKeys.consolidationFeeBps) ?? d.consolidationFeeBps,
       transferFeeBps:
           field<int>(SettingsKeys.transferFeeBps) ?? d.transferFeeBps,
       promoMonths: field<int>(SettingsKeys.promoMonths) ?? d.promoMonths,
       revertAprBps: field<int>(SettingsKeys.revertAprBps) ?? d.revertAprBps,
+      transferCreditLimit: limitMinor == null
+          ? null
+          : Money(limitMinor, currencyCode),
     );
 
     return AppSettings(
@@ -79,9 +91,12 @@ class PrefsSettingsRepository implements SettingsRepository {
         SettingsKeys.currencyCode: settings.currencyCode,
         SettingsKeys.monthlyBudgetMinor: settings.monthlyBudget.minor,
         SettingsKeys.consolidationAprBps: p.consolidationAprBps,
+        SettingsKeys.consolidationTermMonths: p.consolidationTermMonths,
+        SettingsKeys.consolidationFeeBps: p.consolidationFeeBps,
         SettingsKeys.transferFeeBps: p.transferFeeBps,
         SettingsKeys.promoMonths: p.promoMonths,
         SettingsKeys.revertAprBps: p.revertAprBps,
+        SettingsKeys.transferCreditLimitMinor: p.transferCreditLimit?.minor,
         SettingsKeys.onboardingComplete: settings.onboardingComplete,
       }),
     );

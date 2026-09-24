@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,11 +11,40 @@ import '../../helpers/pump_app.dart';
 void main() {
   Finder field(String label) => find.widgetWithText(TextFormField, label);
 
+  // Every text field's EditableText is itself a horizontal Scrollable, so
+  // the vertical settings list has to be named explicitly to scroll it
+  // unambiguously.
+  final settingsList = find.byWidgetPredicate(
+    (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+  );
+
   Future<void> save(WidgetTester tester) async {
-    await tester.ensureVisible(find.widgetWithText(FilledButton, 'Save'));
+    final button = find.widgetWithText(FilledButton, 'Save');
+    // More fields than fit on screen now, so the button may not have been
+    // built yet: scroll (rather than ensureVisible) to reach it.
+    await tester.scrollUntilVisible(button, 100, scrollable: settingsList);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.tap(button);
     await tester.pumpAndSettle();
+    // Scrolling to the button aligns it at the top, which can push earlier
+    // fields (and their forced errors) out of the built range. Scroll back
+    // so callers can find those without scrolling themselves.
+    await tester.scrollUntilVisible(
+      field('Monthly budget'),
+      -100,
+      scrollable: settingsList,
+    );
+  }
+
+  // The list builds lazily, so fields low on the screen may not exist until
+  // scrolled to.
+  Future<void> enter(WidgetTester tester, String label, String text) async {
+    await tester.scrollUntilVisible(
+      field(label),
+      100,
+      scrollable: settingsList,
+    );
+    await tester.enterText(field(label), text);
   }
 
   testWidgets('shows the current settings', (tester) async {
@@ -93,5 +123,66 @@ void main() {
     expect(settings.monthlyBudget, const Money(300, 'JPY'));
     expect(find.text('300'), findsOneWidget);
     expect(app.repository.stored.single.balance.minor, 1235);
+  });
+
+  testWidgets('saves the loan term, fee and a credit limit', (tester) async {
+    final app = await pumpApp(tester, location: Routes.settings);
+    await enter(tester, 'Loan term (months)', '36');
+    await enter(tester, 'Arrangement fee (% of loan)', '1.5');
+    await enter(tester, 'Credit limit (optional)', '5,000');
+    await save(tester);
+    final p = app.container
+        .read(settingsControllerProvider)
+        .value!
+        .strategyParameters;
+    expect(p.consolidationTermMonths, 36);
+    expect(p.consolidationFeeBps, 150);
+    expect(p.transferCreditLimit, const Money(500000, 'GBP'));
+  });
+
+  testWidgets('an empty credit limit means none is set', (tester) async {
+    final app = await pumpApp(
+      tester,
+      location: Routes.settings,
+      settings: {SettingsKeys.transferCreditLimitMinor: 500000},
+    );
+    await tester.scrollUntilVisible(
+      find.text('5000'),
+      100,
+      scrollable: settingsList,
+    );
+    expect(find.text('5000'), findsOneWidget);
+    await enter(tester, 'Credit limit (optional)', '');
+    await save(tester);
+    expect(
+      app.container
+          .read(settingsControllerProvider)
+          .value!
+          .strategyParameters
+          .transferCreditLimit,
+      isNull,
+    );
+  });
+
+  testWidgets('shows why a term or limit was rejected', (tester) async {
+    await pumpApp(tester, location: Routes.settings);
+    await enter(tester, 'Loan term (months)', '3');
+    await enter(tester, 'Credit limit (optional)', '0');
+    await save(tester);
+    await tester.scrollUntilVisible(
+      find.text('Enter between 6 and 120 months'),
+      -100,
+      scrollable: settingsList,
+    );
+    expect(find.text('Enter between 6 and 120 months'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Enter a limit above zero, or leave it empty'),
+      100,
+      scrollable: settingsList,
+    );
+    expect(
+      find.text('Enter a limit above zero, or leave it empty'),
+      findsOneWidget,
+    );
   });
 }

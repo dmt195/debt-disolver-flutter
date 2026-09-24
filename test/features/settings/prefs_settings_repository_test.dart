@@ -46,9 +46,12 @@ void main() {
       monthlyBudget: Money(45050, 'USD'),
       strategyParameters: StrategyParameters(
         consolidationAprBps: 399,
+        consolidationTermMonths: 36,
+        consolidationFeeBps: 150,
         transferFeeBps: 250,
         promoMonths: 18,
         revertAprBps: 2290,
+        transferCreditLimit: Money(500000, 'USD'),
       ),
       onboardingComplete: true,
     );
@@ -104,6 +107,16 @@ void main() {
         final s = await repositoryWith({SettingsKeys.settings: stored}).load();
         expect(s, AppSettings.defaults('GBP'), reason: '$stored');
       }
+    });
+
+    test('settings saved before v2 load with the new defaults', () async {
+      final s = await repositoryWith(
+        storedSettings({SettingsKeys.consolidationAprBps: 700}),
+      ).load();
+      expect(s.strategyParameters.consolidationAprBps, 700);
+      expect(s.strategyParameters.consolidationTermMonths, 60);
+      expect(s.strategyParameters.consolidationFeeBps, 0);
+      expect(s.strategyParameters.transferCreditLimit, isNull);
     });
   });
 }

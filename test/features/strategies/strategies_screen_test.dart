@@ -97,4 +97,21 @@ void main() {
     await tester.scrollUntilVisible(find.text(reason), 100);
     expect(find.text(reason), findsOneWidget);
   });
+
+  testWidgets('says when the transfer assumes a credit limit', (tester) async {
+    final app = await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    // 1,000.00 plus the 4% fee.
+    const note = 'Assumes a £1,040.00 credit limit.';
+    await tester.scrollUntilVisible(find.text(note), 100);
+    await tester.pumpAndSettle();
+    expect(find.text(note), findsOneWidget);
+    await tester.tap(find.text('Set yours'));
+    await tester.pumpAndSettle();
+    expect(app.router.location, Routes.settings);
+  });
 }

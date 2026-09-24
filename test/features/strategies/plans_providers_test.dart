@@ -77,4 +77,38 @@ void main() {
     );
     expect(result.strategyId, StrategyId.minimumsOnly);
   });
+
+  group('extra payment', () {
+    // 3,000.00 at 0% with no minimum; the default budget is 300.00.
+    Debt interestFree() => testDebt(
+      id: '',
+      balance: 300000,
+      aprBps: 0,
+      minPaymentPercentBps: 0,
+      minPaymentFloor: 0,
+    );
+    int avalancheMonths(PlanSet plans) => (plans.ranked.firstWhere(
+      (r) => r.strategyId == StrategyId.avalanche,
+    ) as Feasible).plan.monthsToClear;
+
+    test('is added to the budget', () async {
+      await container.read(debtActionsProvider.notifier).add(interestFree());
+      container.read(extraPaymentProvider.notifier).set(20000);
+      expect(avalancheMonths(await settledPlans()), 6); // 500.00 a month
+    });
+
+    test('is capped at the budget', () async {
+      await container.read(debtActionsProvider.notifier).add(interestFree());
+      container.read(extraPaymentProvider.notifier).set(1000000);
+      expect(avalancheMonths(await settledPlans()), 5); // 600.00, not 10,300
+    });
+
+    test('resets when the currency changes', () async {
+      container.read(extraPaymentProvider.notifier).set(5000);
+      await container
+          .read(settingsControllerProvider.notifier)
+          .setCurrency('JPY');
+      expect(container.read(extraPaymentProvider), 0);
+    });
+  });
 }

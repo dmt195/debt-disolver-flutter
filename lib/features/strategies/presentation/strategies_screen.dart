@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
+import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/domain/savings.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
@@ -20,30 +24,27 @@ class StrategiesScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final debts = ref.watch(debtsProvider).value;
     final plans = ref.watch(plansProvider);
-    final parameters = ref
-        .watch(settingsControllerProvider)
-        .value
-        ?.strategyParameters;
+    final settings = ref.watch(settingsControllerProvider).value;
 
     final Widget body;
     if (debts != null && debts.isEmpty) {
       body = _Message(l10n.strategiesEmpty);
     } else {
-      body = switch ((plans, parameters)) {
-        (AsyncData(:final value), final StrategyParameters parameters) =>
-          ListView(
-            padding: const EdgeInsets.all(12),
-            children: [
-              _BaselineLine(value.baseline),
-              for (final (i, result) in value.ranked.indexed)
-                _StrategyCard(
-                  result: result,
-                  baseline: value.baseline,
-                  parameters: parameters,
-                  cheapest: i == 0 && result is Feasible,
-                ),
-            ],
-          ),
+      body = switch ((plans, settings)) {
+        (AsyncData(:final value), final AppSettings settings) => ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            _PayMoreSlider(budget: settings.monthlyBudget),
+            _BaselineLine(value.baseline),
+            for (final (i, result) in value.ranked.indexed)
+              _StrategyCard(
+                result: result,
+                baseline: value.baseline,
+                parameters: settings.strategyParameters,
+                cheapest: i == 0 && result is Feasible,
+              ),
+          ],
+        ),
         (AsyncError(), _) => _Message(
           l10n.plansError,
           // Plans depend on settings, which may be what failed.
@@ -259,5 +260,79 @@ class _FeasibleDetails extends StatelessWidget {
     return savings.months > 0
         ? l10n.savesVersusMinimums(amount, formatDuration(l10n, savings.months))
         : l10n.savesMoneyVersusMinimums(amount);
+  }
+}
+
+/// "Pay £X more a month": changes the budget every plan uses, recalculating
+/// shortly after the thumb stops moving.
+class _PayMoreSlider extends ConsumerStatefulWidget {
+  const _PayMoreSlider({required this.budget});
+
+  final Money budget;
+
+  @override
+  ConsumerState<_PayMoreSlider> createState() => _PayMoreSliderState();
+}
+
+class _PayMoreSliderState extends ConsumerState<_PayMoreSlider> {
+  double? _dragging;
+  Timer? _debounce;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _commit(double value) =>
+      ref.read(extraPaymentProvider.notifier).set(value.round());
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final locale = ref.watch(formatLocaleProvider);
+    final step = extraPaymentStepMinor(widget.budget);
+    final divisions = widget.budget.minor ~/ step;
+    if (divisions < 1) return const SizedBox.shrink();
+    final max = divisions * step;
+    final committed = ref.watch(extraPaymentProvider).clamp(0, max);
+    final value = _dragging ?? committed.toDouble();
+    final extra = Money(value.round(), widget.budget.currency);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.payMore(formatMoney(extra, locale)),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          Slider(
+            key: const ValueKey('payMore'),
+            value: value,
+            max: max.toDouble(),
+            divisions: divisions,
+            label: formatMoney(extra, locale),
+            onChanged: (v) {
+              setState(() => _dragging = v);
+              _debounce?.cancel();
+              _debounce = Timer(
+                const Duration(milliseconds: 250),
+                () => _commit(v),
+              );
+            },
+            onChangeEnd: (v) {
+              _debounce?.cancel();
+              _commit(v);
+              setState(() => _dragging = null);
+            },
+          ),
+          Text(
+            l10n.payMoreTotal(formatMoney(widget.budget + extra, locale)),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
   }
 }

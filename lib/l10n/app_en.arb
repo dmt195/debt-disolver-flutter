@@ -80,6 +80,10 @@
 
   "strategiesTitle": "Strategies",
   "strategiesEmpty": "Add a debt to compare strategies.",
+  "payMore": "Pay {amount} more a month",
+  "@payMore": {"placeholders": {"amount": {"type": "String"}}},
+  "payMoreTotal": "{total} a month in total",
+  "@payMoreTotal": {"placeholders": {"total": {"type": "String"}}},
   "strategyAvalanche": "Highest interest first",
   "strategyAvalancheDescription": "Minimums on everything, the rest to the highest-rate debt.",
   "strategySnowball": "Smallest balance first",

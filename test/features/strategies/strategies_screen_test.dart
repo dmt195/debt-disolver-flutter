@@ -195,4 +195,20 @@ void main() {
     expect(app.router.location, Routes.plan(StrategyId.minimumsOnly));
     expect(find.text('Debt-free in 5 years 2 months'), findsOneWidget);
   });
+
+  testWidgets('the slider pays more each month', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [simple], // 1,000.00 at 0%
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.strategies,
+    );
+    expect(find.text('Pay £0.00 more a month'), findsOneWidget);
+    // £5 steps up to £250; the middle of the track is £125.
+    await tester.tap(find.byKey(const ValueKey('payMore')));
+    await tester.pumpAndSettle();
+    expect(find.text('Pay £125.00 more a month'), findsOneWidget);
+    expect(find.text('£375.00 a month in total'), findsOneWidget);
+    expect(find.text('Debt-free in 3 months'), findsWidgets);
+  });
 }

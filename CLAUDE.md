@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a modern **Flutter app for iOS and Android, funded by ads, to be shipped to the app stores**. v1 recreates the original features with the known bugs fixed; it adds nothing new.
 
 - **Design spec (source of truth):** `docs/superpowers/specs/2026-09-24-flutter-rebuild-design.md`. Read it before any Flutter work; if a decision here conflicts with it, the spec wins.
+- **v2 spec:** docs/superpowers/specs/2026-09-24-v2-planning-design.md (builds on the v1 spec).
 - **Implementation plans:** `docs/superpowers/plans/`.
 - **Target architecture:** feature-first with clean layers (`lib/features/<feature>/{domain,data,presentation}`). State uses Riverpod with codegen, storage uses Drift (SQLite) plus shared_preferences for settings, navigation uses go_router, models use freezed, and charts use fl_chart. The payoff calculator lives in a pure-Dart package, `packages/payoff_engine/`, with no Flutter imports.
 - **Money is never a float:** amounts are integer minor units (`Money`), APRs are integer basis points, and rounding is half-even, once per month.
@@ -20,6 +21,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - [x] Plan 2: Flutter app shell, persistence (Drift, settings) and state (Riverpod)
 - [x] Plan 3: screens (onboarding, debts, strategies, plan detail, settings) and CSV/XLSX export
 - [x] Plan 4: ads and consent, crash reporting (local; Crashlytics set-up documented), Android flavors, icons, CI, release docs
+- [x] Plan 5: v2 better planning — snowball, your order, minimums-only baseline, promos, realistic transfer and consolidation, pay-more slider, saved scenarios (`docs/superpowers/plans/2026-09-24-plan-5-v2-planning.md`, spec `docs/superpowers/specs/2026-09-24-v2-planning-design.md`)
 
 Update this checklist as the phases complete.
 
@@ -47,6 +49,11 @@ Gotchas:
 - Errors found after Save are shown with `forceErrorText`. Clear a field's forced error in its `onChanged`, never at the start of Save: a stale forced error makes `validate()` fail silently.
 - Ads and crash reporting go through `AdsService` (`lib/features/ads/`) and `CrashReporter` (`lib/core/crash_reporter.dart`). Widget tests that need ads override `adsServiceProvider` with `FakeAdsService`. Ads appear only on the Debts and Strategies screens, behind consent.
 - Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes. The database records which currency its amounts are in (`DebtRepository.convertAmounts`, idempotent), and the controller reconciles it at startup, so an interrupted switch is repaired. Settings are saved as one JSON value under `SettingsKeys.settings`.
+- The engine runs in three stages: `restructure` (transfer/consolidation turn the user's debts into the debts actually paid), `allocationOrder` (avalanche-style strategies re-rank every month by the rate charged that month) and `simulate`. `PayoffPlan.debts` is in the order debts are *cleared*, not the priority order.
+- Promotions are stored as their last calendar month (`promoEndsYearMonth`, `yyyymm`) and read as "months left" using the repository's clock; an ended promo reads back as none. Widget tests fix the clock at 24 Sep 2026.
+- `plansProvider` gives a `PlanSet` (`ranked` plus the minimums-only `baseline`) for the *active scenario* (the selected saved scenario, or Current = Settings) plus the slider's `extraPaymentProvider`, which resets when the currency or the selection changes.
+- `DriftDebtRepository.convertAmounts` also rescales saved scenarios (same database, same transaction). The in-memory test repositories don't rescale scenarios.
+- Strategy-parameter fields (Settings and the scenario editor) come from `ParameterFields` in `lib/features/settings/presentation/parameter_fields.dart`; add new parameters there once.
 
 ## Legacy Android app (reference only)
 
@@ -79,6 +86,7 @@ This month-by-month simulation is the core of the app. It returns a `Solution` w
 - `solve()` **mutates the shared `debtList`**. It sorts the list in place. For types 4 and 5 it deactivates all debts (`activeInCalc = false`), appends a synthetic debt, and removes it at the end. For type 5 it also switches the synthetic card's APR to `revertAPR` after `ccTerm` months. Don't run `solve()` concurrently or keep indices into `debtList` across calls. `ManageDebtsActivity` guards its `AsyncTask` path with the `clear2continue` flag.
 - If `monthly` is less than the total minimum payment, it returns an empty `Solution` (0 months).
 - The APR comparators cast to `int` before multiplying (`(int)(a - b) * 100`), so APRs less than 1% apart compare as equal.
+- The Flutter app no longer offers lowest-APR-first or the 110% "boosted" plan (v2 spec §3.1).
 
 #### Flow
 `ManageDebtsActivity` (add or edit debts with `FragmentAddDebtDialog`) → menu "see solutions" → `solveAllDirect()` fills `AnalyseActivity.solList` (in order: highest-first, lowest-first, highest-first at 110% of the monthly amount, consolidation, 0% card) → `AnalyseActivity`. If the first month's payable amount is more than the monthly budget, the app shows `FragmentMinPayments` instead. `TableViewActivity` exports a solution to `.xls` in the public Downloads directory and shares it.

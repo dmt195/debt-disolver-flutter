@@ -23,6 +23,35 @@ void main() {
       );
     });
 
+    test('stays within 64-bit arithmetic at the largest loan', () {
+      // 50 * kMaxAmountMinor plus a 20% fee, at 100% APR over 120 months.
+      // Exact value from a big-integer reference (Python's reference_model,
+      // with the same "diverging balance" ceiling rule applied): a too-small
+      // trial payment during the search lets the balance grow past 10^13
+      // (the ceiling simulate.dart also uses), so the search must give up on
+      // that payment rather than keep squaring an ever-larger balance.
+      const balanceMinor = 6000000000000;
+      const aprBps = 10000;
+      const termMonths = 120;
+      final payment = fixedLoanPayment(
+        balanceMinor: balanceMinor,
+        aprBps: aprBps,
+        termMonths: termMonths,
+      );
+      expect(payment, 500033693531);
+
+      // The payment really does clear the loan within the term.
+      var balance = balanceMinor;
+      var months = 0;
+      while (balance > 0 && months < termMonths) {
+        balance += divideHalfEven(balance * aprBps, 120000);
+        balance -= payment < balance ? payment : balance;
+        months++;
+      }
+      expect(balance, 0);
+      expect(months, lessThanOrEqualTo(termMonths));
+    });
+
     test('is the smallest payment that clears within the term', () {
       PayoffPlan loanPaying(int payment) => planOf(
         calculate(

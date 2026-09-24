@@ -1,4 +1,5 @@
 import 'package:payoff_engine/src/rounding.dart';
+import 'package:payoff_engine/src/simulate.dart';
 
 /// The smallest whole monthly payment that clears [balanceMinor] at
 /// [aprBps] within [termMonths] months, using the calculator's own monthly
@@ -13,6 +14,10 @@ int fixedLoanPayment({
     var balance = balanceMinor;
     for (var m = 0; m < termMonths; m++) {
       balance += divideHalfEven(balance * aprBps, 120000);
+      // A balance past the ceiling is growing without bound: this payment
+      // cannot clear the loan, and it keeps `balance * aprBps` (used again
+      // next month) well inside 64-bit integers.
+      if (balance > kBalanceCeilingMinor) return false;
       balance -= payment < balance ? payment : balance;
       if (balance == 0) return true;
     }

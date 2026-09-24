@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/app/dependencies.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -8,12 +9,17 @@ import 'package:uuid/uuid.dart';
 part 'debts_providers.freezed.dart';
 part 'debts_providers.g.dart';
 
-/// The user's debts, in their order, in the current currency. Rebuilds when
-/// settings change so amounts are always labelled with the current currency.
+/// The user's debts, in their order, labelled with the current currency.
+/// Re-subscribes to the database only when the currency changes (not on
+/// every settings change), and stays loading until settings have loaded.
 @Riverpod(keepAlive: true)
-Stream<List<Debt>> debts(Ref ref) async* {
-  final settings = await ref.watch(settingsControllerProvider.future);
-  yield* ref.watch(debtRepositoryProvider).watchAll(settings.currencyCode);
+Stream<List<Debt>> debts(Ref ref) {
+  final (currencyCode, error) = ref.watch(
+    settingsControllerProvider.select((s) => (s.value?.currencyCode, s.error)),
+  );
+  if (error != null) return Stream.error(error);
+  if (currencyCode == null) return const Stream.empty();
+  return ref.watch(debtRepositoryProvider).watchAll(currencyCode);
 }
 
 @freezed

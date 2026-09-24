@@ -7,17 +7,31 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'plans_providers.g.dart';
 
+/// Runs every standard strategy. The app computes in a background isolate;
+/// widget tests substitute a synchronous version because isolates don't run
+/// under the test clock.
+typedef PlanCalculator = Future<List<PayoffResult>> Function(
+  List<Debt> debts,
+  Money monthlyBudget,
+  StrategyParameters parameters,
+);
+
+@Riverpod(keepAlive: true)
+PlanCalculator planCalculator(Ref ref) =>
+    (debts, budget, parameters) =>
+        compute(_calculateAll, (debts, budget, parameters));
+
 /// Every strategy's result for the current debts and settings, ranked by
-/// [rankResults]. Recalculated off the UI thread whenever either changes.
+/// [rankResults]. Recalculated whenever either changes.
 @riverpod
 Future<List<PayoffResult>> plans(Ref ref) async {
   final debts = await ref.watch(debtsProvider.future);
   final settings = await ref.watch(settingsControllerProvider.future);
-  final results = await compute(_calculateAll, (
+  final results = await ref.watch(planCalculatorProvider)(
     debts,
     settings.monthlyBudget,
     settings.strategyParameters,
-  ));
+  );
   return rankResults(results);
 }
 

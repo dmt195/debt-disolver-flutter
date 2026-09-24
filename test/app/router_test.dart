@@ -1,79 +1,68 @@
-import 'package:debt_destroyer/app/app.dart';
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/features/analysis/presentation/plan_detail_screen.dart';
+import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
+import 'package:debt_destroyer/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:debt_destroyer/features/settings/presentation/settings_screen.dart';
+import 'package:debt_destroyer/features/strategies/presentation/strategies_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
-import '../helpers/test_container.dart';
+import '../helpers/pump_app.dart';
 
 void main() {
-  Future<ProviderContainer> pumpApp(
-    WidgetTester tester, {
-    bool onboardingComplete = false,
-  }) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: testOverrides(
-          prefs: storedSettings({
-            SettingsKeys.onboardingComplete: onboardingComplete,
-          }),
-        ),
-        child: const DebtDestroyerApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    return ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
-  }
-
-  Future<void> go(WidgetTester tester, ProviderContainer c, String loc) async {
-    c.read(routerProvider).go(loc);
-    await tester.pumpAndSettle();
-  }
-
   testWidgets('a new user is sent to onboarding', (tester) async {
-    final container = await pumpApp(tester);
-    expect(find.text('Welcome'), findsWidgets);
+    final app = await pumpApp(
+      tester,
+      settings: {SettingsKeys.onboardingComplete: false},
+    );
+    expect(find.byType(OnboardingScreen), findsOneWidget);
 
-    await go(tester, container, Routes.strategies);
-    expect(find.text('Welcome'), findsWidgets);
+    await app.router.go(tester, Routes.strategies);
+    expect(find.byType(OnboardingScreen), findsOneWidget);
   });
 
   testWidgets('finishing onboarding opens the debts screen', (tester) async {
-    final container = await pumpApp(tester);
-    await container
+    final app = await pumpApp(
+      tester,
+      settings: {SettingsKeys.onboardingComplete: false},
+    );
+    await app.container
         .read(settingsControllerProvider.notifier)
         .completeOnboarding();
     await tester.pumpAndSettle();
-    expect(find.text('Debts'), findsWidgets);
+    expect(find.byType(DebtsScreen), findsOneWidget);
   });
 
   testWidgets('a returning user starts on debts and can navigate', (
     tester,
   ) async {
-    final container = await pumpApp(tester, onboardingComplete: true);
-    expect(find.text('Debts'), findsWidgets);
+    final app = await pumpApp(tester);
+    expect(find.byType(DebtsScreen), findsOneWidget);
 
-    await go(tester, container, Routes.onboarding);
-    expect(find.text('Debts'), findsWidgets);
+    await app.router.go(tester, Routes.onboarding);
+    expect(find.byType(DebtsScreen), findsOneWidget);
 
-    await go(tester, container, Routes.strategies);
-    expect(find.text('Strategies'), findsWidgets);
+    await app.router.go(tester, Routes.strategies);
+    expect(find.byType(StrategiesScreen), findsOneWidget);
 
-    await go(tester, container, Routes.plan(StrategyId.balanceTransfer));
-    expect(find.text('Plan: balanceTransfer'), findsWidgets);
+    await app.router.go(tester, Routes.plan(StrategyId.balanceTransfer));
+    final detail = tester.widget<PlanDetailScreen>(
+      find.byType(PlanDetailScreen),
+    );
+    expect(detail.strategyId, StrategyId.balanceTransfer);
 
-    await go(tester, container, Routes.settings);
-    expect(find.text('Settings'), findsWidgets);
+    await app.router.go(tester, Routes.settings);
+    expect(find.byType(SettingsScreen), findsOneWidget);
   });
 
   testWidgets('an unknown strategy id falls back to the strategies list', (
     tester,
   ) async {
-    final container = await pumpApp(tester, onboardingComplete: true);
-    await go(tester, container, '${Routes.strategies}/nonsense');
-    expect(find.text('Strategies'), findsWidgets);
+    final app = await pumpApp(tester);
+    await app.router.go(tester, '${Routes.strategies}/nonsense');
+    expect(find.byType(StrategiesScreen), findsOneWidget);
+    expect(app.router.location, Routes.strategies);
   });
 }

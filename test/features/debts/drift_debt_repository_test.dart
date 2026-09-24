@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
@@ -57,19 +58,25 @@ void main() {
 
   test('emits again after each change', () async {
     final lengths = <int>[];
-    final sub = repo.watchAll('GBP').listen((d) => lengths.add(d.length));
+    final emitted = StreamController<void>.broadcast();
+    addTearDown(emitted.close);
+    final sub = repo.watchAll('GBP').listen((d) {
+      lengths.add(d.length);
+      emitted.add(null);
+    });
     addTearDown(sub.cancel);
-    // Let each query run before the next change so no emission is merged.
-    Future<void> settle() =>
-        Future<void>.delayed(const Duration(milliseconds: 20));
 
-    await settle();
-    await repo.add(testDebt(id: 'a'));
-    await settle();
-    await repo.add(testDebt(id: 'b'));
-    await settle();
-    await repo.delete('a');
-    await settle();
+    // Wait for each emission before the next change, so none are merged.
+    Future<void> after(Future<void> Function() change) async {
+      final next = emitted.stream.first;
+      await change();
+      await next;
+    }
+
+    await emitted.stream.first;
+    await after(() => repo.add(testDebt(id: 'a')));
+    await after(() => repo.add(testDebt(id: 'b')));
+    await after(() => repo.delete('a'));
     expect(lengths, [0, 1, 2, 1]);
   });
 

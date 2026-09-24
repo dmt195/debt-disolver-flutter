@@ -3,11 +3,13 @@ import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 /// Adds a debt, or edits the one with [debtId].
@@ -63,7 +65,7 @@ class DebtFormScreen extends ConsumerWidget {
   }
 }
 
-enum _Field { name, balance, apr, minPercent, minFloor }
+enum _Field { name, balance, apr, minPercent, minFloor, promoApr }
 
 class _DebtForm extends ConsumerStatefulWidget {
   const _DebtForm({
@@ -84,8 +86,16 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
   late final Map<_Field, TextEditingController> _controllers;
   late DebtType _type;
   late bool _allowsOverpayment;
+  late bool _hasPromo;
+  late int _promoUntil;
   Map<_Field, String> _errors = const {};
   bool _saving = false;
+
+  /// Loans are entered as one fixed monthly payment, unless an existing
+  /// loan was saved with a percentage minimum.
+  bool get _fixedPayment =>
+      _type == DebtType.loan &&
+      (widget.existing?.minPaymentPercentBps ?? 0) == 0;
 
   @override
   void initState() {
@@ -108,10 +118,18 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       _Field.minFloor: TextEditingController(
         text: d == null ? '' : money(d.minPaymentFloor),
       ),
+      _Field.promoApr: TextEditingController(
+        text: percent(d?.promo?.aprBps ?? 0),
+      ),
     };
     _type = d?.type ?? DebtType.creditCard;
     _allowsOverpayment =
         d?.allowsOverpayment ?? defaultAllowsOverpayment(_type);
+    _hasPromo = d?.promo != null;
+    _promoUntil = promoEndYearMonth(
+      d?.promo?.months ?? 12,
+      ref.read(clockProvider)(),
+    );
   }
 
   @override
@@ -130,6 +148,10 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       Money(123456 ~/ 100 * 100, widget.currencyCode),
       locale,
     );
+    final now = ref.watch(clockProvider)();
+    final promoEnds = [
+      for (var m = 1; m <= kMaxPromoMonths; m++) promoEndYearMonth(m, now),
+    ];
 
     String? amount(String? text, {required bool required}) {
       final value = text ?? '';
@@ -222,25 +244,77 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
             keyboard: numberKeyboard,
             validator: (v) => percent(v, required: true),
           ),
-          field(
-            _Field.minPercent,
-            l10n.fieldMinPercent,
-            keyboard: numberKeyboard,
-            validator: (v) => percent(v, required: false),
-          ),
-          field(
-            _Field.minFloor,
-            l10n.fieldMinFloor,
-            keyboard: numberKeyboard,
-            validator: (v) => amount(v, required: false),
+          if (_fixedPayment)
+            field(
+              _Field.minFloor,
+              l10n.fieldMonthlyPayment,
+              keyboard: numberKeyboard,
+              validator: (v) => amount(v, required: true),
+            )
+          else ...[
+            field(
+              _Field.minPercent,
+              l10n.fieldMinPercent,
+              keyboard: numberKeyboard,
+              validator: (v) => percent(v, required: false),
+            ),
+            field(
+              _Field.minFloor,
+              l10n.fieldMinFloor,
+              keyboard: numberKeyboard,
+              validator: (v) => amount(v, required: false),
+            ),
+          ],
+          SwitchListTile(
+            key: const ValueKey('minimumsOnly'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.fieldMinimumsOnly),
+            subtitle: Text(
+              defaultAllowsOverpayment(_type)
+                  ? l10n.fieldMinimumsOnlyHint
+                  : l10n.fieldMinimumsOnlyNote,
+            ),
+            value: !_allowsOverpayment,
+            onChanged: (v) => setState(() => _allowsOverpayment = !v),
           ),
           SwitchListTile(
+            key: const ValueKey('promo'),
             contentPadding: EdgeInsets.zero,
-            title: Text(l10n.fieldAllowsOverpayment),
-            subtitle: Text(l10n.fieldAllowsOverpaymentHint),
-            value: _allowsOverpayment,
-            onChanged: (v) => setState(() => _allowsOverpayment = v),
+            title: Text(l10n.fieldPromo),
+            subtitle: Text(l10n.fieldPromoHint),
+            value: _hasPromo,
+            onChanged: (v) => setState(() => _hasPromo = v),
           ),
+          if (_hasPromo) ...[
+            field(
+              _Field.promoApr,
+              l10n.fieldPromoApr,
+              keyboard: numberKeyboard,
+              validator: (v) => percent(v, required: true),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: DropdownButtonFormField<int>(
+                key: const ValueKey('promoUntil'),
+                initialValue: _promoUntil,
+                decoration: InputDecoration(
+                  labelText: l10n.fieldPromoUntil,
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  for (final end in promoEnds)
+                    DropdownMenuItem(
+                      value: end,
+                      child: Text(
+                        DateFormat.yMMMM(locale)
+                            .format(DateTime(end ~/ 100, end % 100)),
+                      ),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _promoUntil = v!),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _saving ? null : _save,
@@ -266,15 +340,22 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     int percent(_Field f) =>
         parsePercentBps(_controllers[f]!.text, locale) ?? 0;
 
+    final now = ref.read(clockProvider)();
     final debt = Debt(
       id: widget.existing?.id ?? '',
       name: _controllers[_Field.name]!.text.trim(),
       type: _type,
       balance: Money(amount(_Field.balance), code),
       aprBps: percent(_Field.apr),
-      minPaymentPercentBps: percent(_Field.minPercent),
+      minPaymentPercentBps: _fixedPayment ? 0 : percent(_Field.minPercent),
       minPaymentFloor: Money(amount(_Field.minFloor), code),
       allowsOverpayment: _allowsOverpayment,
+      promo: _hasPromo
+          ? Promo(
+              aprBps: percent(_Field.promoApr),
+              months: promoMonthsLeft(_promoUntil, now),
+            )
+          : null,
     );
 
     setState(() => _saving = true);
@@ -320,8 +401,9 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         case DebtValidationError.floorCurrencyMismatch:
           break; // not reachable from this form: one currency throughout
         case DebtValidationError.promoAprOutOfRange:
+          byField[_Field.promoApr] = l10n.errorRateRange;
         case DebtValidationError.promoMonthsOutOfRange:
-          break; // the form has no promo fields until Task 8
+          break; // the month list only offers 1 to kMaxPromoMonths months
       }
     }
     setState(() => _errors = byField);

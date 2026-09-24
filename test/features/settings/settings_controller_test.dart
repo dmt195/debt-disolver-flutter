@@ -1,0 +1,109 @@
+import 'package:debt_destroyer/app/dependencies.dart';
+import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
+import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:payoff_engine/payoff_engine.dart';
+
+import '../../helpers/debts.dart';
+import '../../helpers/test_container.dart';
+
+void main() {
+  late ProviderContainer container;
+  SettingsController controller() =>
+      container.read(settingsControllerProvider.notifier);
+  Future<AppSettings> settings() =>
+      container.read(settingsControllerProvider.future);
+  Future<AppSettings> reloaded() =>
+      container.read(settingsRepositoryProvider).load();
+
+  setUp(() => container = createTestContainer());
+
+  test('starts from the stored or default settings', () async {
+    expect(await settings(), AppSettings.defaults('GBP'));
+  });
+
+  group('setMonthlyBudget', () {
+    test('saves a valid budget', () async {
+      expect(await controller().setMonthlyBudget(45000), isEmpty);
+      expect((await settings()).monthlyBudget, const Money(45000, 'GBP'));
+      expect((await reloaded()).monthlyBudget, const Money(45000, 'GBP'));
+    });
+
+    test('rejects a non-positive budget and keeps the old one', () async {
+      expect(await controller().setMonthlyBudget(0), {
+        BudgetValidationError.notPositive,
+      });
+      expect((await settings()).monthlyBudget, const Money(30000, 'GBP'));
+    });
+  });
+
+  group('setStrategyParameters', () {
+    const custom = StrategyParameters(
+      consolidationAprBps: 299,
+      promoMonths: 24,
+    );
+
+    test('saves valid parameters', () async {
+      expect(await controller().setStrategyParameters(custom), isEmpty);
+      expect((await settings()).strategyParameters, custom);
+      expect((await reloaded()).strategyParameters, custom);
+    });
+
+    test('rejects invalid parameters', () async {
+      final errors = await controller().setStrategyParameters(
+        const StrategyParameters(transferFeeBps: -1),
+      );
+      expect(errors, {StrategyParametersValidationError.transferFeeOutOfRange});
+      expect((await settings()).strategyParameters, const StrategyParameters());
+    });
+  });
+
+  group('setCurrency', () {
+    Future<List<Debt>> debts() async {
+      final code = (await settings()).currencyCode;
+      return await container.read(debtRepositoryProvider).loadAll(code);
+    }
+
+    setUp(() async {
+      await container.read(settingsControllerProvider.future);
+      await container
+          .read(debtRepositoryProvider)
+          .add(testDebt(id: 'a', balance: 123456, minPaymentFloor: 2550));
+    });
+
+    test('relabels amounts when decimal digits match', () async {
+      await controller().setCurrency('USD');
+      expect((await settings()).monthlyBudget, const Money(30000, 'USD'));
+      expect((await debts()).single.balance, const Money(123456, 'USD'));
+    });
+
+    test('rescales the budget and debts when decimal digits differ', () async {
+      await controller().setCurrency('JPY');
+      expect((await settings()).monthlyBudget, const Money(300, 'JPY'));
+      final debt = (await debts()).single;
+      expect(debt.balance, const Money(1235, 'JPY'));
+      expect(debt.minPaymentFloor, const Money(26, 'JPY'));
+
+      await controller().setCurrency('GBP');
+      expect((await settings()).monthlyBudget, const Money(30000, 'GBP'));
+      expect((await debts()).single.balance, const Money(123500, 'GBP'));
+    });
+
+    test('keeps a tiny budget above zero after rounding', () async {
+      await controller().setMonthlyBudget(40);
+      await controller().setCurrency('JPY');
+      expect((await settings()).monthlyBudget, const Money(1, 'JPY'));
+    });
+
+    test('rejects a malformed code', () async {
+      expect(() => controller().setCurrency('pounds'), throwsArgumentError);
+    });
+  });
+
+  test('completeOnboarding is remembered', () async {
+    await controller().completeOnboarding();
+    expect((await settings()).onboardingComplete, isTrue);
+    expect((await reloaded()).onboardingComplete, isTrue);
+  });
+}

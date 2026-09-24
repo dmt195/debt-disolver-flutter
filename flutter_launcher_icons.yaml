@@ -1,0 +1,12 @@
+# App icons from the artwork in legacy/resources. Regenerate with:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "legacy/resources/artwork.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "legacy/resources/artwork.png"
+  adaptive_icon_foreground_inset: 16
+  min_sdk_android: 24

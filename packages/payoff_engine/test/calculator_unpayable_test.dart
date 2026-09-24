@@ -39,8 +39,15 @@ void main() {
             allowsOverpayment: false,
           ),
         ], 2500);
-        expect(result, isA<Infeasible>());
-        expect((result as Infeasible).month, greaterThan(1));
+        // Month 22 is the first whose 2% minimum exceeds 25.00: 25.07.
+        expect(
+          result,
+          PayoffResult.infeasible(
+            strategyId: StrategyId.avalanche,
+            shortfall: gbp(7),
+            month: 22,
+          ),
+        );
       },
     );
 

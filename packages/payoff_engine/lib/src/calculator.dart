@@ -4,6 +4,7 @@ import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/payoff_result.dart';
 import 'package:payoff_engine/src/rounding.dart';
 import 'package:payoff_engine/src/strategy.dart';
+import 'package:payoff_engine/src/validation.dart';
 
 const String kConsolidationDebtId = 'consolidation';
 const String kBalanceTransferDebtId = 'balance-transfer';
@@ -16,11 +17,21 @@ const int kBalanceCeilingMinor = 10000000000000;
 ///
 /// Each month: add interest, pay every minimum, then spend what is left on
 /// overpayable debts in priority order. Pure: [debts] is not modified.
+///
+/// Throws [ArgumentError] if any debt fails [validateDebt], the list fails
+/// [validateDebtList], or [monthlyBudget] is negative.
 PayoffResult calculate({
   required List<Debt> debts,
   required Money monthlyBudget,
   required Strategy strategy,
 }) {
+  if (monthlyBudget.isNegative) {
+    throw ArgumentError.value(monthlyBudget, 'monthlyBudget', 'is negative');
+  }
+  if (validateDebtList(debts).isNotEmpty ||
+      debts.any((d) => validateDebt(d).isNotEmpty)) {
+    throw ArgumentError.value(debts, 'debts', 'contains invalid debts');
+  }
   final currency = monthlyBudget.currency;
   final zero = Money.zero(currency);
   final originalTotal = debts.fold(zero, (sum, d) => sum + d.balance);

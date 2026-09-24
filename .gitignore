@@ -25,3 +25,7 @@ coverage/
 *.g.dart
 *.freezed.dart
 lib/l10n/app_localizations*.dart
+
+# Local agent worktrees and scratch
+.claude/worktrees/
+.superpowers/

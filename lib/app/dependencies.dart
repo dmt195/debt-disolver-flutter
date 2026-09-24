@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:debt_destroyer/core/currency.dart';
+import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/debts/data/drift_debt_repository.dart';
 import 'package:debt_destroyer/features/debts/domain/debt_repository.dart';
@@ -31,5 +32,7 @@ SettingsRepository settingsRepository(Ref ref) => PrefsSettingsRepository(
 );
 
 @Riverpod(keepAlive: true)
-DebtRepository debtRepository(Ref ref) =>
-    DriftDebtRepository(ref.watch(appDatabaseProvider));
+DebtRepository debtRepository(Ref ref) => DriftDebtRepository(
+  ref.watch(appDatabaseProvider),
+  now: ref.watch(clockProvider),
+);

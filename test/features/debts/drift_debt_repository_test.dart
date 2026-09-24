@@ -194,4 +194,55 @@ void main() {
     final reopened = await DriftDebtRepository(second).watchAll('GBP').first;
     expect(reopened, [testDebt(id: 'a')]);
   });
+
+  group('promotional rates', () {
+    late DateTime now;
+
+    setUp(() {
+      now = DateTime(2026, 9, 24);
+      repo = DriftDebtRepository(db, now: () => now);
+    });
+
+    test('stores the end month and reads back the months left', () async {
+      await repo.add(
+        testDebt(id: 'a', promo: const Promo(aprBps: 0, months: 7)),
+      );
+      final row = await db.select(db.debtRows).getSingle();
+      expect(row.promoAprBps, 0);
+      expect(row.promoEndsYearMonth, 202703);
+      expect(
+        (await repo.loadAll('GBP')).single.promo,
+        const Promo(aprBps: 0, months: 7),
+      );
+
+      now = DateTime(2027, 1, 5);
+      expect(
+        (await repo.loadAll('GBP')).single.promo,
+        const Promo(aprBps: 0, months: 3),
+      );
+    });
+
+    test('a promo that has ended reads back as none', () async {
+      await repo.add(
+        testDebt(id: 'a', promo: const Promo(aprBps: 0, months: 1)),
+      );
+      now = DateTime(2026, 10);
+      final debt = (await repo.loadAll('GBP')).single;
+      expect(debt.promo, isNull);
+      // Never 0 or negative months, which the engine would reject.
+      expect(validateDebt(debt), isEmpty);
+    });
+
+    test('saving a debt without a promo clears it', () async {
+      final withPromo = testDebt(
+        id: 'a',
+        promo: const Promo(aprBps: 0, months: 7),
+      );
+      await repo.add(withPromo);
+      await repo.update(withPromo.copyWith(promo: null));
+      final row = await db.select(db.debtRows).getSingle();
+      expect(row.promoAprBps, isNull);
+      expect(row.promoEndsYearMonth, isNull);
+    });
+  });
 }

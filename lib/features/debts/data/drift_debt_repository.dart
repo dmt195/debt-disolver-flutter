@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/core/currency.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/debts/domain/debt_repository.dart';
+import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
 import 'package:drift/drift.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
@@ -133,6 +134,11 @@ class DriftDebtRepository implements DebtRepository {
     minPaymentPercentBps: row.minPaymentPercentBps,
     minPaymentFloor: Money(row.minPaymentFloorMinor, currencyCode),
     allowsOverpayment: row.allowsOverpayment,
+    promo: switch ((row.promoAprBps, row.promoEndsYearMonth)) {
+      (final int apr, final int end) when promoMonthsLeft(end, _now()) >= 1 =>
+        Promo(aprBps: apr, months: promoMonthsLeft(end, _now())),
+      _ => null, // none, or it has ended
+    },
   );
 
   DebtRowsCompanion _toCompanion(Debt debt) => DebtRowsCompanion(
@@ -144,5 +150,10 @@ class DriftDebtRepository implements DebtRepository {
     minPaymentPercentBps: Value(debt.minPaymentPercentBps),
     minPaymentFloorMinor: Value(debt.minPaymentFloor.minor),
     allowsOverpayment: Value(debt.allowsOverpayment),
+    promoAprBps: Value(debt.promo?.aprBps),
+    promoEndsYearMonth: Value(switch (debt.promo) {
+      final promo? => promoEndYearMonth(promo.months, _now()),
+      null => null,
+    }),
   );
 }

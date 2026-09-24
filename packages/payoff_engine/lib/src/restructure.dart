@@ -1,6 +1,7 @@
 import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/debt_kind.dart';
 import 'package:payoff_engine/src/debt_ordering.dart';
+import 'package:payoff_engine/src/fixed_loan_payment.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/payoff_result.dart';
 import 'package:payoff_engine/src/rounding.dart';
@@ -38,11 +39,7 @@ final class NotRestructurable extends RestructureOutcome {
 
 /// Turns the user's [debts] (not empty) into the debts [strategy] pays.
 /// Pure: [debts] is not modified.
-RestructureOutcome restructure(
-  List<Debt> debts,
-  Strategy strategy, {
-  required Money budget,
-}) {
+RestructureOutcome restructure(List<Debt> debts, Strategy strategy) {
   final currency = debts.first.balance.currency;
   final zero = Money.zero(currency);
   return switch (strategy) {
@@ -50,23 +47,55 @@ RestructureOutcome restructure(
     Snowball() ||
     CustomOrder() ||
     MinimumsOnly() => Restructured(debts: [...debts], fees: zero),
-    Consolidation(:final aprBps) => Restructured(
-      debts: [
-        Debt(
-          id: kConsolidationDebtId,
-          name: 'Consolidation loan',
-          type: DebtType.loan,
-          balance: debts.fold(zero, (sum, d) => sum + d.balance),
-          aprBps: aprBps,
-          minPaymentPercentBps: 0,
-          minPaymentFloor: budget,
-          allowsOverpayment: false,
-        ),
-      ],
-      fees: zero,
-    ),
+    Consolidation() => _consolidate(debts, strategy),
     BalanceTransfer() => _transfer(debts, strategy),
   };
+}
+
+RestructureOutcome _consolidate(List<Debt> debts, Consolidation c) {
+  final currency = debts.first.balance.currency;
+  final replaced = [
+    for (final d in debts)
+      if (isConsolidatable(d.type)) d,
+  ];
+  if (replaced.isEmpty) {
+    return const NotRestructurable(NotApplicableReason.nothingToConsolidate);
+  }
+  final principal = replaced.fold(0, (sum, d) => sum + d.balance.minor);
+  final fee = divideHalfEven(principal * c.feeBps, 10000);
+  final payment = fixedLoanPayment(
+    balanceMinor: principal + fee,
+    aprBps: c.aprBps,
+    termMonths: c.termMonths,
+  );
+  final loan = Debt(
+    id: kConsolidationDebtId,
+    name: 'Consolidation loan',
+    type: DebtType.loan,
+    balance: Money(principal + fee, currency),
+    aprBps: c.aprBps,
+    minPaymentPercentBps: 0,
+    minPaymentFloor: Money(payment, currency),
+    allowsOverpayment: true,
+  );
+  return Restructured(
+    debts: [
+      loan,
+      for (final d in debts)
+        if (!isConsolidatable(d.type)) d,
+    ],
+    fees: Money(fee, currency),
+    change: PlanChange.consolidation(
+      replaced: [
+        for (final d in replaced)
+          MovedBalance(debtId: d.id, name: d.name, amount: d.balance),
+      ],
+      fee: Money(fee, currency),
+      monthlyPayment: Money(payment, currency),
+      termMonths: c.termMonths,
+      aprBps: c.aprBps,
+    ),
+  );
 }
 
 RestructureOutcome _transfer(List<Debt> debts, BalanceTransfer t) {

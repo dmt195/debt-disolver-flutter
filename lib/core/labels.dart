@@ -33,6 +33,7 @@ String strategyDescription(
   StrategyId.customOrder => l10n.strategyCustomOrderDescription,
   StrategyId.minimumsOnly => l10n.strategyMinimumsOnlyDescription,
   StrategyId.consolidation => l10n.strategyConsolidationDescription(
+    p.consolidationTermMonths,
     formatPercent(p.consolidationAprBps, locale),
   ),
   StrategyId.balanceTransfer => l10n.strategyBalanceTransferDescription(

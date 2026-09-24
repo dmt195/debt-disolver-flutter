@@ -101,4 +101,14 @@ sealed class PlanChange with _$PlanChange {
     required bool limitAssumed,
     required int promoMonths,
   }) = TransferChange;
+
+  /// [replaced] were paid off by a loan of their total plus [fee], repaid at
+  /// [monthlyPayment] for [termMonths] months at [aprBps].
+  const factory PlanChange.consolidation({
+    required List<MovedBalance> replaced,
+    required Money fee,
+    required Money monthlyPayment,
+    required int termMonths,
+    required int aprBps,
+  }) = ConsolidationChange;
 }

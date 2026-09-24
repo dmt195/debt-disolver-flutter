@@ -43,7 +43,7 @@ void main() {
     );
     expect(
       strategyDescription(l10n, StrategyId.consolidation, p, 'en_GB'),
-      'One loan at 5% replaces all your debts.',
+      'A 60-month loan at 5% replaces your cards, loans and overdrafts.',
     );
   });
 

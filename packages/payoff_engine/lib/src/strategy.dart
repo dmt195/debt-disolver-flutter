@@ -23,9 +23,15 @@ sealed class Strategy with _$Strategy {
   /// Extra money to the debts in the order they are listed.
   const factory Strategy.customOrder() = CustomOrder;
 
-  /// Replace all debts with one loan at [aprBps]; the whole budget is the
-  /// fixed monthly payment.
-  const factory Strategy.consolidation({required int aprBps}) = Consolidation;
+  /// Replace every consolidatable debt with one loan at [aprBps], repaid
+  /// over [termMonths] months, plus a [feeBps] arrangement fee. What the
+  /// budget has left over the loan payment goes to the loan and the other
+  /// debts.
+  const factory Strategy.consolidation({
+    required int aprBps,
+    @Default(60) int termMonths,
+    @Default(0) int feeBps,
+  }) = Consolidation;
 
   /// Move card balances that charge interest to a card at 0% for
   /// [promoMonths] months, then [revertAprBps], adding a [feeBps] fee. At
@@ -59,6 +65,8 @@ sealed class Strategy with _$Strategy {
 abstract class StrategyParameters with _$StrategyParameters {
   const factory StrategyParameters({
     @Default(500) int consolidationAprBps,
+    @Default(60) int consolidationTermMonths,
+    @Default(0) int consolidationFeeBps,
     @Default(400) int transferFeeBps,
     @Default(12) int promoMonths,
     @Default(1500) int revertAprBps,
@@ -75,7 +83,11 @@ List<Strategy> standardStrategies(StrategyParameters p) => [
   const Strategy.avalanche(),
   const Strategy.snowball(),
   const Strategy.customOrder(),
-  Strategy.consolidation(aprBps: p.consolidationAprBps),
+  Strategy.consolidation(
+    aprBps: p.consolidationAprBps,
+    termMonths: p.consolidationTermMonths,
+    feeBps: p.consolidationFeeBps,
+  ),
   Strategy.balanceTransfer(
     feeBps: p.transferFeeBps,
     promoMonths: p.promoMonths,

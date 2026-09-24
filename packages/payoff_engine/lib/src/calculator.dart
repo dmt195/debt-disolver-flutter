@@ -34,6 +34,9 @@ PayoffResult calculate({
       'not in the budget currency',
     );
   }
+  if (strategy case Consolidation(:final termMonths) when termMonths < 1) {
+    throw ArgumentError.value(termMonths, 'termMonths', 'must be at least 1');
+  }
   final zero = Money.zero(currency);
   if (debts.isEmpty) {
     return PayoffResult.feasible(
@@ -48,7 +51,7 @@ PayoffResult calculate({
     );
   }
 
-  return switch (restructure(debts, strategy, budget: monthlyBudget)) {
+  return switch (restructure(debts, strategy)) {
     NotRestructurable(:final reason) => PayoffResult.notApplicable(
       strategyId: strategy.id,
       reason: reason,

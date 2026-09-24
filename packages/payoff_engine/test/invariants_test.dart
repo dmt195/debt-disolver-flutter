@@ -27,6 +27,8 @@ void main() {
 
   StrategyParameters randomParameters(Random r) => StrategyParameters(
     consolidationAprBps: r.nextInt(2001),
+    consolidationTermMonths: 6 + r.nextInt(115),
+    consolidationFeeBps: r.nextInt(2001),
     transferFeeBps: r.nextInt(501),
     promoMonths: r.nextInt(25),
     revertAprBps: r.nextInt(3001),
@@ -106,6 +108,19 @@ void main() {
                 sum(moved.map((m) => m.amount)) + fee <= creditLimit,
                 isTrue,
                 reason: label,
+              );
+            }
+            if (plan.change case ConsolidationChange(:final termMonths)) {
+              final loan = plan.debts.indexWhere(
+                (d) => d.id == kConsolidationDebtId,
+              );
+              final end = termMonths < plan.monthsToClear
+                  ? termMonths
+                  : plan.monthsToClear;
+              expect(
+                plan.months[end - 1].closingBalances[loan].isZero,
+                isTrue,
+                reason: '$label: loan outlives its term',
               );
             }
         }

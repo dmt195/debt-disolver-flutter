@@ -40,7 +40,7 @@ void main() {
       );
 
   Restructured restructured(Strategy s, [List<Debt>? input]) =>
-      restructure(input ?? debts, s, budget: gbp(60000)) as Restructured;
+      restructure(input ?? debts, s) as Restructured;
 
   test('with no limit, every card balance moves, highest APR first', () {
     final r = restructured(transfer());

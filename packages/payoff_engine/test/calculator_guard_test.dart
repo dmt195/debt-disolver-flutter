@@ -51,6 +51,7 @@ void main() {
       monthlyBudget: gbp(kMaxAmountMinor),
       strategy: const Strategy.consolidation(aprBps: 10000),
     );
-    expect(result, isA<NeverClears>());
+    // The 60-month payment alone is far above the budget.
+    expect(result, isA<Infeasible>());
   });
 }

@@ -8,7 +8,7 @@ void main() {
   final high = debt(id: 'high', balance: 2000, aprBps: 2000);
 
   Restructured paid(List<Debt> debts, Strategy strategy) =>
-      restructure(debts, strategy, budget: gbp(500)) as Restructured;
+      restructure(debts, strategy) as Restructured;
 
   test('direct strategies keep the list as given and add no fees', () {
     for (final s in const [
@@ -54,7 +54,7 @@ void main() {
 
   test('does not modify its input', () {
     final input = [low, high];
-    restructure(input, const Strategy.avalanche(), budget: gbp(500));
+    restructure(input, const Strategy.avalanche());
     expect(input, [low, high]);
   });
 }

@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/domain/rank_results.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,7 +68,7 @@ Future<PlanSet> plans(Ref ref) async {
   final active = await ref.watch(activeScenarioProvider.future);
   final budget = active.monthlyBudget;
   // Never more than the budget again, even if the budget has since shrunk.
-  final extra = ref.watch(extraPaymentProvider).clamp(0, budget.minor);
+  final extra = effectiveExtraMinor(ref.watch(extraPaymentProvider), budget);
   final set = await ref.watch(planCalculatorProvider)(
     debts,
     budget + Money(extra, budget.currency),

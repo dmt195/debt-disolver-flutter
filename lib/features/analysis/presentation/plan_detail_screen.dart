@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
+import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
 import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_change_lines.dart';
@@ -8,6 +9,7 @@ import 'package:debt_destroyer/features/analysis/presentation/plan_chart_tab.dar
 import 'package:debt_destroyer/features/analysis/presentation/plan_schedule_tab.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_summary_tab.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
+import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -58,12 +60,22 @@ class _PlanTabs extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final locale = ref.watch(formatLocaleProvider);
-    final scenarioName = ref.watch(activeScenarioProvider).value?.name;
+    final activeScenario = ref.watch(activeScenarioProvider).value;
+    final scenarioName = activeScenario?.name;
+    final extraLine = activeScenario == null
+        ? null
+        : _extraLine(
+            l10n,
+            activeScenario,
+            ref.watch(extraPaymentProvider),
+            locale,
+          );
     final table = scheduleTableFor(
       l10n,
       plan,
       notes: [
         l10n.planScenario(scenarioName ?? l10n.scenarioCurrent),
+        ?extraLine,
         if (plan.change case final change?)
           ...planChangeLines(l10n, change, locale),
       ],
@@ -72,16 +84,22 @@ class _PlanTabs extends ConsumerWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: scenarioName == null
+          title: scenarioName == null && extraLine == null
               ? title
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     title,
-                    Text(
-                      l10n.planScenario(scenarioName),
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
+                    if (scenarioName != null)
+                      Text(
+                        l10n.planScenario(scenarioName),
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    if (extraLine != null)
+                      Text(
+                        extraLine,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
                   ],
                 ),
           actions: [
@@ -133,6 +151,23 @@ class _PlanTabs extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "Including £X a month extra (£Y a month in total)", or null when the
+/// slider's effective extra is zero.
+String? _extraLine(
+  AppLocalizations l10n,
+  ActiveScenario scenario,
+  int storedExtra,
+  String locale,
+) {
+  final extra = effectiveExtraMinor(storedExtra, scenario.monthlyBudget);
+  if (extra <= 0) return null;
+  final currency = scenario.monthlyBudget.currency;
+  return l10n.planExtra(
+    formatMoney(Money(extra, currency), locale),
+    formatMoney(scenario.monthlyBudget + Money(extra, currency), locale),
+  );
 }
 
 /// Where [context]'s widget is on screen, for anchoring the share sheet.

@@ -36,11 +36,17 @@ String strategyDescription(
     p.consolidationTermMonths,
     formatPercent(p.consolidationAprBps, locale),
   ),
-  StrategyId.balanceTransfer => l10n.strategyBalanceTransferDescription(
-    p.promoMonths,
-    formatPercent(p.transferFeeBps, locale),
-    formatPercent(p.revertAprBps, locale),
-  ),
+  StrategyId.balanceTransfer =>
+    p.promoMonths == 0
+        ? l10n.strategyBalanceTransferNoPromoDescription(
+            formatPercent(p.transferFeeBps, locale),
+            formatPercent(p.revertAprBps, locale),
+          )
+        : l10n.strategyBalanceTransferDescription(
+            p.promoMonths,
+            formatPercent(p.transferFeeBps, locale),
+            formatPercent(p.revertAprBps, locale),
+          ),
 };
 
 /// The name to show for a debt in a plan; the calculator's synthetic debts

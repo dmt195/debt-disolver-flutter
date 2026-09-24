@@ -47,6 +47,14 @@ void main() {
     );
   });
 
+  test('describes a balance transfer with no promo, not "0% for 0 months"', () {
+    const p = StrategyParameters(promoMonths: 0);
+    expect(
+      strategyDescription(l10n, StrategyId.balanceTransfer, p, 'en_GB'),
+      'Move card balances to a new card (4% fee, 15% interest).',
+    );
+  });
+
   test('every strategy and debt type has a label', () {
     for (final id in StrategyId.values) {
       expect(strategyName(l10n, id), isNotEmpty);

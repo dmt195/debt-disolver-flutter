@@ -16,4 +16,19 @@ void main() {
   test('works in currencies without decimals', () {
     expect(extraPaymentStepMinor(const Money(30000, 'JPY')), 500); // ¥500
   });
+
+  group('effectiveExtraMinor', () {
+    test('clamps to the nearest step at or below the budget', () {
+      // Step 500 (see above), so the max whole step below 19,950 is 19,500.
+      expect(effectiveExtraMinor(20000, const Money(19950, 'GBP')), 19500);
+    });
+
+    test('never negative', () {
+      expect(effectiveExtraMinor(-100, const Money(30000, 'GBP')), 0);
+    });
+
+    test('unchanged within range', () {
+      expect(effectiveExtraMinor(5000, const Money(30000, 'GBP')), 5000);
+    });
+  });
 }

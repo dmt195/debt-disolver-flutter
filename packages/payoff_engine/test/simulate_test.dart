@@ -60,6 +60,27 @@ void main() {
     expect(plan.totalPaid, gbp(124723));
   });
 
+  test(
+    "debts clearing in the same month keep that month's allocation order",
+    () {
+      // Both debts clear within month 1; the tie is broken by the order the
+      // budget was allocated in that month, not by list order.
+      final plan = planOf(
+        simulate(
+          strategyId: StrategyId.avalanche,
+          debts: [
+            debt(id: 'a', balance: 1000, aprBps: 500),
+            debt(id: 'b', balance: 1000, aprBps: 2000),
+          ],
+          budget: gbp(5000),
+          fees: gbp(0),
+          order: (_) => [1, 0],
+        ),
+      );
+      expect(plan.payoffOrder, ['b', 'a']);
+    },
+  );
+
   test('with allowExtra false, pays only the minimums', () {
     final plan = planOf(
       simulate(

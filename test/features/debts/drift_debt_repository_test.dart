@@ -258,6 +258,29 @@ void main() {
       expect(validateDebt(debt), isEmpty);
     });
 
+    test(
+      'reads the clock once, so a month boundary never yields 0 months',
+      () async {
+        // Fixed clock for setup: promo ends this month (September).
+        final setup = DriftDebtRepository(db, now: () => DateTime(2026, 9, 24));
+        await setup.add(
+          testDebt(id: 'a', promo: const Promo(aprBps: 0, months: 1)),
+        );
+
+        // A flaky clock: the first call (whatever it's for) is still in
+        // September, any later call has ticked over into October. If _toDebt
+        // reads the clock twice (once to guard, once to build the Promo) it
+        // sees the promo as live, then re-reads it as already ended.
+        var calls = 0;
+        final flaky = DriftDebtRepository(
+          db,
+          now: () => calls++ == 0 ? DateTime(2026, 9, 30) : DateTime(2026, 10),
+        );
+        final debts = await flaky.loadAll('GBP');
+        expect(debts.single.promo, const Promo(aprBps: 0, months: 1));
+      },
+    );
+
     test('saving a debt without a promo clears it', () async {
       final withPromo = testDebt(
         id: 'a',

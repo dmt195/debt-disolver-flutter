@@ -25,7 +25,7 @@ List<String> planChangeLines(
           l10n.changeCreditLimitAssumed(money(creditLimit))
         else
           l10n.changeCreditLimit(money(creditLimit)),
-        l10n.changePromoMonths(promoMonths),
+        if (promoMonths > 0) l10n.changePromoMonths(promoMonths),
       ],
     ConsolidationChange(
       :final replaced,

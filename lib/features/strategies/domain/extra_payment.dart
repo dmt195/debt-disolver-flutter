@@ -16,3 +16,13 @@ int extraPaymentStepMinor(Money budget) {
     }
   }
 }
+
+/// The pay-more extra actually applied on top of [budget]: [storedExtra]
+/// clamped to whole slider steps (see [extraPaymentStepMinor]) within
+/// [budget], and never negative. The one clamp every user of the stored
+/// extra should apply, so they never disagree after the budget changes.
+int effectiveExtraMinor(int storedExtra, Money budget) {
+  final step = extraPaymentStepMinor(budget);
+  final max = (budget.minor ~/ step) * step;
+  return storedExtra.clamp(0, max);
+}

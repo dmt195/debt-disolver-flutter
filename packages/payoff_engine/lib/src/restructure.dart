@@ -39,6 +39,10 @@ final class NotRestructurable extends RestructureOutcome {
 
 /// Turns the user's [debts] (not empty) into the debts [strategy] pays.
 /// Pure: [debts] is not modified.
+///
+/// [debts] is assumed already validated, non-empty and in a single
+/// currency; callers normally reach this through `calculate` rather than
+/// calling it directly.
 RestructureOutcome restructure(List<Debt> debts, Strategy strategy) {
   final currency = debts.first.balance.currency;
   final zero = Money.zero(currency);

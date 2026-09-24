@@ -15,6 +15,10 @@ const int kBalanceCeilingMinor = 10000000000000;
 /// spend what is left on overpayable debts in [order] (unless [allowExtra]
 /// is false). The plan lists debts in the order they are cleared. [fees] are
 /// reported as the plan's fees; they are already in the balances.
+///
+/// [debts] is assumed already validated, non-empty and in a single
+/// currency; callers normally reach this through `calculate` rather than
+/// calling it directly.
 PayoffResult simulate({
   required StrategyId strategyId,
   required List<Debt> debts,

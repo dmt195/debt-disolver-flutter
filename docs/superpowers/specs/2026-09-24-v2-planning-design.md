@@ -197,6 +197,8 @@ Scenarios are stored in a new Drift table, `scenarios`:
 
 `ScenarioRepository` provides `watchAll`, `save`, `rename`, `delete`. `DriftDebtRepository.convertAmounts` also rescales `monthlyBudgetMinor` and `transferCreditLimitMinor` in all scenarios, in the same transaction, so debts and scenarios always share one currency.
 
+**Deviation (implementation):** name uniqueness is enforced in the domain (`ScenarioNameError.duplicate`, compared case- and space-insensitively via `name.trim().toLowerCase()`), not by a database `UNIQUE` constraint on the `scenarios` table.
+
 ### 5.3 Providers
 
 - `selectedScenarioProvider`: `current`, or a scenario id. It is kept for the session only and resets to `current` on launch.
@@ -213,7 +215,7 @@ Scenarios are stored in a new Drift table, `scenarios`:
 - An optional "Promotional rate" section: promo APR, and an "Until" month picker, from this month up to 10 years ahead (120 months).
 
 **Strategies**, from top to bottom:
-1. **Scenario picker**: "Current", then saved scenarios by name, then "Manage scenarios".
+1. **Scenario picker**: "Current", then saved scenarios by name. **Deviation (implementation):** the picker is hidden until a scenario has been saved (there is nothing to pick between otherwise), has no "Manage scenarios" item, and the Scenarios screen is opened instead from an app-bar icon on the Strategies screen.
 2. **Slider**: "Pay £X more a month", from £0 up to the scenario budget, in 60 steps. Each step is rounded to a round number of major units (1, 2 or 5 × 10ⁿ), so the slider moves by, say, £5 on a £300 budget, and by a sensible amount in currencies with or without decimals. The resulting total is shown.
 3. **Baseline line**: "Minimums only: 14 yrs 2 mths · £9,840 interest". If minimums never clear the debts: "Paying only the minimums would never clear these debts". If minimums aren't affordable, the v1 infeasible banner shows instead. Tapping the line opens the baseline's plan detail (`/strategies/minimumsOnly`).
 4. **Strategy cards**, as in v1, with the cheapest highlighted. They add:

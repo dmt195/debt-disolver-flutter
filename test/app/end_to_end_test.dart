@@ -62,6 +62,12 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
       expect(app.scenarios.stored.single.name, 'Stretch');
+      // Default budget £300.00, plus the slider's centre tap: step £5 across
+      // 60 divisions of the £300 budget, so a centre tap adds £150.00.
+      expect(
+        app.scenarios.stored.single.monthlyBudget,
+        const Money(45000, 'GBP'),
+      );
 
       await tester.scrollUntilVisible(find.text('Highest interest first'), 100);
       await tapVisible(tester, find.text('Highest interest first'));

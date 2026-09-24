@@ -6,6 +6,7 @@ import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
+import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -207,5 +208,53 @@ void main() {
     app.container.read(selectedScenarioIdProvider.notifier).select('s1');
     await tester.pumpAndSettle();
     expect(find.text('Scenario: Bonus'), findsOneWidget);
+  });
+
+  testWidgets('shows and exports the pay-more extra', (tester) async {
+    final exporter = _RecordingExporter();
+    final app = await pumpApp(
+      tester,
+      debts: [visa],
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000}, // £250
+      location: Routes.plan(StrategyId.avalanche),
+      overrides: [planExporterProvider.overrideWithValue(exporter)],
+    );
+    app.container.read(extraPaymentProvider.notifier).set(12500); // £125
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Including £125.00 a month extra (£375.00 a month in total)'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spreadsheet (CSV)'));
+    await tester.pumpAndSettle();
+    final (table, _, _) = exporter.calls.single;
+    expect(table.notes, [
+      'Scenario: Current',
+      'Including £125.00 a month extra (£375.00 a month in total)',
+    ]);
+  });
+
+  testWidgets('with no extra, no extra line is shown or exported', (
+    tester,
+  ) async {
+    final exporter = _RecordingExporter();
+    await pumpApp(
+      tester,
+      debts: [visa],
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.plan(StrategyId.avalanche),
+      overrides: [planExporterProvider.overrideWithValue(exporter)],
+    );
+    expect(find.textContaining('a month extra'), findsNothing);
+
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spreadsheet (CSV)'));
+    await tester.pumpAndSettle();
+    final (table, _, _) = exporter.calls.single;
+    expect(table.notes, ['Scenario: Current']);
   });
 }

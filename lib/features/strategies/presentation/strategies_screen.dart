@@ -320,7 +320,10 @@ class _PayMoreSliderState extends ConsumerState<_PayMoreSlider> {
     final divisions = widget.budget.minor ~/ step;
     if (divisions < 1) return const SizedBox.shrink();
     final max = divisions * step;
-    final committed = ref.watch(extraPaymentProvider).clamp(0, max);
+    final committed = effectiveExtraMinor(
+      ref.watch(extraPaymentProvider),
+      widget.budget,
+    );
     final value = _dragging ?? committed.toDouble();
     final extra = Money(value.round(), widget.budget.currency);
     return Padding(
@@ -406,9 +409,10 @@ class _SaveAsScenarioButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final extra = ref
-        .watch(extraPaymentProvider)
-        .clamp(0, active.monthlyBudget.minor);
+    final extra = effectiveExtraMinor(
+      ref.watch(extraPaymentProvider),
+      active.monthlyBudget,
+    );
     // A saved scenario with nothing added would only be a copy of itself.
     if (active.id != null && extra == 0) return const SizedBox.shrink();
     return Align(

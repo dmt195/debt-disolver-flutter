@@ -144,21 +144,30 @@ class DriftDebtRepository implements DebtRepository {
             );
       });
 
-  Debt _toDebt(DebtRow row, String currencyCode) => Debt(
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    balance: Money(row.balanceMinor, currencyCode),
-    aprBps: row.aprBps,
-    minPaymentPercentBps: row.minPaymentPercentBps,
-    minPaymentFloor: Money(row.minPaymentFloorMinor, currencyCode),
-    allowsOverpayment: row.allowsOverpayment,
-    promo: switch ((row.promoAprBps, row.promoEndsYearMonth)) {
-      (final int apr, final int end) when promoMonthsLeft(end, _now()) >= 1 =>
-        Promo(aprBps: apr, months: promoMonthsLeft(end, _now())),
-      _ => null, // none, or it has ended
-    },
-  );
+  Debt _toDebt(DebtRow row, String currencyCode) {
+    // Read the clock once: reading it twice (once to check the promo is
+    // still live, once to compute its remaining months) can straddle a
+    // month boundary and produce an invalid Promo(months: 0).
+    final now = _now();
+    final left = switch (row.promoEndsYearMonth) {
+      final int end => promoMonthsLeft(end, now),
+      null => 0,
+    };
+    return Debt(
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      balance: Money(row.balanceMinor, currencyCode),
+      aprBps: row.aprBps,
+      minPaymentPercentBps: row.minPaymentPercentBps,
+      minPaymentFloor: Money(row.minPaymentFloorMinor, currencyCode),
+      allowsOverpayment: row.allowsOverpayment,
+      promo: switch (row.promoAprBps) {
+        final int apr when left >= 1 => Promo(aprBps: apr, months: left),
+        _ => null, // none, or it has ended
+      },
+    );
+  }
 
   DebtRowsCompanion _toCompanion(Debt debt) => DebtRowsCompanion(
     id: Value(debt.id),

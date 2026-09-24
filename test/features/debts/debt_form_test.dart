@@ -217,6 +217,22 @@ void main() {
     expect(field('Minimum payment (at least)'), findsOneWidget);
   });
 
+  testWidgets(
+    'editing a loan saved with a percentage minimum, unchanged, keeps it',
+    (tester) async {
+      final app = await pumpApp(
+        tester,
+        // Defaults: minPaymentPercentBps 300, minPaymentFloor 2500.
+        debts: [testDebt(id: 'a', type: DebtType.loan)],
+        location: Routes.editDebt('a'),
+      );
+      await save(tester);
+      final saved = app.repository.stored.single;
+      expect(saved.minPaymentPercentBps, 300);
+      expect(saved.minPaymentFloor.minor, 2500);
+    },
+  );
+
   testWidgets('explains minimums only for a student loan', (tester) async {
     await pumpApp(tester, location: Routes.newDebt);
     await chooseType(tester, 'Student loan');

@@ -13,3 +13,14 @@ legacy/**/local.properties
 legacy/resources/shutterstock_*
 legacy/resources/*.otf
 legacy/resources/*.ttf
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins-dependencies
+build/
+coverage/
+.idea/
+*.iml
+
+# Generated code: run tool/codegen.sh
+*.g.dart
+*.freezed.dart

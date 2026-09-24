@@ -22,6 +22,12 @@ sealed class PayoffResult with _$PayoffResult {
   /// The debts are not cleared within [kMaxMonths] months.
   const factory PayoffResult.neverClears({required StrategyId strategyId}) =
       NeverClears;
+
+  /// [strategyId] can't be used with these debts, for [reason].
+  const factory PayoffResult.notApplicable({
+    required StrategyId strategyId,
+    required NotApplicableReason reason,
+  }) = NotApplicable;
 }
 
 /// A debt as it appears in a plan: a column in every [MonthRow].
@@ -56,6 +62,9 @@ abstract class PayoffPlan with _$PayoffPlan {
 
     /// One-off fees, e.g. a balance-transfer fee.
     required Money totalFees,
+
+    /// What the strategy moved or replaced, if anything.
+    PlanChange? change,
   }) = _PayoffPlan;
 
   const PayoffPlan._();
@@ -67,3 +76,29 @@ abstract class PayoffPlan with _$PayoffPlan {
 
 /// Calculation stops after this many months (100 years).
 const int kMaxMonths = 1200;
+
+enum NotApplicableReason { noTransferableBalances, nothingToConsolidate }
+
+/// A balance moved to a transfer card or replaced by a consolidation loan.
+@freezed
+abstract class MovedBalance with _$MovedBalance {
+  const factory MovedBalance({
+    required String debtId,
+    required String name,
+    required Money amount,
+  }) = _MovedBalance;
+}
+
+/// What a strategy changed about the user's debts.
+@freezed
+sealed class PlanChange with _$PlanChange {
+  /// [moved] went to a card at 0% for [promoMonths] months. [creditLimit]
+  /// was assumed (just enough for everything) when [limitAssumed].
+  const factory PlanChange.transfer({
+    required List<MovedBalance> moved,
+    required Money fee,
+    required Money creditLimit,
+    required bool limitAssumed,
+    required int promoMonths,
+  }) = TransferChange;
+}

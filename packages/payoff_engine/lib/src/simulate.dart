@@ -22,6 +22,7 @@ PayoffResult simulate({
   required Money fees,
   required AllocationOrder order,
   bool allowExtra = true,
+  PlanChange? change,
 }) {
   final currency = budget.currency;
   final n = debts.length;
@@ -121,6 +122,7 @@ PayoffResult simulate({
       totalPaid: Money(total((r) => r.payments), currency),
       totalInterest: Money(total((r) => r.interest), currency),
       totalFees: fees,
+      change: change,
     ),
   );
 }

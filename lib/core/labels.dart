@@ -50,6 +50,15 @@ String planDebtName(AppLocalizations l10n, PlanDebt debt) => switch (debt.id) {
   _ => debt.name,
 };
 
+/// Why a strategy can't be used with the current debts.
+String notApplicableReason(
+  AppLocalizations l10n,
+  NotApplicableReason reason,
+) => switch (reason) {
+  NotApplicableReason.noTransferableBalances => l10n.notApplicableNoTransfer,
+  NotApplicableReason.nothingToConsolidate => l10n.notApplicableNoConsolidation,
+};
+
 /// e.g. `2 years 3 months`, `1 year`, `5 months`.
 String formatDuration(AppLocalizations l10n, int months) {
   final years = months ~/ 12;

@@ -42,7 +42,14 @@ void main() {
       () {
         final plan = planOf(
           run(
-            [debt(id: 'a', balance: 1000000, minPaymentFloor: 2500)],
+            [
+              debt(
+                id: 'a',
+                balance: 1000000,
+                aprBps: 1990,
+                minPaymentFloor: 2500,
+              ),
+            ],
             50000,
             const Strategy.balanceTransfer(
               feeBps: 400,

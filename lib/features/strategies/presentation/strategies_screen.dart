@@ -111,6 +111,10 @@ class _StrategyCard extends ConsumerWidget {
         l10n.neverClears,
         style: TextStyle(color: theme.colorScheme.error),
       ),
+      NotApplicable(:final reason) => Text(
+        notApplicableReason(l10n, reason),
+        style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+      ),
     };
 
     return Card(

@@ -84,4 +84,17 @@ void main() {
     expect(find.text('Add a debt to compare strategies.'), findsOneWidget);
     expect(find.byType(Card), findsNothing);
   });
+
+  testWidgets('says why a strategy does not apply', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [simple], // 0% card: nothing worth transferring
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.strategies,
+    );
+    const reason =
+        'Not available: there are no card balances with interest to move.';
+    await tester.scrollUntilVisible(find.text(reason), 100);
+    expect(find.text(reason), findsOneWidget);
+  });
 }

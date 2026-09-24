@@ -59,6 +59,22 @@ void main() {
     ]);
   });
 
+  test('puts strategies that do not apply last', () {
+    final ranked = rankResults([
+      const PayoffResult.notApplicable(
+        strategyId: StrategyId.balanceTransfer,
+        reason: NotApplicableReason.noTransferableBalances,
+      ),
+      const PayoffResult.neverClears(strategyId: StrategyId.snowball),
+      feasible(StrategyId.avalanche, paid: 1),
+    ]);
+    expect(ranked.map((r) => r.strategyId), [
+      StrategyId.avalanche,
+      StrategyId.snowball,
+      StrategyId.balanceTransfer,
+    ]);
+  });
+
   test('does not modify its input', () {
     final input = [
       feasible(StrategyId.avalanche, paid: 2),

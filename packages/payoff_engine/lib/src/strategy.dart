@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:payoff_engine/src/money.dart';
 
 part 'strategy.freezed.dart';
 
@@ -26,12 +27,15 @@ sealed class Strategy with _$Strategy {
   /// fixed monthly payment.
   const factory Strategy.consolidation({required int aprBps}) = Consolidation;
 
-  /// Move all debts to a 0% card, adding a [feeBps] transfer fee. Interest at
-  /// [revertAprBps] starts in month `promoMonths + 1`.
+  /// Move card balances that charge interest to a card at 0% for
+  /// [promoMonths] months, then [revertAprBps], adding a [feeBps] fee. At
+  /// most [creditLimit] (fees included) moves; with no limit, everything
+  /// eligible fits.
   const factory Strategy.balanceTransfer({
     required int feeBps,
     required int promoMonths,
     required int revertAprBps,
+    Money? creditLimit,
   }) = BalanceTransfer;
 
   /// Only the minimum on every debt: the baseline the others are compared
@@ -58,6 +62,10 @@ abstract class StrategyParameters with _$StrategyParameters {
     @Default(400) int transferFeeBps,
     @Default(12) int promoMonths,
     @Default(1500) int revertAprBps,
+
+    /// The transfer card's limit, in the budget currency; null assumes
+    /// every eligible balance fits.
+    Money? transferCreditLimit,
   }) = _StrategyParameters;
 }
 
@@ -72,5 +80,6 @@ List<Strategy> standardStrategies(StrategyParameters p) => [
     feeBps: p.transferFeeBps,
     promoMonths: p.promoMonths,
     revertAprBps: p.revertAprBps,
+    creditLimit: p.transferCreditLimit,
   ),
 ];

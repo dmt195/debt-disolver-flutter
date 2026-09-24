@@ -11,23 +11,24 @@ void main() {
   // LegacySolver uses the Java fallback settings (4% loan, 15-month promo).
   const params = StrategyParameters(consolidationAprBps: 400, promoMonths: 15);
 
-  Map<StrategyId, PayoffPlan> runAll(List<Debt> debts, int budget) => {
+  Map<StrategyId, PayoffResult> runAll(List<Debt> debts, int budget) => {
     for (final r in calculateAll(
       debts: debts,
       monthlyBudget: gbp(budget),
       parameters: params,
     ))
-      r.strategyId: planOf(r),
+      r.strategyId: r,
   };
 
   void expectPlan(
-    PayoffPlan plan, {
+    PayoffResult result, {
     required int months,
     required int paid,
     required int interest,
     int fees = 0,
     List<String>? order,
   }) {
+    final plan = planOf(result);
     expect(plan.monthsToClear, months, reason: 'months');
     expect(plan.totalPaid, gbp(paid), reason: 'totalPaid');
     expect(plan.totalInterest, gbp(interest), reason: 'totalInterest');
@@ -46,13 +47,14 @@ void main() {
       paid: 100842,
       interest: 842,
     );
-    // Legacy: 5 months, 1040.00, but it reported the 40.00 fee as interest.
-    expectPlan(
-      p[StrategyId.balanceTransfer]!,
-      months: 5,
-      paid: 104000,
-      interest: 0,
-      fees: 4000,
+    // Legacy moved the interest-free card anyway (5 months, 1040.00). v2
+    // only moves balances that charge interest, so there is nothing to move.
+    expect(
+      p[StrategyId.balanceTransfer],
+      const PayoffResult.notApplicable(
+        strategyId: StrategyId.balanceTransfer,
+        reason: NotApplicableReason.noTransferableBalances,
+      ),
     );
   });
 
@@ -133,15 +135,16 @@ void main() {
       paid: 667291,
       interest: 17291,
     );
-    // Legacy: 16 months, 6760.00. It gave 16 interest-free months instead of
-    // 15 (the off-by-one fix adds 0.12 of interest in month 16) and counted
-    // the 260.00 fee as interest.
+    // Legacy moved everything, loan included: 16 months, 6760.00. v2 moves
+    // only the two cards (3,500.00 + 140.00 fee); the fixed-payment car loan
+    // stays and sets the pace.
     expectPlan(
       p[StrategyId.balanceTransfer]!,
-      months: 16,
-      paid: 676012,
-      interest: 12,
-      fees: 26000,
+      months: 22,
+      paid: 682395,
+      interest: 18395,
+      fees: 14000,
+      order: [kBalanceTransferDebtId, 'l1'],
     );
     expectPlan(
       p[StrategyId.snowball]!,

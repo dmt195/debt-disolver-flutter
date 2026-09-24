@@ -25,6 +25,15 @@ PayoffResult calculate({
     throw ArgumentError.value(debts, 'debts', 'contains invalid debts');
   }
   final currency = monthlyBudget.currency;
+  if (strategy case BalanceTransfer(
+    creditLimit: final limit?,
+  ) when limit.currency != currency) {
+    throw ArgumentError.value(
+      limit,
+      'creditLimit',
+      'not in the budget currency',
+    );
+  }
   final zero = Money.zero(currency);
   if (debts.isEmpty) {
     return PayoffResult.feasible(
@@ -39,15 +48,21 @@ PayoffResult calculate({
     );
   }
 
-  final restructured = restructure(debts, strategy, budget: monthlyBudget);
-  return simulate(
-    strategyId: strategy.id,
-    debts: restructured.debts,
-    budget: monthlyBudget,
-    fees: restructured.fees,
-    order: allocationOrder(strategy, restructured.debts),
-    allowExtra: strategy is! MinimumsOnly,
-  );
+  return switch (restructure(debts, strategy, budget: monthlyBudget)) {
+    NotRestructurable(:final reason) => PayoffResult.notApplicable(
+      strategyId: strategy.id,
+      reason: reason,
+    ),
+    Restructured(debts: final paid, :final fees, :final change) => simulate(
+      strategyId: strategy.id,
+      debts: paid,
+      budget: monthlyBudget,
+      fees: fees,
+      change: change,
+      order: allocationOrder(strategy, paid),
+      allowExtra: strategy is! MinimumsOnly,
+    ),
+  };
 }
 
 /// Runs every strategy in [standardStrategies], in that order.

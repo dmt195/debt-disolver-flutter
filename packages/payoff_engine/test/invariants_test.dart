@@ -30,6 +30,7 @@ void main() {
     transferFeeBps: r.nextInt(501),
     promoMonths: r.nextInt(25),
     revertAprBps: r.nextInt(3001),
+    transferCreditLimit: r.nextBool() ? null : gbp(1 + r.nextInt(2000000)),
   );
 
   Money sum(Iterable<Money> xs) => xs.fold(gbp(0), (a, b) => a + b);
@@ -56,6 +57,8 @@ void main() {
             expect(shortfall.isPositive, isTrue, reason: label);
             expect(month, inInclusiveRange(1, kMaxMonths), reason: label);
           case NeverClears():
+            break;
+          case NotApplicable():
             break;
           case Feasible(:final plan):
             feasible++;
@@ -94,6 +97,17 @@ void main() {
               isTrue,
               reason: label,
             );
+            if (plan.change case TransferChange(
+              :final moved,
+              :final fee,
+              :final creditLimit,
+            )) {
+              expect(
+                sum(moved.map((m) => m.amount)) + fee <= creditLimit,
+                isTrue,
+                reason: label,
+              );
+            }
         }
       }
     }

@@ -39,7 +39,7 @@ void main() {
     const p = StrategyParameters();
     expect(
       strategyDescription(l10n, StrategyId.balanceTransfer, p, 'en_GB'),
-      'Move everything to a 0% card for 12 months (4% fee, then 15%).',
+      'Move card balances to a 0% card for 12 months (4% fee, then 15%).',
     );
     expect(
       strategyDescription(l10n, StrategyId.consolidation, p, 'en_GB'),
@@ -54,5 +54,16 @@ void main() {
     for (final type in DebtType.values) {
       expect(debtTypeLabel(l10n, type), isNotEmpty);
     }
+  });
+
+  test('explains why a strategy does not apply', () {
+    expect(
+      notApplicableReason(l10n, NotApplicableReason.noTransferableBalances),
+      'Not available: there are no card balances with interest to move.',
+    );
+    expect(
+      notApplicableReason(l10n, NotApplicableReason.nothingToConsolidate),
+      'Not available: none of your debts can be consolidated.',
+    );
   });
 }

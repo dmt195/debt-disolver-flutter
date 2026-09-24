@@ -1,12 +1,14 @@
 import 'package:payoff_engine/payoff_engine.dart';
 
 /// Orders results for display: feasible plans cheapest first (ties: fewer
-/// months, then strategy order), then infeasible, then never-clearing ones.
+/// months, then strategy order), then infeasible, then never-clearing, and
+/// finally not-applicable ones.
 List<PayoffResult> rankResults(List<PayoffResult> results) {
   int group(PayoffResult r) => switch (r) {
     Feasible() => 0,
     Infeasible() => 1,
     NeverClears() => 2,
+    NotApplicable() => 3,
   };
   int compare(PayoffResult a, PayoffResult b) {
     final byGroup = group(a).compareTo(group(b));

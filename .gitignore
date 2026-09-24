@@ -24,3 +24,4 @@ coverage/
 # Generated code: run tool/codegen.sh
 *.g.dart
 *.freezed.dart
+lib/l10n/app_localizations*.dart

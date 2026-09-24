@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent">
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/btn_black"
+            android:paddingLeft="8dp">
+
+        <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:id="@+id/imageView"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:src="@drawable/no2"
+                android:layout_margin="8dp"/>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="Visualise Your Debt"
+                android:id="@+id/tv_title"
+                android:layout_toRightOf="@+id/imageView"
+                style="@style/list_text"
+                android:layout_alignParentTop="true"
+            android:layout_marginTop="4dp" />
+
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/tv_title"
+                android:layout_alignLeft="@+id/imageView">
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/card_graph"
+                android:layout_height="175dp"
+                android:paddingTop="16dp"
+                android:layout_width="fill_parent">
+
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:id="@+id/view_graph_pie" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/card_style"
+                android:orientation="horizontal"
+                android:id="@+id/card_graph2"
+                android:layout_height="400dp"
+                android:paddingTop="16dp">
+
+                <LinearLayout
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    android:id="@+id/view_graph_balances" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/card_graph_caption">
+
+                <TextView
+                        android:text="@string/graph_caption"
+                        android:id="@+id/tv_difference_info"
+                        style="@style/analysis_detail_text"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+</ScrollView>

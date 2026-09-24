@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+<!--    <item
+            android:id="@+id/menu_item_add_reminders"
+            android:title="@string/add_reminders"
+            android:icon="@drawable/ic_action_add_alarm"
+            android:showAsAction="ifRoom|withText"/>-->
+
+    <item
+            android:id="@+id/action_save_file"
+            android:showAsAction="always|withText"
+            android:title="@string/save"
+            android:icon="@drawable/ic_action_save"/>
+
+    <!--<item
+            android:id="@+id/action_share_csv"
+            android:showAsAction="always|withText"
+            android:title="@string/share"
+            android:actionProviderClass="android.widget.ShareActionProvider"/>-->
+
+
+</menu>

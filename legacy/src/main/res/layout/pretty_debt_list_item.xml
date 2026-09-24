@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="horizontal"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:focusable="false"
+              android:paddingLeft="4dp"
+              android:paddingRight="4dp"
+              android:paddingTop="2dp"
+              android:paddingBottom="2dp">
+
+    <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/iv_listview_bg"
+            android:layout_alignBottom="@+id/iv_listview_bg"
+            android:layout_alignLeft="@+id/iv_listview_bg"
+            android:layout_alignRight="@+id/iv_listview_bg"
+            android:background="#ff000000"
+            >
+    </LinearLayout>
+
+    <ImageView
+            android:layout_width="fill_parent"
+            android:layout_height="96dp"
+            android:id="@+id/iv_listview_bg"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentLeft="true"
+            android:src="@drawable/cc_bg"
+            android:scaleType="centerCrop"
+            android:alpha="0.5"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentRight="true"
+            />
+
+    <TextView
+            android:text="Debt Name"
+            android:id="@+id/tv_debt_name"
+            android:layout_alignTop="@+id/iv_listview_bg"
+            android:layout_alignLeft="@+id/iv_listview_bg"
+            style="@style/list_text"
+            android:textStyle="bold"/>
+
+    <TextView
+            android:text="APR%"
+            android:id="@+id/tv_APR"
+            android:gravity="right"
+            android:layout_alignTop="@+id/iv_listview_bg"
+            android:layout_alignRight="@+id/iv_listview_bg"
+            style="@style/list_text"
+            android:textStyle="bold"/>
+
+    <TextView
+            android:text="Balance"
+            android:id="@+id/tv_debt_balance"
+            style="@style/smallWhiteText"
+            android:layout_alignBottom="@+id/iv_listview_bg"
+            android:layout_alignLeft="@+id/iv_listview_bg"
+            android:padding="8dp"/>
+
+    <TextView
+            android:id="@+id/tv_debt_type"
+            android:text="[Debt Type]"
+            android:layout_alignBottom="@+id/iv_listview_bg"
+            android:layout_alignRight="@+id/iv_listview_bg"
+            style="@style/smallWhiteText"
+            android:padding="8dp"/>
+
+</RelativeLayout>

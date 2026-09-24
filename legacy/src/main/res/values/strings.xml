@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Debt Dissolver</string>
+    <string name="action_settings">Settings</string>
+    <string name="consolidation_loan">Consolidation loan</string>
+    <string name="see_solutions">See Solutions</string>
+    <string name="no_data">No debts</string>
+    <string name="sol_temp_sol">Medium Text</string>
+    <string name="temp_solution_text" formatted="false">\'Highest interest first\' is the fastest payment strategy. You will be finished paying in %s (%s). %s%.2f interest will be paid.</string>
+    <string name="more_details">See details or explore other solutions</string>
+    <string name="years">years</string>
+    <string name="months">months</string>
+    <string name="month_singular">month</string>
+    <string name="year_singular">year</string>
+    <string name="years_and_months" formatted="false">%d %s and %d %s</string>
+    <string name="best_solution_dialog_title">Best Solution</string>
+    <string name="solutions_activity_title">Solutions</string>
+    <string name="solution_activity_sub_title">Payment Solutions Compared</string>
+    <string name="manage_debts_activity_title">Manage Debts</string>
+    <string name="manage_debts_activity_subtitle">Add and edit debts</string>
+    <string name="legend_total_debt">Total debt</string>
+    <string name="legend_individual_debts">Individual debts</string>
+    <string name="axis_title_time">time (1 tick = 6 months) →</string>
+    <string name="axis_total_balance">Total balance (1 tick = 1k) →</string>
+    <string name="total_paid" formatted="false">Total paid:\n%s%.2f</string>
+    <string name="total_interest" formatted="false">Total cost:\n %s%.2f</string>
+    <string name="paid_by" formatted="false">Paid by:\n%s</string>
+    <string name="equivalent_to" formatted="false">Equivalent to:\n%.1f %%</string>
+    <string name="details_activity_title">Solution Details</string>
+    <string name="details_activity_subtitle">See your debts disappear</string>
+    <string name="monthly_warning" formatted="false">%s%.2f minimum required per month (110 %%). %s%.2f set. Check settings.</string>
+    <string name="monthly_payments_intro">Here are your minimum monthly commitments and your set budget. Every little extra helps clear your debts faster.
+    </string>
+    <string name="monthly_payments_more_please">Your set monthly budget is not enough to cover your monthly commitments. Review and change in settings.</string>
+    <string name="min_payment">Min Payment</string>
+    <string name="estimated_interest">Est. Interest</string>
+    <string name="share">Share</string>
+    <string name="save">Save</string>
+    <string name="add_reminders">Add Reminders</string>
+    <string name="costs_detail_in_card">Total cost in interest to clear debts (using the most efficient method - highest interest first).
+    </string>
+    <string name="clear_by_details_in_card" formatted="false">Date when clear (%d month\'s time).</string>
+    <string name="difference_detail_in_card" formatted="false">Interest saved over using the worst strategy (lowest APR first). %d months were also saved. Note: this can be very small or very large based on your debt mix.
+    </string>
+    <string name="extra_detail_in_card" formatted="false">Interest saved by paying an extra 10 %% per month (%s%.2f).</string>
+    <string name="consolidation_detail_in_card" formatted="false">Interest saved if debts were consolidated into a single loan (set at %.1f %% APR, change in settings). Your clear date will also come %d months sooner.</string>
+    <string name="ifcc_detail_in_card" formatted="false">Interest saved if debts were transferred to a 0 %% credit card for %d months (%.1f %% there after) with a %.1f %% transfer fee (change details in settings).</string>
+    <string name="coach_text_debts" formatted="false">Let\'s start by listing your debts. Use the buttons below.\n\nDebts come in 3 flavours:\n1, Credit Cards,\n2, Formal Loans, and\n3, Friends and Family Loans.\n\nAnalyse debts using buttons above.</string>
+    <string name="graph_caption">Graph showing overall debt (red) decreasing over time. Individual debts (grey) are paid in a highest interest first manner.</string>
+    <string name="stop_spending">Stop adding to your debt!</string>
+    <string name="makeabudget">Set a budget and stick to it! It wont be easy but it will be worth it.</string>
+    <string name="action_detail_table">Table</string>
+    <string name="month">Month</string>
+    <string name="balance_at_start">Balance at start</string>
+    <string name="table_activity_subtitle">Payment Schedule</string>
+    <string name="table_activity_title">Details Table</string>
+    <string name="rotate_for_table">Rotate for Table</string>
+    <string name="xaxis_title">Months</string>
+    <string name="yaxis_title" formatted="false">Balance (%s)</string>
+    <string name="total">Total</string>
+    <string name="stop_spending_details">Seriously! Leave credit cards at home. Use only your debit/checking account to live. Sell things you don\'t use.</string>
+    <string name="make_a_budget_details">It\'s hard to account for everything in reality but this is a worthwhile exercise. Ensure that your debts are the first thing you pay off when you get paid. If you can\'t make payments, talk to your bank.</string>
+    <string name="consolidate_details">If your debt is made up of credit and store cards with high rates of interest you need to find a source of lending at a lower rate. This will mean that you pay off more capital each month and less interest.</string>
+    <string name="time_to_track_details">It\'s time to track what you should be paying off and when (click the icon up top for a table). It\'s good to see how far you\'ve come! It will motivate you to clear that debt and stay debt free.</string>
+    <string name="min_payments">Minimum Payments</string>
+    <string name="change_budget">Change budget</string>
+    <string name="budget_too_low">Budget is too low</string>
+    <string name="next">Next</string>
+    <string name="show_help">Show Help</string>
+
+
+    <string-array name="debt_types">
+        <item>Credit Card</item>
+        <item>Bank Loan</item>
+        <item>Family and Friends Loan</item>
+    </string-array>
+
+    <string-array name="sol_types">
+        <item>Highest Interest First</item>
+        <item>Lowest Interest First</item>
+        <item>Lowest Balance First</item>
+        <item>Highest Balance First</item>
+        <item>Consolidation Loan</item>
+        <item>Interest Free Period Credit Card</item>
+    </string-array>
+
+    <string-array name="currency_names">
+        <item>Dollar</item>
+        <item>Pound</item>
+        <item>Euro</item>
+        <item>Yuan or Yen</item>
+        <item>Rupee</item>
+    </string-array>
+
+    <string-array name="currency_symbols"  formatted="false">
+        <item>\u0024</item>
+        <item>\u00a3</item>
+        <item>\u20ac</item>
+        <item>\u00a5</item>
+        <item>\u20A8</item>
+    </string-array>
+
+</resources>

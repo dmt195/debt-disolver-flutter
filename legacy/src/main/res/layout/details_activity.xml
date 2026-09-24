@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:id="@+id/rel_layout">
+
+    <fragment
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:name="com.dmt195.debtdestroyer.Details.FragmentGraphingDetails"
+            android:id="@+id/fragment_graph_details"
+            android:layout_centerHorizontal="true"
+            android:layout_margin="8dp"
+            android:layout_above="@+id/tv_details_info"
+            android:layout_alignParentEnd="false"
+            android:layout_alignParentTop="true"/>
+
+    <TableLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/tv_details_info"
+            android:layout_centerHorizontal="true"
+            android:layout_margin="8dp"
+            android:layout_alignParentBottom="true">
+
+        <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:divider="@android:drawable/divider_horizontal_dark"
+                android:dividerPadding="4dp"
+                android:focusable="false"
+                android:orientation="horizontal"
+                android:gravity="fill">
+
+            <TextView
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="To Pay: £5004.45"
+                    android:id="@+id/tv_total_paid"
+                    android:layout_weight="1"
+                    android:textAlignment="center"
+                    android:gravity="center"/>
+
+            <TextView
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="Paid by: March 2020"
+                    android:id="@+id/tv_paid_by"
+                    android:layout_weight="1"
+                    android:textAlignment="center"
+                    android:gravity="center"/>
+        </TableRow>
+        <TableRow
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:divider="@android:drawable/divider_horizontal_dark"
+                android:dividerPadding="4dp"
+                android:focusable="false"
+                android:orientation="horizontal"
+                android:showDividers="middle"
+                android:textAlignment="center">
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="Interest: £560.45"
+                    android:id="@+id/tv_interest"
+                    android:layout_weight="1"
+                    android:textAlignment="center"
+                    android:gravity="center"/>
+
+            <TextView
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="Equivalent to: 5.6 %"
+                    android:id="@+id/tv_equiv_percent"
+                    android:layout_weight="1"
+                    android:textAlignment="center"
+                    android:gravity="center"/>
+        </TableRow>
+    </TableLayout>
+
+</RelativeLayout>

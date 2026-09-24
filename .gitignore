@@ -1,0 +1,15 @@
+.DS_Store
+
+# Legacy Android project: build outputs, binaries and local config
+legacy/build/
+legacy/src/main/gen/
+legacy/src/main/proguard_logs/
+legacy/**/*.apk
+legacy/**/*.jar
+legacy/**/*.iml
+legacy/**/local.properties
+
+# Licensed third-party assets: keep locally, never commit
+legacy/resources/shutterstock_*
+legacy/resources/*.otf
+legacy/resources/*.ttf

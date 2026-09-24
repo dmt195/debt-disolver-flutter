@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<item
+    android:id="@+id/action_see_detail_table"
+    android:title="@string/action_detail_table"
+    android:orderInCategory="1"
+    android:icon="@drawable/action_view_as_list"
+    android:showAsAction="always|withText"/>
+<!--    <item
+        android:id="@+id/action_start_tracking"
+        android:title="Start tracking"
+        android:orderInCategory="2"
+        android:icon="@drawable/action_queue_events"
+        android:showAsAction="always" />-->
+</menu>

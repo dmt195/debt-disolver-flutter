@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent">
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/btn_green_matte"
+            android:paddingLeft="8dp">
+
+        <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:id="@+id/imageView"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:src="@drawable/no1"
+                android:layout_margin="8dp"/>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="Key Facts"
+                android:id="@+id/tv_title"
+                android:layout_toRightOf="@+id/imageView"
+                style="@style/list_text"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="4dp"/>
+
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/tv_title"
+                android:layout_alignLeft="@+id/imageView">
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/card_cost">
+
+                <TextView
+                    android:id="@+id/tv_cost_highlight"
+                        style="@style/analysis_highlight_text"
+                        />
+
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="2dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@android:color/darker_gray"
+                        android:layout_marginLeft="4dp">
+                </LinearLayout>
+
+                <TextView
+                        android:text="@string/costs_detail_in_card"
+                        android:id="@+id/tv_cost_info"
+                        style="@style/analysis_detail_text"
+                    android:autoText="false" />
+            </LinearLayout>
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:id="@+id/card_clear_date"
+                    android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_clear_date_highlight"
+                        style="@style/analysis_highlight_text"
+                        />
+
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="2dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@android:color/darker_gray"
+                        android:layout_marginLeft="4dp">
+                </LinearLayout>
+
+                <TextView
+                        android:text="@string/clear_by_details_in_card"
+                        android:id="@+id/tv_clear_date_info"
+                        style="@style/analysis_detail_text"/>
+            </LinearLayout>
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/card_difference">
+
+                <TextView
+                    android:id="@+id/tv_difference_highlight"
+                        style="@style/analysis_highlight_text"
+                        />
+
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="2dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@android:color/darker_gray"
+                        android:layout_marginLeft="4dp">
+                </LinearLayout>
+
+                <TextView
+                        android:text="@string/difference_detail_in_card"
+                        android:id="@+id/tv_difference_info"
+                        style="@style/analysis_detail_text"/>
+            </LinearLayout>
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/card_extra_payments">
+
+                <TextView
+                    android:id="@+id/tv_extra_highlight"
+                        style="@style/analysis_highlight_text"
+                        />
+
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="2dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@android:color/darker_gray"
+                        android:layout_marginLeft="4dp">
+                </LinearLayout>
+
+                <TextView
+                        android:text="@string/extra_detail_in_card"
+                        android:id="@+id/tv_extra_info"
+                        style="@style/analysis_detail_text"/>
+            </LinearLayout>
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/card_consolidate">
+
+                <TextView
+                    android:id="@+id/tv_consolidation_highlight"
+                        style="@style/analysis_highlight_text"
+                        />
+
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="2dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@android:color/darker_gray"
+                        android:layout_marginLeft="4dp">
+                </LinearLayout>
+
+                <TextView
+                        android:text="@string/consolidation_detail_in_card"
+                        android:id="@+id/tv_consolidation_info"
+                        style="@style/analysis_detail_text"/>
+            </LinearLayout>
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/card_interest_free">
+
+                <TextView
+                    android:id="@+id/tv_ifcc_highlight"
+                        style="@style/analysis_highlight_text"
+                        />
+
+                <LinearLayout
+                        android:orientation="vertical"
+                        android:layout_width="2dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:background="@android:color/darker_gray"
+                        android:layout_marginLeft="4dp">
+                </LinearLayout>
+
+                <TextView
+                        android:text="@string/ifcc_detail_in_card"
+                        android:id="@+id/tv_ifcc_info"
+                        style="@style/analysis_detail_text"/>
+            </LinearLayout>
+        </LinearLayout>
+
+    </RelativeLayout>
+</ScrollView>

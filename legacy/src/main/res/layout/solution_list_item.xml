@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:padding="8dp"
+              android:background="@drawable/btn_black"
+              android:id="@+id/sol_bg">
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Highest Interest First"
+            android:id="@+id/sol_name"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentLeft="true"
+            android:textColor="@android:color/background_light"
+            android:textStyle="bold"
+            android:layout_marginBottom="4dp"/>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Capital"
+            android:id="@+id/tv_capital"
+            android:layout_below="@+id/sol_name"
+            android:layout_alignLeft="@+id/sol_name"
+            style="@style/smallWhiteText"/>
+
+    <ProgressBar
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/progressBar"
+            android:layout_below="@+id/tv_capital"
+            android:layout_alignLeft="@+id/tv_capital"
+            android:progress="80"
+            android:layout_alignRight="@+id/tv_interest"/>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Interest"
+            android:id="@+id/tv_interest"
+            android:layout_below="@+id/sol_name"
+            android:layout_alignParentRight="true"
+            style="@style/smallWhiteText"/>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="25.0 % Equiv"
+            android:id="@+id/tv_equiv"
+            android:layout_below="@+id/progressBar"
+            android:layout_alignRight="@+id/progressBar"
+            style="@style/smallWhiteText"/>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Paid by: Sep. 2015"
+            android:id="@+id/tv_paid_by"
+            android:layout_below="@+id/progressBar"
+            android:layout_alignLeft="@+id/progressBar"
+            style="@style/smallWhiteText"/>
+
+</RelativeLayout>

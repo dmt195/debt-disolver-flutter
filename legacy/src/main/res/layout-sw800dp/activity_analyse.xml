@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+            android:layout_height="match_parent"
+    android:clickable="false"
+            android:background="#ccc">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="horizontal">
+
+        <fragment
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:name="com.dmt195.debtdestroyer.Analysis.FragmentGeneralAnalysis"
+            android:id="@+id/fragment4"
+            tools:layout="@layout/fragment_general_analysis"
+            android:layout_weight="1"
+            android:layout_margin="16dp" />
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:layout_weight="1"
+            android:layout_marginTop="16dp"
+            android:layout_marginRight="16dp"
+            android:layout_marginBottom="16dp">
+
+            <fragment
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:name="com.dmt195.debtdestroyer.Analysis.FragmentGraphicalAnalysis"
+                android:id="@+id/fragment2"
+                tools:layout="@layout/fragment_graph_analysis" />
+
+            <fragment
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:name="com.dmt195.debtdestroyer.Analysis.FragmentNextActionsAnalysis"
+                android:id="@+id/fragment3"
+                tools:layout="@layout/fragment_next_actions_analysis"
+                android:layout_marginTop="16dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/ll_solve_butts"
+            android:gravity="bottom"
+            android:layout_gravity="bottom"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="false"
+            android:layout_alignParentBottom="true"
+            android:orientation="vertical"
+            android:layout_centerHorizontal="true">
+
+    <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:id="@+id/ad_layout"
+            android:baselineAligned="false"
+            android:layout_gravity="center"
+        android:layout_weight="1">
+    </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

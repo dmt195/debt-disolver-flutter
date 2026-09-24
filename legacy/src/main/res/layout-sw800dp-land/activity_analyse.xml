@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:layout_width="match_parent"
+            android:layout_height="match_parent"
+    android:clickable="false"
+            android:background="#ccc">
+
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <ScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/scrollView"
+            android:layout_weight="1">
+
+            <fragment
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:name="com.dmt195.debtdestroyer.Analysis.FragmentGeneralAnalysis"
+                android:id="@+id/fragment"
+                tools:layout="@layout/fragment_general_analysis"
+                android:layout_margin="16dp" />
+        </ScrollView>
+
+        <ScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/scrollView2"
+            android:layout_weight="1">
+
+            <fragment
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:name="com.dmt195.debtdestroyer.Analysis.FragmentGraphicalAnalysis"
+                android:id="@+id/fragment2"
+                tools:layout="@layout/fragment_graph_analysis"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp" />
+        </ScrollView>
+
+        <ScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/scrollView3"
+            android:layout_weight="1">
+
+            <fragment
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:name="com.dmt195.debtdestroyer.Analysis.FragmentNextActionsAnalysis"
+                android:id="@+id/fragment3"
+                tools:layout="@layout/fragment_next_actions_analysis"
+                android:layout_marginTop="16dp"
+                android:layout_margin="16dp" />
+        </ScrollView>
+
+    </LinearLayout>
+
+    <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/ll_solve_butts"
+        android:layout_gravity="bottom"
+            android:layout_alignParentLeft="false"
+            android:layout_alignParentTop="false"
+            android:layout_alignParentBottom="true"
+            android:orientation="vertical"
+        android:layout_alignParentRight="true">
+
+    <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:id="@+id/ad_layout"
+            android:baselineAligned="false"
+            android:layout_gravity="center|right"
+            android:layout_marginTop="4dp"
+            android:layout_marginRight="4dp"
+            android:layout_marginLeft="4dp"
+            android:layout_weight="1">
+    </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>

@@ -1,0 +1,173 @@
+<ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:id="@+id/scrollView"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_gravity="left|center_vertical"
+        android:background="#40ffffff">
+<LinearLayout
+        android:orientation="vertical"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+
+        android:padding="16px">
+
+
+    <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content">
+
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceMedium"
+                    android:text="Debt Name"
+                    android:id="@+id/tv_debt_name"
+                    android:layout_gravity="left|center_vertical"/>
+
+            <EditText
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/et_debt_name"
+                    android:layout_gravity="left|center_vertical"
+                    android:hint="e.g. Barclays VISA"
+                    android:inputType="textCapWords"
+                    android:minLines="1"/>
+        </LinearLayout>
+
+        <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/delButton"
+                android:src="@drawable/ic_discard"
+                android:layout_gravity="right"
+            style="?android:attr/borderlessButtonStyle" />
+    </LinearLayout>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Balance Owed"
+            android:id="@+id/tv_balance"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginTop="16dp"/>
+
+    <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left|center_vertical">
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="£"
+                android:id="@+id/tv_cur_symbol"
+                android:layout_gravity="center"
+                />
+
+        <EditText
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:ems="10"
+                android:id="@+id/et_balance"
+                android:hint="e.g. 3000.00"/>
+    </LinearLayout>
+
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Annual Percentage Rate (APR)"
+            android:id="@+id/tv_APR"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginTop="16dp"/>
+
+    <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:ems="10"
+            android:id="@+id/et_APR"
+            android:layout_gravity="left|center_vertical"
+            android:hint="e.g. 12.5"/>
+    <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Minimum Payment"
+            android:id="@+id/tv_min_pay"
+            android:layout_gravity="left|center_vertical"
+            android:layout_marginTop="16dp"/>
+
+    <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="fill_parent"
+            android:layout_gravity="left|center_vertical">
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="fill_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="£"
+                android:id="@+id/tv_cur_symbol1"
+                android:gravity="center"/>
+
+        <EditText
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:id="@+id/et_min_pay"
+                android:hint="e.g. 25.00"
+                android:layout_gravity="center"
+                android:layout_weight="1"/>
+
+        <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text=" or "
+                android:id="@+id/tv_or"
+                android:layout_weight="1"
+                android:gravity="center"/>
+
+        <EditText
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:id="@+id/et_min_pay_pc"
+                android:hint="e.g. 3.00"
+                android:layout_gravity="center"
+                android:layout_weight="1"
+                android:gravity="right"/>
+
+        <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:textAppearance="?android:attr/textAppearanceMedium"
+                android:text="%"
+                android:id="@+id/tv_pc"
+                android:layout_weight="1"
+                android:gravity="center"/>
+
+    </LinearLayout>
+
+    <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Can over pay?"
+            android:id="@+id/cb_overpay"
+            android:layout_gravity="left|center_vertical"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:checked="false"
+            android:layout_marginTop="16dp"/>
+
+</LinearLayout></ScrollView>

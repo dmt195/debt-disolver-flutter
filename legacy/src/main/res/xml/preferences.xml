@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="General">
+        <ListPreference android:title="Currency"
+                        android:entries="@array/currency_names"
+                        android:entryValues="@array/currency_symbols"
+                        android:defaultValue=""
+                        android:key="currency"
+                android:summary="Choose the symbol used for currency throughout the app"/>
+        <EditTextPreference android:title="Monthly Budget"
+                            android:defaultValue="300"
+                            android:inputType="numberDecimal"
+                            android:key="monthly"
+                            android:summary="Enter the amount available for paying off debt each month"/>
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Consolidation Loan (Optional)"
+            android:summary="Preferences for use in the calculation to determine whether a consolidation loan will save you money">
+        <EditTextPreference android:title="APR interest (%)"
+                            android:defaultValue="5.0"
+                            android:inputType="numberDecimal"
+                            android:key="loan_apr"
+                android:summary="The APR you may be able to secure for a single loan"/>
+
+    </PreferenceCategory>
+    <PreferenceCategory android:title="Interest Free Credit Card (Optional)"
+            android:summary="Preferences for use in the calculation to determine whether a low interest credit card transfer will save you money">
+        <EditTextPreference android:title="Term available (months)"
+                            android:defaultValue="12"
+                            android:inputType="number"
+                            android:key="cc_term"
+                android:summary="The length of the interest free period (whole number)"/>
+        <EditTextPreference android:title="APR after term (%)"
+                            android:defaultValue="15.0"
+                            android:key="cc_revert_apr"
+                            android:inputType="numberDecimal"
+                android:summary="After the interest free term is complete the interest will revert to this rate"/>
+        <EditTextPreference android:title="Transfer Fee (% of balance)"
+                            android:defaultValue="4.0"
+                            android:key="cc_transfer_fee"
+                            android:inputType="numberDecimal"
+                            android:summary="Most credit cards will charge a fee equal to a percentage of the debt being transferred"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>

@@ -1,0 +1,51 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<!--    <group android:id="@+id/group1"
+            android:visible="false">
+        <item
+                android:id="@+id/action_add_cc"
+                android:title="Add Credit Card"
+                android:menuCategory="alternative"
+                android:orderInCategory="1"
+                android:icon="@drawable/ic_action_add_cc"
+                android:showAsAction="always"/>
+        <item
+                android:id="@+id/action_add_loan"
+                android:title="Add Bank Loan"
+                android:orderInCategory="2"
+                android:icon="@drawable/ic_action_add_bank"
+                android:showAsAction="always"/>
+        <item
+                android:id="@+id/action_add_fnf"
+                android:title="Add Friend/Family Loan"
+                android:orderInCategory="3"
+                android:icon="@drawable/ic_action_add_fnf"
+                android:showAsAction="always"/>
+    </group>-->
+    <group android:id="@+id/group2"
+           android:visible="true">
+        <item
+                android:id="@+id/action_calc_min_pay"
+                android:title="@string/min_payment"
+                android:orderInCategory="50"
+                android:icon="@drawable/ic_action_min_payments"
+                android:showAsAction="always|withText"/>
+        <item
+                android:id="@+id/action_see_solutions"
+                android:title="@string/see_solutions"
+                android:orderInCategory="51"
+                android:icon="@drawable/ic_action_see_solutions"
+                android:showAsAction="always|withText"/>
+    </group>
+    <item
+            android:id="@+id/action_settings"
+            android:title="@string/action_settings"
+            android:orderInCategory="100"
+            android:icon="@drawable/ic_action_settings"
+            android:showAsAction="never"/>
+
+    <item
+        android:id="@+id/show_help_overlay"
+        android:title="@string/show_help"
+        android:icon="@drawable/ic_action_help"
+        android:showAsAction="never"/>
+</menu>

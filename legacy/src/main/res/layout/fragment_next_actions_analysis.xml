@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent">
+
+    <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/btn_red_matte"
+            android:paddingLeft="8dp">
+
+        <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:id="@+id/imageView"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:src="@drawable/no3"
+                android:layout_margin="8dp"/>
+
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:text="Next Steps! - Take Action"
+                android:id="@+id/tv_title"
+                android:layout_toRightOf="@+id/imageView"
+                style="@style/list_text"
+                android:layout_alignParentTop="true"
+                android:layout_marginTop="4dp"/>
+
+        <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/tv_title"
+                android:layout_alignLeft="@+id/imageView">
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/na_card_stop_spending"
+                android:layout_height="wrap_content">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/imageView3"
+                    android:src="@drawable/ic_action_about"
+                    android:adjustViewBounds="false"
+                    android:layout_gravity="center_vertical" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/stop_spending"
+                    android:id="@+id/tv_stopspending"
+                    style="@style/analysis_detail_text" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                    style="@style/card_style"
+                    android:orientation="horizontal"
+                    android:id="@+id/na_card_make_budget">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/imageView2"
+                    android:src="@drawable/ic_action_about"
+                    android:adjustViewBounds="false"
+                    android:layout_gravity="center_vertical" />
+
+                <TextView
+                        android:text="@string/makeabudget"
+                        android:id="@+id/tv_difference_info"
+                        style="@style/analysis_detail_text"/>
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/card_style"
+                android:orientation="horizontal"
+                android:id="@+id/na_card_consolidate">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/imageView3"
+                    android:src="@drawable/ic_action_about"
+                    android:adjustViewBounds="false"
+                    android:layout_gravity="center_vertical" />
+
+                <TextView
+                    android:text="Consolidate loans where possible. At the very least try to migrate away from high APRs."
+                    android:id="@+id/tv_differ"
+                    style="@style/analysis_detail_text"/>
+            </LinearLayout>
+
+            <LinearLayout
+                style="@style/card_style"
+                android:orientation="horizontal"
+                android:id="@+id/na_card_track">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/imageView4"
+                    android:src="@drawable/ic_action_about"
+                    android:adjustViewBounds="false"
+                    android:layout_gravity="center_vertical" />
+
+                <TextView
+                    android:text="Track your progress (use this app!). Reward yourself when you hit milestones!"
+                    android:id="@+id/tv_track"
+                    style="@style/analysis_detail_text"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+</ScrollView>

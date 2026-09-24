@@ -36,29 +36,51 @@ class DebtsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(Routes.newDebt),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.addDebt),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const AdBanner(),
-          BottomAppBar(
-            child: Row(
-              children: [
-                FilledButton(
-                  onPressed: hasDebts
-                      ? () => context.push(Routes.strategies)
-                      : null,
-                  child: Text(l10n.compareStrategies),
+      // Actions sit above the banner, with a gap, so nothing tappable
+      // touches the ad. One SafeArea covers both.
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Material(
+              elevation: 3,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
-              ],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => context.push(Routes.newDebt),
+                        icon: const Icon(Icons.add),
+                        label: Text(l10n.addDebt),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: hasDebts
+                            ? () => context.push(Routes.strategies)
+                            : null,
+                        child: Text(
+                          l10n.compareStrategies,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ],
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: AdBanner(respectsSafeArea: false),
+            ),
+          ],
+        ),
       ),
       body: switch ((debts, settings)) {
         _ when settingsState.hasError || debts.hasError => ErrorRetryView(

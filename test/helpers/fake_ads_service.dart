@@ -4,8 +4,14 @@ import 'package:flutter/widgets.dart';
 
 /// Ads that can be switched on and off by a test; the banner is a text.
 class FakeAdsService implements AdsService {
-  FakeAdsService({bool canShowAds = false, this.privacyRequired = false})
-    : _canShowAds = ValueNotifier(canShowAds);
+  FakeAdsService({
+    bool canShowAds = false,
+    this.privacyRequired = false,
+    this.banner = const Text('Ad banner'),
+  }) : _canShowAds = ValueNotifier(canShowAds);
+
+  /// What [buildBanner] returns; use a real ad size to test layout.
+  final Widget banner;
 
   final ValueNotifier<bool> _canShowAds;
   bool privacyRequired;
@@ -28,5 +34,5 @@ class FakeAdsService implements AdsService {
   Future<void> showPrivacyOptions() async => privacyOptionsShown++;
 
   @override
-  Widget buildBanner() => const Text('Ad banner');
+  Widget buildBanner() => banner;
 }

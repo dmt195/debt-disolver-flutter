@@ -6,7 +6,7 @@ Debt Destroyer helps you compare ways to pay off your debts. This policy explain
 
 ## Your debts and settings stay on your device
 
-The debts, balances, interest rates, budget and settings you enter are stored only on your phone or tablet. They are never sent to us or to anyone else. Deleting the app deletes them. Files you export (CSV or Excel) go only where you choose to share them.
+The debts, balances, interest rates, budget and settings you enter are stored on your phone or tablet, and in your device's own backups (for example Google or iCloud backup) if you have them turned on. They are never sent to us or to anyone else. Deleting the app deletes them from the device; your backup provider's settings decide how long backups keep them. Files you export (CSV or Excel) go only where you choose to share them.
 
 ## Advertising
 
@@ -18,7 +18,7 @@ The app is free and shows banner ads from Google AdMob on some screens. To show 
 
 ## Crash information
 
-If the app hits an unexpected error, details are written to your device's log to help fix problems during development. Nothing is sent from your device.
+If the app hits an unexpected error, it is handled on your device and nothing about it is sent anywhere.
 
 ## Children
 

@@ -48,8 +48,8 @@ Android has two flavors: `dev` (`com.dmt195.debt_destroyer.dev`, "Debt Destroyer
 ## 4. Store listings
 
 - **Privacy policy:** publish `docs/privacy-policy.md` at a public URL (for example with GitHub Pages) and link it from both listings.
-- **Google Play data safety:** the app itself collects no data. Declare what the Google Mobile Ads SDK collects (device or other IDs, app interactions and diagnostics, used for advertising and analytics, shared with Google), and that users can ask for it to be deleted through Google.
-- **App Store privacy details:** "Identifiers → Device ID" and "Usage Data → Advertising Data", used for third-party advertising, linked to tracking only when ATT permission is given.
+- **Google Play data safety:** the app itself collects no data. Declare what the Google Mobile Ads SDK collects, following Google's current guidance (https://developers.google.com/admob/android/privacy/play-data-disclosure): device or other IDs, approximate location (from IP address), app interactions, diagnostics and performance data, used for advertising and analytics and shared with Google. In the Play Console, answer **Yes** to the Advertising ID declaration: the SDK adds the `AD_ID` permission.
+- **App Store privacy details:** follow Google's guidance (https://developers.google.com/admob/ios/privacy/data-disclosure): Identifiers (Device ID), Location (Coarse Location), Usage Data (Product Interaction, Advertising Data) and Diagnostics (Crash Data, Performance Data), used for third-party advertising and analytics; Device ID is used for tracking only when ATT permission is given.
 - **Screenshots:** the images in `legacy/resources` show the 2013 app; take new ones from the current build.
 
 ## 5. Crash reporting (optional follow-up)

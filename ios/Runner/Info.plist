@@ -68,6 +68,8 @@
 	</array>
 	<key>GADApplicationIdentifier</key>
 	<string>$(ADMOB_APP_ID)</string>
+	<key>GADDelayAppMeasurementInit</key>
+	<true/>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This lets ads be more relevant to you. Your debts never leave your device.</string>
 	<key>SKAdNetworkItems</key>

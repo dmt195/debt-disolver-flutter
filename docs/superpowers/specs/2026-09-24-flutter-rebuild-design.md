@@ -20,10 +20,11 @@ Rebuild the 2013 Android app "Debt Destroyer" (Java sources in this repo) as a m
 
 ## 2. Repository layout
 
-The legacy Java sources move to `legacy/android/` and remain the reference for the original behaviour. The Flutter app lives at the repo root.
+The complete legacy Android project lives in `legacy/` as a read-only reference for the original behaviour: Java in `legacy/src/main/java/com/dmt195/debtdestroyer/`, and resources (strings, preferences, layouts, onboarding HTML) in `legacy/src/main/res/`. Build outputs and binaries in it are git-ignored. The Flutter app lives at the repo root.
 
 ```
-legacy/android/             # original Java sources (read-only reference)
+legacy/                     # original Android project (read-only reference)
+legacy/reference/           # standalone port of the legacy calculator, for test reference values
 packages/payoff_engine/     # pure Dart package: domain model + calculator (no Flutter dependency)
 lib/
   app/                      # MaterialApp, go_router config, theme, bootstrap
@@ -107,7 +108,7 @@ Each month it does the following:
   - transfer fee, promo months and revert APR
   - whether onboarding is complete
 
-  All keys and defaults are defined in one place. The legacy defaults were: budget 250, loan APR 4%, transfer fee 4%, 15 promo months, revert APR 15%.
+  All keys and defaults are defined in one place. The defaults are the legacy Settings-screen values from `legacy/src/main/res/xml/preferences.xml`: budget 300, consolidation APR 5%, transfer fee 4%, 12 promo months, revert APR 15%. The legacy Java code had different fallbacks (250, 4%, 15 months) that applied until Settings was first opened; that inconsistency is not carried over.
 - The domain layer defines the `DebtRepository` interface. `DriftDebtRepository` implements it.
 
 **State (Riverpod with codegen)**
@@ -118,7 +119,7 @@ Each month it does the following:
 
 ## 6. Screens and navigation (go_router)
 
-1. **Onboarding** (first launch only): an explanation, then currency and monthly budget.
+1. **Onboarding** (first launch only): an explanation, then currency and monthly budget. The explanation copy is adapted from the legacy intro pages (`legacy/src/main/res/raw/intro1-3.html`). The legacy Resources screen was an unfinished placeholder and is not ported.
 2. **Debts** (home route):
    - List of debts with add, edit, delete and drag-to-reorder.
    - Header showing total debt and total minimum payments.

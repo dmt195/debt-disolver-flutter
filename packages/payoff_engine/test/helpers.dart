@@ -22,3 +22,8 @@ Debt debt({
   minPaymentFloor: gbp(minPaymentFloor),
   allowsOverpayment: allowsOverpayment,
 );
+
+PayoffPlan planOf(PayoffResult result) => switch (result) {
+  Feasible(:final plan) => plan,
+  _ => throw StateError('Expected a feasible result, got $result'),
+};

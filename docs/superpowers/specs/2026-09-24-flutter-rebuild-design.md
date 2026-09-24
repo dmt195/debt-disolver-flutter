@@ -42,16 +42,16 @@ Each feature uses three layers: **domain** (models, repository interfaces), **da
 
 ## 3. Domain model (`payoff_engine`)
 
-All types are immutable (freezed).
+All types are immutable. The models use freezed; `Money` is a hand-written value type because it needs arithmetic operators.
 
-- **`Money`**: an integer amount in minor units plus an ISO currency code. There are no floating-point amounts anywhere. Interest is computed with exact rational/decimal arithmetic and rounded to minor units once per month (banker's rounding, half-even).
+- **`Money`**: an integer amount in minor units plus an ISO currency code. There are no floating-point amounts anywhere; arithmetic across currencies throws. Interest and percentages are computed with integer arithmetic and rounded to minor units once per month (banker's rounding, half-even).
 - **`Debt`**:
   - `id`: UUID
   - `name`
   - `type`: `creditCard | loan | personal`
   - `balance`: Money
-  - `apr`: integer basis points, 0–10000
-  - `minPaymentPercent`: basis points
+  - `aprBps`: integer basis points, 0–10000
+  - `minPaymentPercentBps`: basis points
   - `minPaymentFloor`: Money
   - `allowsOverpayment`: bool
 
@@ -60,21 +60,21 @@ All types are immutable (freezed).
   - `Avalanche`: highest APR first
   - `LowestAprFirst`
   - `Boosted`: avalanche at 110% of the budget
-  - `Consolidation(apr)`: all debts replaced by one loan at the configured APR
-  - `BalanceTransfer(feeBps, promoMonths, revertApr)`: all debts moved to a 0% card with a transfer fee; the APR reverts after the promo period
+  - `Consolidation(aprBps)`: all debts replaced by one loan at the configured APR
+  - `BalanceTransfer(feeBps, promoMonths, revertAprBps)`: all debts moved to a 0% card with a transfer fee; the APR reverts after the promo period
 
-  Each variant has a stable `StrategyId`.
-- **`PayoffResult`**: a sealed class:
-  - `Feasible(PayoffPlan)`
-  - `Infeasible(shortfall: Money)`: the budget is below the total minimum payments
-  - `NeverClears`: the calculation hit the 1,200-month cap
+  Each variant has a stable `StrategyId`. `StrategyParameters` holds the configurable values, and `standardStrategies(parameters)` lists the five strategies in display order.
+- **`PayoffResult`**: a sealed class. Every variant carries its `strategyId`.
+  - `Feasible(plan)`
+  - `Infeasible(shortfall, month)`: in `month`, the budget is below the total minimum payments by `shortfall`
+  - `NeverClears`: the calculation hit the 1,200-month cap, or a balance grew past the overflow ceiling
 - **`PayoffPlan`**:
-  - `strategyId`
-  - `payoffOrder: List<DebtId>`
-  - `months: List<MonthRow>`, where each `MonthRow` holds the balance and payment for every debt
+  - `debts: List<PlanDebt>` (id, name, starting balance), in payoff order; `payoffOrder` gives their ids
+  - `months: List<MonthRow>`, where each `MonthRow` holds the interest, payment and closing balance for every debt
   - `monthsToClear`
   - `totalPaid`
   - `totalInterest`
+  - `totalFees`: the balance-transfer fee, kept separate from interest. The legacy app reported it as interest.
 
 ## 4. Calculator rules
 
@@ -88,7 +88,7 @@ Each month it does the following:
 
 **Strategy specifics**
 - For Consolidation and BalanceTransfer, the calculator builds a single synthetic debt from the total balance. The consolidation loan's minimum payment is the full budget. The transfer card's balance is `total × (1 + fee)` and it reverts to `revertApr` after `promoMonths`.
-- If the budget is below the total first-month minimums, the result is `Infeasible` with the shortfall.
+- If, in any month, the budget is below that month's total minimums, the result is `Infeasible` with the month and the shortfall.
 
 **Legacy bugs fixed**
 - The APR comparator cast to `int` before scaling, so rates less than 1% apart tied. Sorting now compares the exact values, with ties broken by name and then id.

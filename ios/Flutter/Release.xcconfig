@@ -1,1 +1,6 @@
 #include "Generated.xcconfig"
+
+// AdMob app id. Google's test id unless ios/Flutter/AdMob.xcconfig (never
+// committed) sets ADMOB_APP_ID to the production one.
+ADMOB_APP_ID=ca-app-pub-3940256099942544~1458002511
+#include? "AdMob.xcconfig"

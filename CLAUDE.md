@@ -17,7 +17,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - [x] Legacy code analysed, design spec approved
 - [x] Full legacy Android project placed in `legacy/`
 - [x] Plan 1: foundation and `payoff_engine` (`docs/superpowers/plans/2026-09-24-plan-1-foundation-payoff-engine.md`)
-- [ ] Plan 2: Flutter app shell, persistence (Drift, settings) and state (Riverpod)
+- [x] Plan 2: Flutter app shell, persistence (Drift, settings) and state (Riverpod)
 - [ ] Plan 3: screens (onboarding, debts, strategies, plan detail, settings) and CSV/XLSX export
 - [ ] Plan 4: ads and consent, Crashlytics, full CI, store release prep
 
@@ -31,7 +31,17 @@ Update this checklist as the phases complete.
 - `dart analyze --fatal-infos` and `dart format lib test`. CI (`.github/workflows/payoff_engine.yml`) enforces both.
 - Legacy reference figures: `java legacy/reference/LegacySolver.java` (from the repo root).
 
-Once the Flutter app exists (Plan 2), add its commands here: `flutter test`, a single test via `flutter test path/to_test.dart --plain-name "name"`, and `dart run build_runner build -d`.
+App (run from the repo root):
+- `./tool/codegen.sh` generates code for `payoff_engine` and then the app. Run it after a fresh checkout and after changing any freezed model, Riverpod provider or Drift table. Generated `*.g.dart`/`*.freezed.dart` files are not committed.
+- `flutter test` runs all app tests. `flutter test test/path/to_test.dart --plain-name "name"` runs one test.
+- `dart analyze --fatal-infos` and `dart format lib test`. CI (`.github/workflows/app.yml`) enforces both.
+- `flutter run` runs the app on a connected device or simulator.
+- To change the Drift schema: bump `schemaVersion` in `lib/features/debts/data/app_database.dart` and write the migration. Then run `dart run drift_dev make-migrations` and commit `drift_schemas/` and the generated `test/drift/` tests.
+
+Gotchas:
+- Riverpod 3 pauses providers that have no listener, so a `StreamProvider` read without a listener never emits. In tests, call `container.listen(provider, (_, _) {})` before reading `.future`. To check that a write took effect, read the repository (`loadAll`), not the stream's latest value.
+- `select`/`selectAsync` come from `flutter_riverpod`, not `riverpod_annotation`. `Override` is in `package:flutter_riverpod/misc.dart`.
+- Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes.
 
 ## Legacy Android app (reference only)
 

@@ -5,6 +5,7 @@ import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:debt_destroyer/features/strategies/domain/savings.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,9 +34,11 @@ class StrategiesScreen extends ConsumerWidget {
           ListView(
             padding: const EdgeInsets.all(12),
             children: [
-              for (final (i, result) in value.indexed)
+              _BaselineLine(value.baseline),
+              for (final (i, result) in value.ranked.indexed)
                 _StrategyCard(
                   result: result,
+                  baseline: value.baseline,
                   parameters: parameters,
                   cheapest: i == 0 && result is Feasible,
                 ),
@@ -83,14 +86,48 @@ class _Message extends StatelessWidget {
   );
 }
 
+/// The minimums-only reference every strategy is measured against.
+class _BaselineLine extends ConsumerWidget {
+  const _BaselineLine(this.baseline);
+
+  final PayoffResult baseline;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final locale = ref.watch(formatLocaleProvider);
+    final text = switch (baseline) {
+      Feasible(:final plan) when plan.monthsToClear > 0 => l10n.baselineSummary(
+        formatDuration(l10n, plan.monthsToClear),
+        formatMoney(plan.totalInterest, locale),
+      ),
+      NeverClears() => l10n.baselineNeverClears,
+      _ => null, // infeasible: every card already says so
+    };
+    if (text == null) return const SizedBox.shrink();
+    final opens = baseline is Feasible;
+    return ListTile(
+      key: const ValueKey('baseline'),
+      leading: const Icon(Icons.hourglass_bottom),
+      title: Text(text),
+      trailing: opens ? const Icon(Icons.chevron_right) : null,
+      onTap: opens
+          ? () => context.push(Routes.plan(StrategyId.minimumsOnly))
+          : null,
+    );
+  }
+}
+
 class _StrategyCard extends ConsumerWidget {
   const _StrategyCard({
     required this.result,
+    required this.baseline,
     required this.parameters,
     required this.cheapest,
   });
 
   final PayoffResult result;
+  final PayoffResult baseline;
   final StrategyParameters parameters;
   final bool cheapest;
 
@@ -102,7 +139,11 @@ class _StrategyCard extends ConsumerWidget {
     final id = result.strategyId;
 
     final details = switch (result) {
-      Feasible(:final plan) => _FeasibleDetails(plan: plan, locale: locale),
+      Feasible(:final plan) => _FeasibleDetails(
+        plan: plan,
+        baseline: baseline,
+        locale: locale,
+      ),
       Infeasible(:final shortfall, :final month) => Text(
         l10n.infeasible(formatMoney(shortfall, locale), month),
         style: TextStyle(color: theme.colorScheme.error),
@@ -153,9 +194,14 @@ class _StrategyCard extends ConsumerWidget {
 }
 
 class _FeasibleDetails extends StatelessWidget {
-  const _FeasibleDetails({required this.plan, required this.locale});
+  const _FeasibleDetails({
+    required this.plan,
+    required this.baseline,
+    required this.locale,
+  });
 
   final PayoffPlan plan;
+  final PayoffResult baseline;
   final String locale;
 
   @override
@@ -175,6 +221,14 @@ class _FeasibleDetails extends StatelessWidget {
         if (plan.totalFees.isPositive)
           Text('${l10n.fees}: ${formatMoney(plan.totalFees, locale)}'),
         Text('${l10n.totalPaid}: ${formatMoney(plan.totalPaid, locale)}'),
+        if (_savingsText(l10n) case final text?)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              text,
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+            ),
+          ),
         if (plan.change case TransferChange(
           limitAssumed: true,
           :final creditLimit,
@@ -195,5 +249,15 @@ class _FeasibleDetails extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  String? _savingsText(AppLocalizations l10n) {
+    if (baseline is NeverClears) return l10n.clearsUnlikeMinimums;
+    final savings = savingsAgainst(plan, baseline);
+    if (savings == null) return null;
+    final amount = formatMoney(savings.money, locale);
+    return savings.months > 0
+        ? l10n.savesVersusMinimums(amount, formatDuration(l10n, savings.months))
+        : l10n.savesMoneyVersusMinimums(amount);
   }
 }

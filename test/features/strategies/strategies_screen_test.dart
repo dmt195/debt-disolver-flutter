@@ -114,4 +114,85 @@ void main() {
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.settings);
   });
+
+  testWidgets('compares each plan with paying only the minimums', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%, min 3% or 25.00
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    expect(
+      find.text('Minimums only: 5 years 2 months · £587.88 interest'),
+      findsOneWidget,
+    );
+    // Highest interest first: 1,037.82 over 4 months against 1,587.88 over 62.
+    // (With a single debt, several strategies tie, so more than one card
+    // shows this text; scroll to the first.)
+    await tester.scrollUntilVisible(
+      find
+          .text('Saves £550.06 · 4 years 10 months sooner than minimums only')
+          .first,
+      100,
+    );
+    expect(
+      find.text('Saves £550.06 · 4 years 10 months sooner than minimums only'),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('shows no savings for a plan that costs more', (tester) async {
+    await pumpApp(
+      tester,
+      // 0%, and the minimum is the whole budget: nothing can beat it.
+      debts: [
+        testDebt(
+          id: 'a',
+          aprBps: 0,
+          minPaymentPercentBps: 0,
+          minPaymentFloor: 25000,
+        ),
+      ],
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.strategies,
+    );
+    expect(
+      find.text('Minimums only: 4 months · £0.00 interest'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Saves'), findsNothing);
+    expect(find.textContaining('-£'), findsNothing);
+  });
+
+  testWidgets('says when minimums alone never clear the debts', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [simple], // no minimum payment at all
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.strategies,
+    );
+    expect(
+      find.text('Paying only the minimums would never clear these debts.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Clears your debts; minimums alone never would'),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('opens the baseline plan', (tester) async {
+    final app = await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    await tester.tap(find.byKey(const ValueKey('baseline')));
+    await tester.pumpAndSettle();
+    expect(app.router.location, Routes.plan(StrategyId.minimumsOnly));
+    expect(find.text('Debt-free in 5 years 2 months'), findsOneWidget);
+  });
 }

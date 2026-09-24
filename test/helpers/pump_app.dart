@@ -36,11 +36,8 @@ Future<AppHarness> pumpApp(
         ),
         debtRepositoryProvider.overrideWithValue(repository),
         planCalculatorProvider.overrideWithValue(
-          (debts, budget, parameters) async => calculateAll(
-            debts: debts,
-            monthlyBudget: budget,
-            parameters: parameters,
-          ),
+          (debts, budget, parameters) async =>
+              calculatePlanSet(debts, budget, parameters),
         ),
         ...overrides,
       ],

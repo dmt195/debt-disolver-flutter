@@ -17,7 +17,7 @@ void main() {
   });
 
   /// Waits for the plans to reflect the latest debts and settings.
-  Future<List<PayoffResult>> settledPlans() async {
+  Future<PlanSet> settledPlans() async {
     await container.pump();
     await container.read(debtsProvider.future);
     return await container.read(plansProvider.future);
@@ -25,8 +25,8 @@ void main() {
 
   test('with no debts every strategy is an empty feasible plan', () async {
     final plans = await settledPlans();
-    expect(plans, hasLength(5));
-    for (final result in plans) {
+    expect(plans.ranked, hasLength(5));
+    for (final result in plans.ranked) {
       expect((result as Feasible).plan.monthsToClear, 0);
     }
   });
@@ -34,7 +34,9 @@ void main() {
   test('recalculates when a debt is added, cheapest first', () async {
     await container.read(debtActionsProvider.notifier).add(testDebt(id: ''));
     final plans = await settledPlans();
-    final costs = [for (final r in plans) (r as Feasible).plan.totalPaid.minor];
+    final costs = [
+      for (final r in plans.ranked) (r as Feasible).plan.totalPaid.minor,
+    ];
     expect(costs.first, greaterThan(100000));
     expect(costs, [...costs]..sort());
   });
@@ -48,9 +50,9 @@ void main() {
     final after = await settledPlans();
     PayoffResult avalanche(List<PayoffResult> r) =>
         r.firstWhere((p) => p.strategyId == StrategyId.avalanche);
-    expect(avalanche(before), isA<Feasible>());
+    expect(avalanche(before.ranked), isA<Feasible>());
     // 10.00 no longer covers the 25.00 minimum.
-    expect(avalanche(after), isA<Infeasible>());
+    expect(avalanche(after.ranked), isA<Infeasible>());
   });
 
   test('plan looks up one strategy by id', () async {
@@ -59,5 +61,20 @@ void main() {
       planProvider(StrategyId.consolidation).future,
     );
     expect(result.strategyId, StrategyId.consolidation);
+  });
+
+  test('includes the minimums-only baseline', () async {
+    await container.read(debtActionsProvider.notifier).add(testDebt(id: ''));
+    final plans = await settledPlans();
+    expect(plans.baseline.strategyId, StrategyId.minimumsOnly);
+    expect((plans.baseline as Feasible).plan.monthsToClear, 62);
+  });
+
+  test('plan finds the baseline by id', () async {
+    container.listen(planProvider(StrategyId.minimumsOnly), (_, _) {});
+    final result = await container.read(
+      planProvider(StrategyId.minimumsOnly).future,
+    );
+    expect(result.strategyId, StrategyId.minimumsOnly);
   });
 }

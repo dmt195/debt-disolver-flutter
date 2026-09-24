@@ -68,7 +68,7 @@ The engine already supports these: a fixed payment is `minPaymentPercentBps = 0`
 
 Month `m` of a simulation charges `promo.aprBps` if `m <= promo.months`, and `debt.aprBps` otherwise.
 
-**Dates stay out of the engine.** The app stores the promo's last month as a calendar month (`promoEndsYearMonth`, an integer `yyyymm`). At calculation time it converts that to `months = (end − current month) + 1`, where the current month comes from an injectable `clockProvider`. If `months < 1` the promo has expired: it is passed to the engine as `null`, and the debt form marks it as expired.
+**Dates stay out of the engine.** The app stores the promo's last month as a calendar month (`promoEndsYearMonth`, an integer `yyyymm`). At calculation time it converts that to `months = (end − current month) + 1`, where the current month comes from an injectable `clockProvider`. If `months < 1` the promo has expired: the repository reads it as no promo, so the engine and the form never see it, and the next save of that debt clears it.
 
 ## 3. Strategies
 
@@ -89,7 +89,7 @@ enum StrategyId { avalanche, snowball, customOrder, consolidation, balanceTransf
 
 `lowestAprFirst` and `boosted` are removed. Strategy ids are not stored anywhere; they appear only in labels and in the `/strategies/:strategyId` route, which already redirects an unknown id to the Strategies screen. So no data migration is needed.
 
-`minimumsOnly` is the **baseline**. `standardStrategies(parameters)` returns the five ranked strategies in display order. `baselineStrategy` returns `minimumsOnly`. `calculateAll` returns both, as `(ranked: List<PayoffResult>, baseline: PayoffResult)`.
+`minimumsOnly` is the **baseline**. `standardStrategies(parameters)` returns the five ranked strategies in display order, and `calculateAll` runs them, as in v1. `calculateBaseline(debts, monthlyBudget)` runs `minimumsOnly`.
 
 ### 3.2 Ordering rules
 
@@ -128,7 +128,7 @@ Validation and the 1,200-month cap are unchanged.
 Its parameters are `feeBps`, `promoMonths`, `revertAprBps` and `creditLimit: Money?` (new).
 
 1. **Candidates:** debts with `isTransferable(type)` and a current APR in month 1 greater than 0. They are sorted by current APR, highest first (ties by name, then id).
-2. **Limit:** if `creditLimit` is null, the effective limit is `Σ candidate balances × (1 + fee)`, rounded half-even, so everything fits. The plan records `limitAssumed = true`.
+2. **Limit:** if `creditLimit` is null, the effective limit is the sum over candidates of `balance + fee(balance)`, so every candidate fits exactly. (A single fee on the total could round a penny below the sum of the per-debt fees and strand the last penny.) The plan records `limitAssumed = true`.
 3. **Moving balances**, in candidate order, while the limit has room:
    - The amount moved `x` is the largest whole amount with `x + fee(x) ≤ room`, where `fee(x) = halfEven(x × feeBps / 10000)`. It is found with an integer search, and it is capped at the debt's balance.
    - The debt keeps `balance − x`. If that is 0, the debt is removed from the plan.
@@ -210,7 +210,7 @@ Scenarios are stored in a new Drift table, `scenarios`:
 - A picker with all the kinds of debt.
 - For `loan`: a "Monthly payment" field (§2.3).
 - A "Minimums only" switch with its note (§2.2).
-- An optional "Promotional rate" section: promo APR, and a "Until" month picker, from this month up to 10 years ahead. An expired promo shows an "Expired" chip and a clear action.
+- An optional "Promotional rate" section: promo APR, and an "Until" month picker, from this month up to 10 years ahead (120 months).
 
 **Strategies**, from top to bottom:
 1. **Scenario picker**: "Current", then saved scenarios by name, then "Manage scenarios".
@@ -232,6 +232,7 @@ The banner position is unchanged.
 
 **Plan detail**
 - Shows the scenario name.
+- The Summary tab's "Payment priority" list becomes "Payoff order" (the order debts are cleared, §3.3).
 - The Summary tab gains a "What changes" block for transfer and consolidation plans (§4.1 step 6, §4.2 step 5).
 - The CSV and XLSX exports put the scenario name and the "What changes" lines above the schedule.
 
@@ -302,7 +303,7 @@ TDD as in v1 §9. The new or changed tests are:
   - Scenarios: rename, edit, delete confirmation, Compare tab
   - Plan detail: the "What changes" block
   - Export: header lines
-- **Integration test:** extended with a promo debt and a saved scenario.
+- **End-to-end widget test** (the repo has no `integration_test/`): with `pumpApp`, add a debt with a promo, compare strategies, move the slider, save a scenario, and open its plan.
 
 ## 10. Order of work (for the plan)
 

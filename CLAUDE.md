@@ -15,18 +15,22 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 
 ### Migration status
 - [x] Legacy code analysed, design spec approved
-- [ ] Implementation plan written
-- [ ] Legacy sources moved to `legacy/android/`
-- [ ] Flutter project scaffolded, and `payoff_engine` built and tested
-- [ ] Persistence, state, screens, ads, export, CI, store release
+- [x] Full legacy Android project placed in `legacy/`
+- [ ] Plan 1: foundation and `payoff_engine` (`docs/superpowers/plans/2026-09-24-plan-1-foundation-payoff-engine.md`)
+- [ ] Plan 2: Flutter app shell, persistence (Drift, settings) and state (Riverpod)
+- [ ] Plan 3: screens (onboarding, debts, strategies, plan detail, settings) and CSV/XLSX export
+- [ ] Plan 4: ads and consent, Crashlytics, full CI, store release prep
 
 Update this checklist as the phases complete. Once the Flutter project exists, add its build, test and codegen commands here: `flutter test`, a single test via `flutter test path/to_test.dart --plain-name "name"`, `dart run build_runner build -d`, and `dart test` inside `packages/payoff_engine`.
 
 ## Legacy Android app (reference only)
 
-The legacy Java sources are currently at the repo root and will move to `legacy/android/`. They are a **read-only reference** for the original behaviour; don't modify or try to build them. When porting behaviour, check it against the calculator described below, and remember the bug fixes listed in spec §4.
+The original 2013 Android project (v1.1.3, package `com.dmt195.debtdestroyer`) lives in `legacy/`. It is a **read-only reference** for the original behaviour: don't modify it or try to build it (its Gradle 0.4 / SDK 17 build is long dead). When porting behaviour, check it against the calculator described below, and remember the bug fixes listed in spec §4.
 
-The repo holds **only the Java sources** (package `com.dmt195.debtdestroyer`). There's no Gradle/Ant build, `AndroidManifest.xml`, `res/` or `libs/`, so the code can't be built and `R.*` references can't be resolved. It depends on the legacy Android SDK and support v4 library, AChartEngine, Apache POI HSSF and the old `com.google.ads` AdMob SDK.
+- Java: `legacy/src/main/java/com/dmt195/debtdestroyer/`. Class paths below are relative to this directory.
+- Resources: `legacy/src/main/res/`. Useful ones: `values/strings.xml` (UI copy), `xml/preferences.xml` (settings and their defaults, which the Flutter app uses), and `raw/intro1-3.html` (onboarding copy). The Resources screen (`raw/resources_main.html`) was an unfinished placeholder.
+- Dependencies: the legacy Android SDK and support v4 library, AChartEngine, Apache POI HSSF and the old `com.google.ads` AdMob SDK (some jars are in `legacy/libs/`).
+- `legacy/reference/LegacySolver.java` is a standalone port of the legacy calculator (bugs kept). `java legacy/reference/LegacySolver.java` prints the reference figures quoted in the `payoff_engine` tests.
 
 ### Legacy architecture
 
@@ -36,7 +40,7 @@ Package directories map to screens: `Debts/` (enter debts; launcher activity), `
 Activities share data through **static fields**, not Intents or a data layer:
 - `DebtListAdapter.debtList` (static `ArrayList<DebtItem>`), accessed via `ManageDebtsActivity.DebtList`.
 - `SolutionListAdapter.solutionList` (static `ArrayList<Solution>`). `AnalyseActivity.solList` and `ManageSolutionsActivity.solList` are separate adapter instances that **share the same static list**.
-- User settings are cached as static fields on `ManageDebtsActivity` (`monthlyAmount`, `currencySym`, `consolidationAPR`, `revertAPR`, `ccTerm`, `ccTransferFee`, `loanActive`, `ccActive`, `settings`). These are re-read from default `SharedPreferences` in several `onResume()` methods, and each copy duplicates the preference keys and default values (`"monthly"`/250, `"loan_apr"`/4.0, `"cc_revert_apr"`/15.0, `"cc_term"`/15, `"cc_transfer_fee"`/4.0, …). If you change a key or default, update every copy.
+- User settings are cached as static fields on `ManageDebtsActivity` (`monthlyAmount`, `currencySym`, `consolidationAPR`, `revertAPR`, `ccTerm`, `ccTransferFee`, `loanActive`, `ccActive`, `settings`). These are re-read from default `SharedPreferences` in several `onResume()` methods, and each copy duplicates the preference keys and default values (`"monthly"`/250, `"loan_apr"`/4.0, `"cc_revert_apr"`/15.0, `"cc_term"`/15, `"cc_transfer_fee"`/4.0, …). These Java fallbacks disagree with `preferences.xml` (300, 5.0, 15.0, 12, 4.0), and `setDefaultValues` is never called, so the Java values applied until Settings was first opened. The Flutter app uses the XML values.
 
 Consumers read solutions by index (e.g. `solList.getItem(0)` in the Analysis/Details graphs, or the `"solution"` Intent extra position in `DetailsActivity`). So the order solutions are added in matters.
 

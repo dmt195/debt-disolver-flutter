@@ -67,6 +67,10 @@ class InMemoryDebtRepository implements DebtRepository {
   @override
   Future<void> reorder(List<String> idsInOrder) => _write(() {
     final byId = {for (final d in _debts) d.id: d};
+    if (idsInOrder.length != byId.length ||
+        !byId.keys.toSet().containsAll(idsInOrder)) {
+      throw ArgumentError.value(idsInOrder, 'idsInOrder');
+    }
     _debts
       ..clear()
       ..addAll([for (final id in idsInOrder) byId[id]!]);

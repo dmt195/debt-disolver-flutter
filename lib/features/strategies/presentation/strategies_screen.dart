@@ -42,7 +42,10 @@ class StrategiesScreen extends ConsumerWidget {
           ),
         (AsyncError(), _) => _Message(
           l10n.plansError,
-          onRetry: () => ref.invalidate(plansProvider),
+          // Plans depend on settings, which may be what failed.
+          onRetry: () => ref
+            ..invalidate(settingsControllerProvider)
+            ..invalidate(plansProvider),
         ),
         _ => const Center(child: CircularProgressIndicator()),
       };

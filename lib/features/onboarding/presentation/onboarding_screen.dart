@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -33,7 +34,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final locale = ref.watch(formatLocaleProvider);
-    final settings = ref.watch(settingsControllerProvider).value;
+    final state = ref.watch(settingsControllerProvider);
+    if (state.hasError) {
+      return Scaffold(
+        body: ErrorRetryView(
+          onRetry: () => ref.invalidate(settingsControllerProvider),
+        ),
+      );
+    }
+    final settings = state.value;
     if (settings == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }

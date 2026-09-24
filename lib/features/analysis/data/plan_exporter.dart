@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:debt_destroyer/features/analysis/data/schedule_export.dart';
 import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
@@ -24,10 +25,13 @@ enum ExportFormat {
 
 /// Hands a file to the platform share sheet.
 abstract interface class FileSharer {
+  /// [origin] is the global rectangle the share sheet points at. iPads
+  /// require it.
   Future<void> shareFile(
     File file, {
     required String mimeType,
     String? subject,
+    Rect? origin,
   });
 }
 
@@ -37,11 +41,13 @@ class SharePlusFileSharer implements FileSharer {
     File file, {
     required String mimeType,
     String? subject,
+    Rect? origin,
   }) async {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path, mimeType: mimeType)],
         subject: subject,
+        sharePositionOrigin: origin,
       ),
     );
   }
@@ -61,6 +67,7 @@ class PlanExporter {
     ExportFormat format, {
     required String baseName,
     String? subject,
+    Rect? origin,
   }) async {
     final dir = await _directory();
     final file = File('${dir.path}/$baseName.${format.extension}');
@@ -69,7 +76,12 @@ class PlanExporter {
       ExportFormat.xlsx => scheduleToXlsx(table),
     };
     await file.writeAsBytes(bytes, flush: true);
-    await _sharer.shareFile(file, mimeType: format.mimeType, subject: subject);
+    await _sharer.shareFile(
+      file,
+      mimeType: format.mimeType,
+      subject: subject,
+      origin: origin,
+    );
     return file;
   }
 }

@@ -20,7 +20,7 @@ String formatAmountInput(Money money, String locale) => _plainNumber(
 );
 
 /// Parses what a user typed as an amount of [currencyCode], in minor units.
-/// Accepts the locale's grouping and decimal separators. Returns null for
+/// See [_parseScaled] for the separators accepted. Returns null for
 /// anything else, including more decimals than the currency has.
 int? parseAmountMinor(
   String text, {
@@ -41,9 +41,14 @@ String formatPercent(int bps, String locale) => (NumberFormat.percentPattern(
 String formatPercentInput(int bps, String locale) =>
     _plainNumber(bps, digits: 2, locale: locale);
 
-/// Parses a percentage with up to two decimals into basis points.
-int? parsePercentBps(String text, String locale) =>
-    _parseScaled(text, maxFractionDigits: 2, locale: locale);
+/// Parses a percentage with up to two decimals into basis points. Either
+/// '.' or ',' may be the decimal point; grouping is never accepted.
+int? parsePercentBps(String text, String locale) => _parseScaled(
+  text,
+  maxFractionDigits: 2,
+  locale: locale,
+  allowGrouping: false,
+);
 
 /// Parses a non-negative whole number.
 int? parseWholeNumber(String text) {
@@ -69,36 +74,68 @@ String _plainNumber(int scaled, {required int digits, required String locale}) {
   return format.format(_toMajor(scaled, digits));
 }
 
-/// Characters accepted as digit grouping, whatever the locale uses.
-const _groupingChars = {',', '.', ' ', ' ', ' ', "'"};
+/// Characters people use to group digits, besides '.' and ','.
+const _spaceLikeGrouping = {' ', ' ', ' ', "'", '’'};
 
+final _digits = RegExp(r'^\d*$');
+final _threeDigits = RegExp(r'^\d{3}$');
+
+/// Parses [text] as a non-negative number with at most [maxFractionDigits]
+/// decimals, returned scaled by 10^[maxFractionDigits].
+///
+/// The locale's decimal separator is the decimal point. If it's absent, a
+/// single '.' or ',' not followed by exactly three digits is taken as the
+/// decimal point instead, because many keypads only offer '.'. Grouping
+/// (when [allowGrouping]) must come in groups of exactly three digits, so
+/// ambiguous input such as `1,23,4` is refused rather than guessed.
 int? _parseScaled(
   String text, {
   required int maxFractionDigits,
   required String locale,
+  bool allowGrouping = true,
 }) {
   final symbols = NumberFormat.decimalPattern(locale).symbols;
-  final decimalSep = symbols.DECIMAL_SEP;
-  final grouping = {..._groupingChars, symbols.GROUP_SEP}..remove(decimalSep);
+  final decimal = symbols.DECIMAL_SEP;
+  final other = decimal == '.' ? ',' : '.';
+  final s = text.trim();
+  if (s.isEmpty || s.length > 40) return null;
 
-  final trimmed = text.trim();
-  final buffer = StringBuffer();
-  for (final char in trimmed.split('')) {
-    if (grouping.contains(char)) continue;
-    buffer.write(char);
+  String? point;
+  if (s.contains(decimal)) {
+    point = decimal;
+  } else if (other.allMatches(s).length == 1) {
+    final after = s.substring(s.indexOf(other) + 1);
+    if (!allowGrouping || !_threeDigits.hasMatch(after)) point = other;
   }
-  final parts = buffer.toString().split(decimalSep);
-  if (parts.length > 2) return null;
-  final whole = parts[0];
-  final fraction = parts.length == 2 ? parts[1] : '';
-  if (whole.isEmpty && fraction.isEmpty) return null;
-  final digitsOnly = RegExp(r'^\d*$');
-  if (!digitsOnly.hasMatch(whole) || !digitsOnly.hasMatch(fraction)) {
+
+  var whole = s;
+  var fraction = '';
+  if (point != null) {
+    final parts = s.split(point);
+    if (parts.length != 2) return null;
+    (whole, fraction) = (parts[0], parts[1]);
+  }
+  if (!_digits.hasMatch(fraction) || fraction.length > maxFractionDigits) {
     return null;
   }
-  if (fraction.length > maxFractionDigits) return null;
+
+  final grouping = {..._spaceLikeGrouping, symbols.GROUP_SEP, '.', ','}
+    ..remove(point);
+  final groups = whole.split(RegExp('[${grouping.map(RegExp.escape).join()}]'));
+  if (groups.length > 1) {
+    if (!allowGrouping) return null;
+    final first = groups.first;
+    if (first.isEmpty || first.length > 3 || !_digits.hasMatch(first)) {
+      return null;
+    }
+    if (!groups.skip(1).every(_threeDigits.hasMatch)) return null;
+  } else if (!_digits.hasMatch(whole)) {
+    return null;
+  }
+  final wholeDigits = groups.join();
+  if (wholeDigits.isEmpty && fraction.isEmpty) return null;
   // Long enough to be nonsense; also keeps the result inside 64 bits.
-  if (whole.length + maxFractionDigits > 15) return null;
+  if (wholeDigits.length + maxFractionDigits > 15) return null;
   final padded = fraction.padRight(maxFractionDigits, '0');
-  return int.parse('${whole.isEmpty ? '0' : whole}$padded');
+  return int.parse('${wholeDigits.isEmpty ? '0' : wholeDigits}$padded');
 }

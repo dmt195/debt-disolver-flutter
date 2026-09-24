@@ -64,9 +64,39 @@ void main() {
         parseAmountMinor('1 234,56', currencyCode: 'EUR', locale: 'fr_FR'),
         123456,
       );
+    });
+
+    test('reads a lone other-separator as the decimal point', () {
+      int? de(String s) =>
+          parseAmountMinor(s, currencyCode: 'EUR', locale: 'de_DE');
+      // Many keypads only offer '.', so a German user types 12.50.
+      expect(de('12.50'), 1250);
+      expect(de('0.5'), 50);
+      expect(gb('1,23'), 123);
+      expect(gb('12,5'), 1250);
+    });
+
+    test('accepts grouping only in groups of three digits', () {
+      int? de(String s) =>
+          parseAmountMinor(s, currencyCode: 'EUR', locale: 'de_DE');
+      expect(gb('1,234'), 123400);
+      expect(gb('12,345,678.90'), 1234567890);
+      expect(de('1.234'), 123400);
+      expect(de('1.234.567'), 123456700);
+      expect(
+        parseAmountMinor("1'234.50", currencyCode: 'CHF', locale: 'de_CH'),
+        123450,
+      );
+      expect(
+        parseAmountMinor('1’234.50', currencyCode: 'CHF', locale: 'de_CH'),
+        123450,
+      );
+      for (final bad in ['1,2,3', '12,34,567', '1,2345', ',123', '1,,234']) {
+        expect(gb(bad), isNull, reason: bad);
+      }
       expect(
         parseAmountMinor('1234 56', currencyCode: 'EUR', locale: 'fr_FR'),
-        123456 * 100,
+        isNull,
       );
     });
 
@@ -95,6 +125,14 @@ void main() {
       expect(parsePercentBps('19,9', 'de_DE'), 1990);
       expect(parsePercentBps('12.345', 'en_GB'), isNull);
       expect(parsePercentBps('x', 'en_GB'), isNull);
+    });
+
+    test('reads either separator as the decimal in a percentage', () {
+      expect(parsePercentBps('7.5', 'de_DE'), 750);
+      expect(parsePercentBps('7,5', 'en_GB'), 750);
+      // A percentage is never grouped: 1,500 is not fifteen hundred.
+      expect(parsePercentBps('1,500', 'en_GB'), isNull);
+      expect(parsePercentBps('1.500', 'de_DE'), isNull);
     });
   });
 

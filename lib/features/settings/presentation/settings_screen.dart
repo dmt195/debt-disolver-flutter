@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -13,10 +14,15 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsControllerProvider).value;
+    final state = ref.watch(settingsControllerProvider);
+    final settings = state.value;
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.settingsTitle)),
-      body: settings == null
+      body: state.hasError
+          ? ErrorRetryView(
+              onRetry: () => ref.invalidate(settingsControllerProvider),
+            )
+          : settings == null
           ? const Center(child: CircularProgressIndicator())
           // Rebuild the fields when the currency changes: amounts are rescaled.
           : _SettingsForm(

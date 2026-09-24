@@ -16,6 +16,7 @@ class _RecordingExporter extends PlanExporter {
   _RecordingExporter() : super(_NoSharer(), () async => Directory.systemTemp);
 
   final calls = <(ScheduleTable, ExportFormat, String)>[];
+  final origins = <Rect?>[];
   Exception? failWith;
 
   @override
@@ -24,9 +25,11 @@ class _RecordingExporter extends PlanExporter {
     ExportFormat format, {
     required String baseName,
     String? subject,
+    Rect? origin,
   }) async {
     if (failWith case final error?) throw error;
     calls.add((table, format, baseName));
+    origins.add(origin);
     return File('unused');
   }
 }
@@ -37,6 +40,7 @@ class _NoSharer implements FileSharer {
     File file, {
     required String mimeType,
     String? subject,
+    Rect? origin,
   }) async {}
 }
 
@@ -105,6 +109,8 @@ void main() {
     }
     final (table, _, baseName) = exporter.calls.first;
     expect(baseName, 'debt-plan-avalanche');
+    // iPads need to know where the share sheet points.
+    expect(exporter.origins, everyElement(isNotNull));
     expect(table.rows, hasLength(4));
   });
 
@@ -116,7 +122,7 @@ void main() {
     await tester.tap(find.text('Spreadsheet (CSV)'));
     await tester.pumpAndSettle();
     expect(
-      find.text("Couldn't save your changes. Please try again."),
+      find.text("Couldn't share this plan. Please try again."),
       findsOneWidget,
     );
   });

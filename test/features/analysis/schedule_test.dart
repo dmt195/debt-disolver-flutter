@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
 import 'package:debt_destroyer/features/analysis/data/schedule_export.dart';
@@ -84,23 +85,23 @@ void main() {
   });
 
   test('CSV quotes awkward headers and uses plain numbers', () {
-    expect(
-      scheduleToCsv(table()),
-      [
-        [
-          'Month',
-          'Visa payment',
-          'Visa balance',
-          '"Loan, ""car"" payment"',
-          '"Loan, ""car"" balance"',
-          'Total payment',
-          'Total balance',
-        ].join(','),
-        '1,100.00,50.00,25.25,25.25,125.25,75.25',
-        '2,50.00,0.00,25.25,0.00,75.25,0.00',
-        '',
-      ].join('\r\n'),
-    );
+    const header = [
+      'Month',
+      'Visa payment',
+      'Visa balance',
+      '"Loan, ""car"" payment"',
+      '"Loan, ""car"" balance"',
+      'Total payment',
+      'Total balance',
+    ];
+    final lines = [
+      header.join(','),
+      '1,100.00,50.00,25.25,25.25,125.25,75.25',
+      '2,50.00,0.00,25.25,0.00,75.25,0.00',
+      '',
+    ];
+    // The byte order mark makes Excel read the file as UTF-8.
+    expect(scheduleToCsv(table()), '﻿${lines.join('\r\n')}');
   });
 
   test('XLSX holds the same table with numeric cells', () {
@@ -135,14 +136,18 @@ void main() {
       final sharer = _RecordingSharer();
       final exporter = PlanExporter(sharer, () async => dir);
 
+      const origin = Rect.fromLTWH(10, 20, 30, 40);
       final csv = await exporter.export(
         table(),
         ExportFormat.csv,
         baseName: 'plan',
+        origin: origin,
       );
       expect(csv.path, '${dir.path}/plan.csv');
-      expect(await csv.readAsString(), scheduleToCsv(table()));
+      // Compare bytes: reading back as a string would drop the byte order mark.
+      expect(await csv.readAsBytes(), utf8.encode(scheduleToCsv(table())));
       expect(sharer.shared.single, (csv.path, 'text/csv'));
+      expect(sharer.origins.single, origin);
 
       final xlsx = await exporter.export(
         table(),
@@ -172,13 +177,16 @@ void main() {
 
 class _RecordingSharer implements FileSharer {
   final shared = <(String, String)>[];
+  final origins = <Rect?>[];
 
   @override
   Future<void> shareFile(
     File file, {
     required String mimeType,
     String? subject,
+    Rect? origin,
   }) async {
     shared.add((file.path, mimeType));
+    origins.add(origin);
   }
 }

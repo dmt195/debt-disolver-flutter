@@ -25,6 +25,8 @@ Future<AppHarness> pumpApp(
   final repository = InMemoryDebtRepository(debts);
   await tester.pumpWidget(
     ProviderScope(
+      // Surface failures at once rather than after Riverpod's retries.
+      retry: (_, _) => null,
       overrides: [
         ...testOverrides(
           prefs: storedSettings({

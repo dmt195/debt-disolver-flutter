@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
@@ -20,7 +21,8 @@ class DebtsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final debts = ref.watch(debtsProvider);
-    final settings = ref.watch(settingsControllerProvider).value;
+    final settingsState = ref.watch(settingsControllerProvider);
+    final settings = settingsState.value;
     final hasDebts = debts.value?.isNotEmpty ?? false;
     return Scaffold(
       appBar: AppBar(
@@ -52,35 +54,20 @@ class DebtsScreen extends ConsumerWidget {
         ),
       ),
       body: switch ((debts, settings)) {
+        _ when settingsState.hasError || debts.hasError => ErrorRetryView(
+          // Debts depend on settings, so reload both.
+          onRetry: () => ref
+            ..invalidate(settingsControllerProvider)
+            ..invalidate(debtsProvider),
+        ),
         (AsyncData(:final value), final AppSettings settings) => _DebtsBody(
           debts: value,
           settings: settings,
-        ),
-        (AsyncError(), _) => _ErrorView(
-          onRetry: () => ref.invalidate(debtsProvider),
         ),
         _ => const Center(child: CircularProgressIndicator()),
       },
     );
   }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(context.l10n.errorGeneric),
-        const SizedBox(height: 8),
-        OutlinedButton(onPressed: onRetry, child: Text(context.l10n.retry)),
-      ],
-    ),
-  );
 }
 
 class _DebtsBody extends ConsumerStatefulWidget {
@@ -97,6 +84,13 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
   /// Debts swiped away but not yet gone from the stream. A dismissed
   /// Dismissible must leave the tree immediately.
   final _removed = <String>{};
+
+  @override
+  void didUpdateWidget(_DebtsBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Forget deletions the stream has caught up with.
+    _removed.retainWhere((id) => widget.debts.any((d) => d.id == id));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,12 +149,7 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
     confirmDismiss: (_) => _confirmDelete(debt),
     onDismissed: (_) {
       setState(() => _removed.add(debt.id));
-      unawaited(
-        runGuarded(
-          context,
-          () => ref.read(debtActionsProvider.notifier).delete(debt.id),
-        ),
-      );
+      unawaited(_delete(debt));
     },
     child: DebtTile(debt: debt, locale: locale),
   );
@@ -187,15 +176,49 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
     return confirmed ?? false;
   }
 
-  Future<void> _reorder(List<Debt> debts, int from, int to) async {
-    final ids = [for (final d in debts) d.id];
-    final moved = ids.removeAt(from);
-    ids.insert(to, moved); // onReorderItem already adjusted [to]
+  Future<void> _delete(Debt debt) async {
+    final deleted = await runGuarded(context, () async {
+      await ref.read(debtActionsProvider.notifier).delete(debt.id);
+      return true;
+    });
+    if (deleted != null) return;
+    // Nothing was deleted, so show the debt again. Wait until the dismissed
+    // tile has left the tree first, or Dismissible asserts.
+    await WidgetsBinding.instance.endOfFrame;
+    if (mounted) setState(() => _removed.remove(debt.id));
+  }
+
+  Future<void> _reorder(List<Debt> visible, int from, int to) async {
+    final ids = reorderedIds(
+      [for (final d in visible) d.id],
+      from: from,
+      to: to,
+      hidden: [
+        for (final d in widget.debts)
+          if (_removed.contains(d.id)) d.id,
+      ],
+    );
     await runGuarded(
       context,
       () => ref.read(debtActionsProvider.notifier).reorder(ids),
     );
   }
+}
+
+/// The full id order after moving the debt at [from] to [to] among
+/// [visibleIds] (`to` as adjusted by `onReorderItem`). Debts [hidden] while
+/// their deletion is pending stay at the end, because the repository needs
+/// every stored id.
+@visibleForTesting
+List<String> reorderedIds(
+  List<String> visibleIds, {
+  required int from,
+  required int to,
+  List<String> hidden = const [],
+}) {
+  final ids = [...visibleIds];
+  ids.insert(to, ids.removeAt(from));
+  return [...ids, ...hidden];
 }
 
 class DebtTile extends StatelessWidget {

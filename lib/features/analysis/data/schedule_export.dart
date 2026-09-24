@@ -3,9 +3,9 @@ import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
 import 'package:excel/excel.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
-/// [table] as CSV (RFC 4180, CRLF line ends). Amounts are plain numbers in
-/// major units with a `.` decimal point, e.g. `1234.56`, so spreadsheets in
-/// any locale read them as numbers.
+/// [table] as CSV: RFC 4180, CRLF line ends, UTF-8 with a byte order mark.
+/// Amounts are plain numbers in major units with a `.` decimal point, e.g.
+/// `1234.56`, so spreadsheets in any locale read them as numbers.
 String scheduleToCsv(ScheduleTable table) {
   final lines = [
     table.headers.map(_csvField).join(','),
@@ -15,7 +15,8 @@ String scheduleToCsv(ScheduleTable table) {
         for (final amount in row.amounts) majorUnitsText(amount),
       ].join(','),
   ];
-  return '${lines.join('\r\n')}\r\n';
+  // The byte order mark makes Excel read the file as UTF-8, not ANSI.
+  return '\uFEFF${lines.join('\r\n')}\r\n';
 }
 
 /// [table] as an XLSX workbook with one sheet, amounts as numbers.

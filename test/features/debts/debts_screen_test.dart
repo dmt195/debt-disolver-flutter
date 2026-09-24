@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -100,5 +101,23 @@ void main() {
       find.text("Couldn't save your changes. Please try again."),
       findsOneWidget,
     );
+    // The debt wasn't deleted, so it comes back.
+    expect(find.text('Visa'), findsOneWidget);
+    expect(find.text('£2,000.00'), findsWidgets);
+  });
+
+  group('reorderedIds', () {
+    test('moves one debt and keeps the rest in order', () {
+      expect(reorderedIds(['a', 'b', 'c'], from: 2, to: 0), ['c', 'a', 'b']);
+      expect(reorderedIds(['a', 'b', 'c'], from: 0, to: 2), ['b', 'c', 'a']);
+    });
+
+    test('keeps debts that are hidden while being deleted', () {
+      expect(reorderedIds(['a', 'c'], from: 1, to: 0, hidden: ['b']), [
+        'c',
+        'a',
+        'b',
+      ]);
+    });
   });
 }

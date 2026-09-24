@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
@@ -21,8 +22,21 @@ class DebtFormScreen extends ConsumerWidget {
     final currency = ref.watch(
       settingsControllerProvider.select((s) => s.value?.currencyCode),
     );
+    final settingsFailed = ref.watch(
+      settingsControllerProvider.select((s) => s.hasError),
+    );
     final debts = ref.watch(debtsProvider);
     final title = Text(debtId == null ? l10n.newDebtTitle : l10n.editDebtTitle);
+    if (settingsFailed || debts.hasError) {
+      return Scaffold(
+        appBar: AppBar(title: title),
+        body: ErrorRetryView(
+          onRetry: () => ref
+            ..invalidate(settingsControllerProvider)
+            ..invalidate(debtsProvider),
+        ),
+      );
+    }
     if (currency == null || !debts.hasValue) {
       return Scaffold(
         appBar: AppBar(title: title),

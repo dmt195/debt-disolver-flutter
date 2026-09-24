@@ -62,30 +62,34 @@ class _PlanTabs extends ConsumerWidget {
         appBar: AppBar(
           title: title,
           actions: [
-            PopupMenuButton<ExportFormat>(
-              icon: const Icon(Icons.share_outlined),
-              tooltip: l10n.share,
-              onSelected: (format) => runGuarded(
-                context,
-                () => ref
-                    .read(planExporterProvider)
-                    .export(
-                      table,
-                      format,
-                      baseName: 'debt-plan-${strategyId.name}',
-                      subject: strategyName(l10n, strategyId),
-                    ),
+            Builder(
+              builder: (buttonContext) => PopupMenuButton<ExportFormat>(
+                icon: const Icon(Icons.share_outlined),
+                tooltip: l10n.share,
+                onSelected: (format) => runGuarded(
+                  context,
+                  () => ref
+                      .read(planExporterProvider)
+                      .export(
+                        table,
+                        format,
+                        baseName: 'debt-plan-${strategyId.name}',
+                        subject: strategyName(l10n, strategyId),
+                        origin: _globalRect(buttonContext),
+                      ),
+                  failureMessage: l10n.exportFailed,
+                ),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: ExportFormat.csv,
+                    child: Text(l10n.exportCsv),
+                  ),
+                  PopupMenuItem(
+                    value: ExportFormat.xlsx,
+                    child: Text(l10n.exportXlsx),
+                  ),
+                ],
               ),
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: ExportFormat.csv,
-                  child: Text(l10n.exportCsv),
-                ),
-                PopupMenuItem(
-                  value: ExportFormat.xlsx,
-                  child: Text(l10n.exportXlsx),
-                ),
-              ],
             ),
           ],
           bottom: TabBar(
@@ -106,6 +110,13 @@ class _PlanTabs extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Where [context]'s widget is on screen, for anchoring the share sheet.
+Rect? _globalRect(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is! RenderBox || !box.hasSize) return null;
+  return box.localToGlobal(Offset.zero) & box.size;
 }
 
 /// The plan's schedule with translated column names.

@@ -2,6 +2,8 @@
 library;
 
 export 'src/debt.dart';
+export 'src/debt_ordering.dart';
 export 'src/money.dart';
 export 'src/rounding.dart';
+export 'src/strategy.dart';
 export 'src/validation.dart';

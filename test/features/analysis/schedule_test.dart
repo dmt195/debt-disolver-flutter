@@ -173,6 +173,34 @@ void main() {
       contains('Crédit payment'),
     );
   });
+
+  ScheduleTable withNotes() => buildScheduleTable(
+    plan,
+    debtNames: ['Visa', 'Loan, "car"'],
+    labels: labels,
+    notes: ['Scenario: Current', 'Transfer fee: £1,000.00'],
+  );
+
+  test('CSV puts notes above the schedule, then a blank line', () {
+    final lines = scheduleToCsv(withNotes()).substring(1).split('\r\n');
+    const headerLine =
+        'Month,Visa payment,Visa balance,"Loan, ""car"" payment","Loan, '
+        '""car"" balance",Total payment,Total balance';
+    expect(lines.take(4), [
+      'Scenario: Current',
+      '"Transfer fee: £1,000.00"',
+      '',
+      headerLine,
+    ]);
+  });
+
+  test('XLSX puts notes above the schedule, then a blank row', () {
+    final rows = Excel.decodeBytes(scheduleToXlsx(withNotes()))
+        .tables['Schedule']!
+        .rows;
+    expect(rows[0][0]!.value, TextCellValue('Scenario: Current'));
+    expect(rows[3][0]!.value, TextCellValue('Month'));
+  });
 }
 
 class _RecordingSharer implements FileSharer {

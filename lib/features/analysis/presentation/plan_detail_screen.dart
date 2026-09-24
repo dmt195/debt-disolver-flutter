@@ -3,9 +3,11 @@ import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
 import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
+import 'package:debt_destroyer/features/analysis/presentation/plan_change_lines.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_chart_tab.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_schedule_tab.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_summary_tab.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,12 +57,33 @@ class _PlanTabs extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final table = scheduleTableFor(l10n, plan);
+    final locale = ref.watch(formatLocaleProvider);
+    final scenarioName = ref.watch(activeScenarioProvider).value?.name;
+    final table = scheduleTableFor(
+      l10n,
+      plan,
+      notes: [
+        l10n.planScenario(scenarioName ?? l10n.scenarioCurrent),
+        if (plan.change case final change?)
+          ...planChangeLines(l10n, change, locale),
+      ],
+    );
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: title,
+          title: scenarioName == null
+              ? title
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    title,
+                    Text(
+                      l10n.planScenario(scenarioName),
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                  ],
+                ),
           actions: [
             Builder(
               builder: (buttonContext) => PopupMenuButton<ExportFormat>(
@@ -120,15 +143,19 @@ Rect? _globalRect(BuildContext context) {
 }
 
 /// The plan's schedule with translated column names.
-ScheduleTable scheduleTableFor(AppLocalizations l10n, PayoffPlan plan) =>
-    buildScheduleTable(
-      plan,
-      debtNames: [for (final d in plan.debts) planDebtName(l10n, d)],
-      labels: ScheduleLabels(
-        month: l10n.scheduleMonth,
-        payment: l10n.schedulePayment,
-        balance: l10n.scheduleBalance,
-        totalPayment: l10n.scheduleTotalPayment,
-        totalBalance: l10n.scheduleTotalBalance,
-      ),
-    );
+ScheduleTable scheduleTableFor(
+  AppLocalizations l10n,
+  PayoffPlan plan, {
+  List<String> notes = const [],
+}) => buildScheduleTable(
+  plan,
+  debtNames: [for (final d in plan.debts) planDebtName(l10n, d)],
+  labels: ScheduleLabels(
+    month: l10n.scheduleMonth,
+    payment: l10n.schedulePayment,
+    balance: l10n.scheduleBalance,
+    totalPayment: l10n.scheduleTotalPayment,
+    totalBalance: l10n.scheduleTotalBalance,
+  ),
+  notes: notes,
+);

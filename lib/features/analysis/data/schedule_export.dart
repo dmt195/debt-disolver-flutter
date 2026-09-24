@@ -8,6 +8,8 @@ import 'package:payoff_engine/payoff_engine.dart';
 /// `1234.56`, so spreadsheets in any locale read them as numbers.
 String scheduleToCsv(ScheduleTable table) {
   final lines = [
+    for (final note in table.notes) _csvField(note),
+    if (table.notes.isNotEmpty) '',
     table.headers.map(_csvField).join(','),
     for (final row in table.rows)
       [
@@ -23,9 +25,14 @@ String scheduleToCsv(ScheduleTable table) {
 List<int> scheduleToXlsx(ScheduleTable table, {String sheetName = 'Schedule'}) {
   final excel = Excel.createExcel();
   final defaultSheet = excel.getDefaultSheet()!;
-  excel
-    ..rename(defaultSheet, sheetName)
-    ..appendRow(sheetName, [for (final h in table.headers) TextCellValue(h)]);
+  excel.rename(defaultSheet, sheetName);
+  for (final note in table.notes) {
+    excel.appendRow(sheetName, [TextCellValue(note)]);
+  }
+  if (table.notes.isNotEmpty) {
+    excel.appendRow(sheetName, [TextCellValue('')]);
+  }
+  excel.appendRow(sheetName, [for (final h in table.headers) TextCellValue(h)]);
   for (final row in table.rows) {
     excel.appendRow(sheetName, [
       IntCellValue(row.month),

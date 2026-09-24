@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
 import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
+import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
+import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -139,5 +141,71 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(TabBar), findsNothing);
+  });
+
+  testWidgets('explains what a balance transfer changes', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a', name: 'Visa')], // 1,000.00 at 19.9%
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plan(StrategyId.balanceTransfer),
+    );
+    final summaryList = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('What changes'),
+      100,
+      scrollable: summaryList,
+    );
+    for (final line in [
+      'Visa: £1,000.00 moved to the transfer card',
+      'Transfer fee: £40.00',
+      'Credit limit: £1,040.00 (assumed)',
+      '0% for 12 months',
+    ]) {
+      await tester.scrollUntilVisible(
+        find.text(line),
+        100,
+        scrollable: summaryList,
+      );
+      expect(find.text(line), findsOneWidget);
+    }
+  });
+
+  testWidgets('exports name the scenario and what changes', (tester) async {
+    final exporter = _RecordingExporter();
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a', name: 'Visa')],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plan(StrategyId.balanceTransfer),
+      overrides: [planExporterProvider.overrideWithValue(exporter)],
+    );
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spreadsheet (CSV)'));
+    await tester.pumpAndSettle();
+    final (table, _, _) = exporter.calls.single;
+    expect(table.notes.first, 'Scenario: Current');
+    expect(table.notes, contains('Transfer fee: £40.00'));
+  });
+
+  testWidgets('names a saved scenario under the title', (tester) async {
+    final app = await pumpApp(
+      tester,
+      debts: [visa],
+      scenarios: [
+        Scenario(
+          id: 's1',
+          name: 'Bonus',
+          monthlyBudget: const Money(50000, 'GBP'),
+          parameters: const StrategyParameters(),
+          createdAt: DateTime(2026, 9),
+        ),
+      ],
+      location: Routes.plan(StrategyId.avalanche),
+    );
+    app.container.read(selectedScenarioIdProvider.notifier).select('s1');
+    await tester.pumpAndSettle();
+    expect(find.text('Scenario: Bonus'), findsOneWidget);
   });
 }

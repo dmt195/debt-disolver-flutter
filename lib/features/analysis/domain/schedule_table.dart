@@ -5,12 +5,20 @@ import 'package:payoff_engine/payoff_engine.dart';
 /// month, every debt's payment and closing balance, then the totals.
 @immutable
 class ScheduleTable {
-  const ScheduleTable({required this.headers, required this.rows});
+  const ScheduleTable({
+    required this.headers,
+    required this.rows,
+    this.notes = const [],
+  });
 
   /// `Month`, then per debt `<name> payment`, `<name> balance`, then
   /// `Total payment`, `Total balance`.
   final List<String> headers;
   final List<ScheduleRow> rows;
+
+  /// Lines shown above the table in exports: the scenario and what the
+  /// strategy changed.
+  final List<String> notes;
 }
 
 @immutable
@@ -45,12 +53,14 @@ ScheduleTable buildScheduleTable(
   PayoffPlan plan, {
   required List<String> debtNames,
   required ScheduleLabels labels,
+  List<String> notes = const [],
 }) {
   assert(debtNames.length == plan.debts.length, 'one name per plan debt');
   final currency = plan.totalPaid.currency;
   Money sum(List<Money> values) =>
       values.fold(Money.zero(currency), (a, b) => a + b);
   return ScheduleTable(
+    notes: notes,
     headers: [
       labels.month,
       for (final name in debtNames) ...[

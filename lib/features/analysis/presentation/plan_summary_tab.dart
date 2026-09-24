@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/features/analysis/presentation/plan_change_lines.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -49,6 +50,17 @@ class PlanSummaryTab extends ConsumerWidget {
             ],
           ),
         ),
+        if (plan.change case final change?) ...[
+          _Section(l10n.whatChanges),
+          Card(
+            child: Column(
+              children: [
+                for (final line in planChangeLines(l10n, change, locale))
+                  ListTile(dense: true, title: Text(line)),
+              ],
+            ),
+          ),
+        ],
         _Section(l10n.payThisMonth),
         Card(
           child: Column(

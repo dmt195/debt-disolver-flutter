@@ -23,7 +23,14 @@ abstract interface class DebtRepository {
   /// once, or [ArgumentError] is thrown.
   Future<void> reorder(List<String> idsInOrder);
 
-  /// Converts every stored amount between currencies with different numbers
-  /// of decimal digits, keeping the same major-unit values.
-  Future<void> rescaleAmounts({required int fromDigits, required int toDigits});
+  /// The currency the stored amounts are currently in, or null before the
+  /// first [convertAmounts].
+  Future<String?> amountsCurrencyCode();
+
+  /// Makes [toCurrencyCode] the currency of the stored amounts. If they are
+  /// in a currency with a different number of decimal digits, every balance
+  /// and floor is rescaled to keep its major-unit value, clamped to the valid
+  /// range (balances stay at least 1). Rescaling and recording the currency
+  /// happen in one transaction, so repeating a call is harmless.
+  Future<void> convertAmounts({required String toCurrencyCode});
 }

@@ -28,7 +28,20 @@ class DebtRows extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [DebtRows])
+/// Small key-value facts about the stored data.
+@DataClassName('AppMetaRow')
+class AppMeta extends Table {
+  @override
+  String get tableName => 'app_meta';
+
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {key};
+}
+
+@DriftDatabase(tables: [DebtRows, AppMeta])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 

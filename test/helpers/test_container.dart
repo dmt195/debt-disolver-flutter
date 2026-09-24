@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:debt_destroyer/app/dependencies.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
+import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -28,3 +31,9 @@ ProviderContainer createTestContainer({Map<String, Object> prefs = const {}}) =>
       overrides: testOverrides(prefs: prefs),
       retry: (_, _) => null,
     );
+
+/// Preferences holding a stored settings object with only [fields] set;
+/// the rest fall back to defaults when loaded.
+Map<String, Object> storedSettings(Map<String, Object?> fields) => {
+  SettingsKeys.settings: jsonEncode(fields),
+};

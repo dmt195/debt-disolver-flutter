@@ -52,6 +52,18 @@ void main() {
     expect(await debts(), hasLength(kMaxDebts));
   });
 
+  test('concurrent adds cannot exceed the maximum count', () async {
+    for (var i = 0; i < kMaxDebts - 1; i++) {
+      await actions().add(testDebt(id: ''));
+    }
+    final outcomes = await Future.wait([
+      actions().add(testDebt(id: '')),
+      actions().add(testDebt(id: '')),
+    ]);
+    expect(outcomes.whereType<DebtSaved>(), hasLength(1));
+    expect(await debts(), hasLength(kMaxDebts));
+  });
+
   test('update validates and stores changes', () async {
     final saved = (await actions().add(testDebt(id: '')) as DebtSaved).debt;
     final renamed = saved.copyWith(name: 'Renamed');

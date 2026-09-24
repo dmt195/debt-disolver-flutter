@@ -33,19 +33,23 @@ sealed class DebtSaveOutcome with _$DebtSaveOutcome {
 class DebtActions extends _$DebtActions {
   static const _uuid = Uuid();
 
+  /// The change in progress; each new one waits for it, so a check (such
+  /// as the debt count) and its write can't interleave with another.
+  Future<void> _pending = Future<void>.value();
+
   @override
   void build() {}
 
   /// Adds [draft] with a new id (the draft's id is ignored).
-  Future<DebtSaveOutcome> add(Debt draft) async {
+  Future<DebtSaveOutcome> add(Debt draft) => _serialised(() async {
     final debt = draft.copyWith(id: _uuid.v4());
     final existing = await _stored();
     final outcome = _validate(debt, [...existing, debt]);
     if (outcome is DebtSaved) await ref.read(debtRepositoryProvider).add(debt);
     return outcome;
-  }
+  });
 
-  Future<DebtSaveOutcome> update(Debt debt) async {
+  Future<DebtSaveOutcome> update(Debt debt) => _serialised(() async {
     final existing = await _stored();
     final list = [
       for (final d in existing)
@@ -56,12 +60,19 @@ class DebtActions extends _$DebtActions {
       await ref.read(debtRepositoryProvider).update(debt);
     }
     return outcome;
-  }
+  });
 
-  Future<void> delete(String id) => ref.read(debtRepositoryProvider).delete(id);
+  Future<void> delete(String id) =>
+      _serialised(() => ref.read(debtRepositoryProvider).delete(id));
 
   Future<void> reorder(List<String> idsInOrder) =>
-      ref.read(debtRepositoryProvider).reorder(idsInOrder);
+      _serialised(() => ref.read(debtRepositoryProvider).reorder(idsInOrder));
+
+  Future<T> _serialised<T>(Future<T> Function() operation) {
+    final result = _pending.then((_) => operation());
+    _pending = result.then<void>((_) {}, onError: (_) {});
+    return result;
+  }
 
   // Read from the database, not debtsProvider: the stream may not have
   // caught up with a write made a moment ago.

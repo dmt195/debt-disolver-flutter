@@ -41,7 +41,7 @@ App (run from the repo root):
 Gotchas:
 - Riverpod 3 pauses providers that have no listener, so a `StreamProvider` read without a listener never emits. In tests, call `container.listen(provider, (_, _) {})` before reading `.future`. To check that a write took effect, read the repository (`loadAll`), not the stream's latest value.
 - `select`/`selectAsync` come from `flutter_riverpod`, not `riverpod_annotation`. `Override` is in `package:flutter_riverpod/misc.dart`.
-- Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes.
+- Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes. The database records which currency its amounts are in (`DebtRepository.convertAmounts`, idempotent), and the controller reconciles it at startup, so an interrupted switch is repaired. Settings are saved as one JSON value under `SettingsKeys.settings`.
 
 ## Legacy Android app (reference only)
 

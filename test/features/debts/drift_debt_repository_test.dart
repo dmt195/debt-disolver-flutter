@@ -110,12 +110,67 @@ void main() {
     expect((await all()).map((d) => d.id), ['a', 'b']);
   });
 
-  test('rescales balances and floors between decimal-digit counts', () async {
-    await repo.add(testDebt(id: 'a', balance: 123456, minPaymentFloor: 2550));
-    await repo.rescaleAmounts(fromDigits: 2, toDigits: 0);
-    final debt = (await all('JPY')).single;
-    expect(debt.balance, const Money(1235, 'JPY'));
-    expect(debt.minPaymentFloor, const Money(26, 'JPY'));
+  group('convertAmounts', () {
+    test('the first call only records the currency', () async {
+      await repo.add(testDebt(id: 'a', balance: 123456));
+      expect(await repo.amountsCurrencyCode(), isNull);
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      expect(await repo.amountsCurrencyCode(), 'GBP');
+      expect((await all()).single.balance, const Money(123456, 'GBP'));
+    });
+
+    test('rescales balances and floors between decimal-digit counts', () async {
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      await repo.add(testDebt(id: 'a', balance: 123456, minPaymentFloor: 2550));
+      await repo.convertAmounts(toCurrencyCode: 'JPY');
+      final debt = (await all('JPY')).single;
+      expect(debt.balance, const Money(1235, 'JPY'));
+      expect(debt.minPaymentFloor, const Money(26, 'JPY'));
+      expect(await repo.amountsCurrencyCode(), 'JPY');
+    });
+
+    test('converting to the current currency again changes nothing', () async {
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      await repo.add(testDebt(id: 'a', balance: 123456));
+      await repo.convertAmounts(toCurrencyCode: 'JPY');
+      await repo.convertAmounts(toCurrencyCode: 'JPY');
+      expect((await all('JPY')).single.balance, const Money(1235, 'JPY'));
+    });
+
+    test('concurrent conversions to the same currency rescale once', () async {
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      await repo.add(testDebt(id: 'a', balance: 123456));
+      await Future.wait([
+        repo.convertAmounts(toCurrencyCode: 'JPY'),
+        repo.convertAmounts(toCurrencyCode: 'JPY'),
+      ]);
+      expect((await all('JPY')).single.balance, const Money(1235, 'JPY'));
+    });
+
+    test('keeps rescaled amounts within the valid range', () async {
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      await repo.add(testDebt(id: 'small', balance: 40, minPaymentFloor: 40));
+      await repo.convertAmounts(toCurrencyCode: 'JPY');
+      final small = (await all('JPY')).single;
+      expect(small.balance, const Money(1, 'JPY'), reason: 'never 0');
+      expect(small.minPaymentFloor, const Money(0, 'JPY'));
+
+      await repo.delete('small');
+      await repo.add(
+        testDebt(
+          id: 'big',
+          balance: kMaxAmountMinor,
+          minPaymentFloor: kMaxAmountMinor,
+        ),
+      );
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      final big = (await all()).single;
+      expect(big.balance, const Money(kMaxAmountMinor, 'GBP'));
+      expect(big.minPaymentFloor, const Money(kMaxAmountMinor, 'GBP'));
+      for (final d in await all()) {
+        expect(validateDebt(d), isEmpty);
+      }
+    });
   });
 
   test('data survives closing and reopening the database file', () async {

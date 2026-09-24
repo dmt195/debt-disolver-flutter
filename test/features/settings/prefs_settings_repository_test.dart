@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import '../../helpers/test_container.dart';
+
 void main() {
   PrefsSettingsRepository repositoryWith(Map<String, Object> stored) {
     SharedPreferencesAsyncPlatform.instance =
@@ -54,34 +56,54 @@ void main() {
     expect(await repo.load(), saved);
   });
 
+  test('saves everything in a single write', () async {
+    final repo = repositoryWith({});
+    await repo.save(AppSettings.defaults('GBP'));
+    final keys = await SharedPreferencesAsync().getKeys();
+    expect(keys, {SettingsKeys.settings});
+  });
+
   group('falls back to defaults for bad stored values', () {
     test('an invalid currency code', () async {
-      final s = await repositoryWith({SettingsKeys.currencyCode: 'pounds'})
-          .load();
+      final s = await repositoryWith(
+        storedSettings({SettingsKeys.currencyCode: 'pounds'}),
+      ).load();
       expect(s.currencyCode, 'GBP');
     });
 
     test('a non-positive budget', () async {
-      final s = await repositoryWith({SettingsKeys.monthlyBudgetMinor: -500})
-          .load();
+      final s = await repositoryWith(
+        storedSettings({SettingsKeys.monthlyBudgetMinor: -500}),
+      ).load();
       expect(s.monthlyBudget, const Money(30000, 'GBP'));
     });
 
     test('any out-of-range strategy parameter resets them all', () async {
-      final s = await repositoryWith({
-        SettingsKeys.consolidationAprBps: 700,
-        SettingsKeys.promoMonths: -3,
-      }).load();
+      final s = await repositoryWith(
+        storedSettings({
+          SettingsKeys.consolidationAprBps: 700,
+          SettingsKeys.promoMonths: -3,
+        }),
+      ).load();
       expect(s.strategyParameters, const StrategyParameters());
     });
 
     test('a value stored with the wrong type', () async {
-      final s = await repositoryWith({
-        SettingsKeys.monthlyBudgetMinor: 'lots',
-        SettingsKeys.onboardingComplete: 'yes',
-      }).load();
+      final s = await repositoryWith(
+        storedSettings({
+          SettingsKeys.monthlyBudgetMinor: 'lots',
+          SettingsKeys.onboardingComplete: 'yes',
+        }),
+      ).load();
       expect(s.monthlyBudget, const Money(30000, 'GBP'));
       expect(s.onboardingComplete, isFalse);
+    });
+
+    test('unreadable stored data', () async {
+      for (final stored in <Object>['{not json', '[1, 2]', 42]) {
+        final s = await repositoryWith({SettingsKeys.settings: stored}).load();
+        expect(s, AppSettings.defaults('GBP'), reason: '$stored');
+      }
     });
   });
 }

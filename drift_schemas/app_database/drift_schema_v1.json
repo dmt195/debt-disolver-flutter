@@ -141,6 +141,43 @@
           "id"
         ]
       }
+    },
+    {
+      "id": 1,
+      "references": [],
+      "type": "table",
+      "data": {
+        "name": "app_meta",
+        "was_declared_in_moor": false,
+        "columns": [
+          {
+            "name": "key",
+            "getter_name": "key",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "value",
+            "getter_name": "value",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": null,
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [],
+        "explicit_pk": [
+          "key"
+        ]
+      }
     }
   ],
   "fixed_sql": [
@@ -150,6 +187,15 @@
         {
           "dialect": "sqlite",
           "sql": "CREATE TABLE IF NOT EXISTS \"debts\" (\"id\" TEXT NOT NULL, \"name\" TEXT NOT NULL, \"type\" TEXT NOT NULL, \"balance_minor\" INTEGER NOT NULL, \"apr_bps\" INTEGER NOT NULL, \"min_payment_percent_bps\" INTEGER NOT NULL, \"min_payment_floor_minor\" INTEGER NOT NULL, \"allows_overpayment\" INTEGER NOT NULL CHECK (\"allows_overpayment\" IN (0, 1)), \"sort_index\" INTEGER NOT NULL, \"created_at\" INTEGER NOT NULL, \"updated_at\" INTEGER NOT NULL, PRIMARY KEY (\"id\"));"
+        }
+      ]
+    },
+    {
+      "name": "app_meta",
+      "sql": [
+        {
+          "dialect": "sqlite",
+          "sql": "CREATE TABLE IF NOT EXISTS \"app_meta\" (\"key\" TEXT NOT NULL, \"value\" TEXT NOT NULL, PRIMARY KEY (\"key\"));"
         }
       ]
     }

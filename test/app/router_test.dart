@@ -17,7 +17,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: testOverrides(
-          prefs: {SettingsKeys.onboardingComplete: onboardingComplete},
+          prefs: storedSettings({
+            SettingsKeys.onboardingComplete: onboardingComplete,
+          }),
         ),
         child: const DebtDestroyerApp(),
       ),

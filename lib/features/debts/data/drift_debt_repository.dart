@@ -8,6 +8,8 @@ class DriftDebtRepository implements DebtRepository {
   DriftDebtRepository(this._db, {DateTime Function()? now})
     : _now = now ?? DateTime.now;
 
+  static const _amountsCurrencyKey = 'amountsCurrencyCode';
+
   final AppDatabase _db;
   final DateTime Function() _now;
 
@@ -76,22 +78,51 @@ class DriftDebtRepository implements DebtRepository {
   });
 
   @override
-  Future<void> rescaleAmounts({
-    required int fromDigits,
-    required int toDigits,
-  }) => _db.transaction(() async {
-    int rescale(int minor) =>
-        rescaleMinor(minor, fromDigits: fromDigits, toDigits: toDigits);
-    final rows = await _db.select(_db.debtRows).get();
-    for (final row in rows) {
-      await (_db.update(_db.debtRows)..where((t) => t.id.equals(row.id))).write(
-        DebtRowsCompanion(
-          balanceMinor: Value(rescale(row.balanceMinor)),
-          minPaymentFloorMinor: Value(rescale(row.minPaymentFloorMinor)),
-        ),
-      );
-    }
-  });
+  Future<String?> amountsCurrencyCode() async {
+    final row = await (_db.select(
+      _db.appMeta,
+    )..where((t) => t.key.equals(_amountsCurrencyKey))).getSingleOrNull();
+    return row?.value;
+  }
+
+  @override
+  Future<void> convertAmounts({required String toCurrencyCode}) =>
+      _db.transaction(() async {
+        final from = await amountsCurrencyCode();
+        if (from == toCurrencyCode) return;
+        if (from != null) {
+          final fromDigits = currencyDecimalDigits(from);
+          final toDigits = currencyDecimalDigits(toCurrencyCode);
+          if (fromDigits != toDigits) {
+            int rescale(int minor, {required int min}) => rescaleMinor(
+              minor,
+              fromDigits: fromDigits,
+              toDigits: toDigits,
+            ).clamp(min, kMaxAmountMinor);
+            final rows = await _db.select(_db.debtRows).get();
+            for (final row in rows) {
+              await (_db.update(
+                _db.debtRows,
+              )..where((t) => t.id.equals(row.id))).write(
+                DebtRowsCompanion(
+                  balanceMinor: Value(rescale(row.balanceMinor, min: 1)),
+                  minPaymentFloorMinor: Value(
+                    rescale(row.minPaymentFloorMinor, min: 0),
+                  ),
+                ),
+              );
+            }
+          }
+        }
+        await _db
+            .into(_db.appMeta)
+            .insertOnConflictUpdate(
+              AppMetaCompanion.insert(
+                key: _amountsCurrencyKey,
+                value: toCurrencyCode,
+              ),
+            );
+      });
 
   Debt _toDebt(DebtRow row, String currencyCode) => Debt(
     id: row.id,

@@ -99,7 +99,59 @@ void main() {
     test('rejects a malformed code', () async {
       expect(() => controller().setCurrency('pounds'), throwsArgumentError);
     });
+
+    test('two quick switches to the same currency rescale once', () async {
+      await Future.wait([
+        controller().setCurrency('JPY'),
+        controller().setCurrency('JPY'),
+      ]);
+      expect((await settings()).monthlyBudget, const Money(300, 'JPY'));
+      expect((await debts()).single.balance, const Money(1235, 'JPY'));
+    });
+
+    test('a budget change racing a currency switch keeps both', () async {
+      await Future.wait([
+        controller().setCurrency('JPY'),
+        controller().setMonthlyBudget(500),
+      ]);
+      final s = await settings();
+      expect(s.currencyCode, 'JPY');
+      expect(s.monthlyBudget, const Money(500, 'JPY'));
+      expect((await debts()).single.balance, const Money(1235, 'JPY'));
+    });
+
+    test(
+      'caps a budget that would exceed the maximum after rescaling',
+      () async {
+        await controller().setCurrency('JPY');
+        await controller().setMonthlyBudget(kMaxAmountMinor);
+        await controller().setCurrency('GBP');
+        expect(
+          (await settings()).monthlyBudget,
+          const Money(kMaxAmountMinor, 'GBP'),
+        );
+      },
+    );
   });
+
+  test(
+    'repairs debts left in another currency by an interrupted switch',
+    () async {
+      // Simulate a crash after the debts were converted to JPY but before the
+      // settings (still GBP) were saved.
+      final repo = container.read(debtRepositoryProvider);
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      await repo.add(testDebt(id: 'a', balance: 123456));
+      await repo.convertAmounts(toCurrencyCode: 'JPY');
+
+      await container.read(settingsControllerProvider.future);
+      expect(await repo.amountsCurrencyCode(), 'GBP');
+      expect(
+        (await repo.loadAll('GBP')).single.balance,
+        const Money(123500, 'GBP'),
+      );
+    },
+  );
 
   test('completeOnboarding is remembered', () async {
     await controller().completeOnboarding();

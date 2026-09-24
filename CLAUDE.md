@@ -16,12 +16,22 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 ### Migration status
 - [x] Legacy code analysed, design spec approved
 - [x] Full legacy Android project placed in `legacy/`
-- [ ] Plan 1: foundation and `payoff_engine` (`docs/superpowers/plans/2026-09-24-plan-1-foundation-payoff-engine.md`)
+- [x] Plan 1: foundation and `payoff_engine` (`docs/superpowers/plans/2026-09-24-plan-1-foundation-payoff-engine.md`)
 - [ ] Plan 2: Flutter app shell, persistence (Drift, settings) and state (Riverpod)
 - [ ] Plan 3: screens (onboarding, debts, strategies, plan detail, settings) and CSV/XLSX export
 - [ ] Plan 4: ads and consent, Crashlytics, full CI, store release prep
 
-Update this checklist as the phases complete. Once the Flutter project exists, add its build, test and codegen commands here: `flutter test`, a single test via `flutter test path/to_test.dart --plain-name "name"`, `dart run build_runner build -d`, and `dart test` inside `packages/payoff_engine`.
+Update this checklist as the phases complete.
+
+## Commands
+
+`payoff_engine` (run from `packages/payoff_engine/`):
+- `dart pub get`, then `dart run build_runner build -d`. Run the build after a fresh checkout or after any freezed model change, because generated `*.freezed.dart` files are not committed.
+- `dart test`: all tests. `dart test test/calculator_test.dart --plain-name "name"` runs one test.
+- `dart analyze --fatal-infos` and `dart format lib test`. CI (`.github/workflows/payoff_engine.yml`) enforces both.
+- Legacy reference figures: `java legacy/reference/LegacySolver.java` (from the repo root).
+
+Once the Flutter app exists (Plan 2), add its commands here: `flutter test`, a single test via `flutter test path/to_test.dart --plain-name "name"`, and `dart run build_runner build -d`.
 
 ## Legacy Android app (reference only)
 

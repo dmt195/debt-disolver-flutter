@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/features/analysis/presentation/plan_detail_screen.dart';
+import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -14,11 +15,14 @@ part 'router.g.dart';
 
 abstract final class Routes {
   static const debts = '/';
+  static const newDebt = '/debts/new';
   static const onboarding = '/onboarding';
   static const strategies = '/strategies';
   static const settings = '/settings';
 
   static String plan(StrategyId id) => '$strategies/${id.name}';
+
+  static String editDebt(String id) => '/debts/$id';
 }
 
 /// App navigation. Until onboarding is complete every location redirects to
@@ -48,6 +52,17 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.debts,
         builder: (context, state) => const DebtsScreen(),
+        routes: [
+          GoRoute(
+            path: 'debts/new',
+            builder: (context, state) => const DebtFormScreen(),
+          ),
+          GoRoute(
+            path: 'debts/:debtId',
+            builder: (context, state) =>
+                DebtFormScreen(debtId: state.pathParameters['debtId']),
+          ),
+        ],
       ),
       GoRoute(
         path: Routes.onboarding,

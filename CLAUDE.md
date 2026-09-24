@@ -19,7 +19,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - [x] Plan 1: foundation and `payoff_engine` (`docs/superpowers/plans/2026-09-24-plan-1-foundation-payoff-engine.md`)
 - [x] Plan 2: Flutter app shell, persistence (Drift, settings) and state (Riverpod)
 - [x] Plan 3: screens (onboarding, debts, strategies, plan detail, settings) and CSV/XLSX export
-- [ ] Plan 4: ads and consent, Crashlytics, full CI, store release prep
+- [x] Plan 4: ads and consent, crash reporting (local; Crashlytics set-up documented), Android flavors, icons, CI, release docs
 
 Update this checklist as the phases complete.
 
@@ -35,7 +35,8 @@ App (run from the repo root):
 - `./tool/codegen.sh` generates code for `payoff_engine`, the app's translations (`flutter gen-l10n`) and then the app. Run it after a fresh checkout and after changing any freezed model, Riverpod provider or Drift table. Generated `*.g.dart`/`*.freezed.dart` files are not committed.
 - `flutter test` runs all app tests. `flutter test test/path/to_test.dart --plain-name "name"` runs one test.
 - `dart analyze --fatal-infos` and `dart format lib test`. CI (`.github/workflows/app.yml`) enforces both.
-- `flutter run` runs the app on a connected device or simulator.
+- `flutter run --flavor dev` runs the app on a connected device or simulator. Android needs a flavor (`dev` or `prod`); iOS has none yet, so omit it there.
+- Ads: debug builds show none; `--dart-define=ADS_ENABLED=true` shows Google's test ads. Real AdMob ids, signing, store builds and the privacy policy are covered in `docs/release.md`.
 - To change the Drift schema: bump `schemaVersion` in `lib/features/debts/data/app_database.dart` and write the migration. Then run `dart run drift_dev make-migrations` and commit `drift_schemas/` and the generated `test/drift/` tests.
 
 Gotchas:
@@ -44,6 +45,7 @@ Gotchas:
 - UI text lives in `lib/l10n/app_en.arb`, read through `context.l10n`. Money and percentages are formatted and parsed with `lib/core/money_format.dart`, using `formatLocaleProvider` (the device locale). Parsing is exact integer arithmetic; never convert money through `double` except for display.
 - Widget tests use `pumpApp` (`test/helpers/pump_app.dart`): the whole app with an `InMemoryDebtRepository` and a synchronous `planCalculatorProvider`. Drift's streams and `compute` isolates don't run under the widget test clock, so never use the real ones in widget tests. After `tester.ensureVisible`, call `pumpAndSettle` before tapping.
 - Errors found after Save are shown with `forceErrorText`. Clear a field's forced error in its `onChanged`, never at the start of Save: a stale forced error makes `validate()` fail silently.
+- Ads and crash reporting go through `AdsService` (`lib/features/ads/`) and `CrashReporter` (`lib/core/crash_reporter.dart`). Widget tests that need ads override `adsServiceProvider` with `FakeAdsService`. Ads appear only on the Debts and Strategies screens, behind consent.
 - Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes. The database records which currency its amounts are in (`DebtRepository.convertAmounts`, idempotent), and the controller reconciles it at startup, so an interrupted switch is repaired. Settings are saved as one JSON value under `SettingsKeys.settings`.
 
 ## Legacy Android app (reference only)

@@ -1,8 +1,8 @@
+import 'package:payoff_engine/src/allocation_order.dart';
 import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/payoff_result.dart';
 import 'package:payoff_engine/src/restructure.dart';
-import 'package:payoff_engine/src/rounding.dart';
 import 'package:payoff_engine/src/simulate.dart';
 import 'package:payoff_engine/src/strategy.dart';
 import 'package:payoff_engine/src/validation.dart';
@@ -39,19 +39,14 @@ PayoffResult calculate({
     );
   }
 
-  final budget = switch (strategy) {
-    Boosted(:final budgetPercent) => Money(
-      divideHalfEven(monthlyBudget.minor * budgetPercent, 100),
-      currency,
-    ),
-    _ => monthlyBudget,
-  };
-  final restructured = restructure(debts, strategy, budget: budget);
+  final restructured = restructure(debts, strategy, budget: monthlyBudget);
   return simulate(
     strategyId: strategy.id,
     debts: restructured.debts,
-    budget: budget,
+    budget: monthlyBudget,
     fees: restructured.fees,
+    order: allocationOrder(strategy, restructured.debts),
+    allowExtra: strategy is! MinimumsOnly,
   );
 }
 
@@ -64,3 +59,14 @@ List<PayoffResult> calculateAll({
   for (final strategy in standardStrategies(parameters))
     calculate(debts: debts, monthlyBudget: monthlyBudget, strategy: strategy),
 ];
+
+/// Paying only the minimums: the baseline [calculateAll]'s plans are
+/// compared with.
+PayoffResult calculateBaseline({
+  required List<Debt> debts,
+  required Money monthlyBudget,
+}) => calculate(
+  debts: debts,
+  monthlyBudget: monthlyBudget,
+  strategy: const Strategy.minimumsOnly(),
+);

@@ -28,10 +28,10 @@ void main() {
   test('puts feasible plans first, cheapest first', () {
     final ranked = rankResults([
       feasible(StrategyId.avalanche, paid: 500),
-      const PayoffResult.neverClears(strategyId: StrategyId.lowestAprFirst),
+      const PayoffResult.neverClears(strategyId: StrategyId.snowball),
       feasible(StrategyId.consolidation, paid: 300),
       const PayoffResult.infeasible(
-        strategyId: StrategyId.boosted,
+        strategyId: StrategyId.customOrder,
         shortfall: Money(1, 'GBP'),
         month: 1,
       ),
@@ -41,28 +41,28 @@ void main() {
       StrategyId.consolidation,
       StrategyId.balanceTransfer,
       StrategyId.avalanche,
-      StrategyId.boosted,
-      StrategyId.lowestAprFirst,
+      StrategyId.customOrder,
+      StrategyId.snowball,
     ]);
   });
 
   test('breaks cost ties by fewer months, then strategy order', () {
     final ranked = rankResults([
-      feasible(StrategyId.boosted, paid: 100, months: 3),
-      feasible(StrategyId.lowestAprFirst, paid: 100, months: 2),
+      feasible(StrategyId.customOrder, paid: 100, months: 3),
+      feasible(StrategyId.snowball, paid: 100, months: 2),
       feasible(StrategyId.avalanche, paid: 100, months: 3),
     ]);
     expect(ranked.map((r) => r.strategyId), [
-      StrategyId.lowestAprFirst,
+      StrategyId.snowball,
       StrategyId.avalanche,
-      StrategyId.boosted,
+      StrategyId.customOrder,
     ]);
   });
 
   test('does not modify its input', () {
     final input = [
       feasible(StrategyId.avalanche, paid: 2),
-      feasible(StrategyId.boosted, paid: 1),
+      feasible(StrategyId.customOrder, paid: 1),
     ];
     rankResults(input);
     expect(input.first.strategyId, StrategyId.avalanche);

@@ -59,7 +59,7 @@ class PlanSummaryTab extends ConsumerWidget {
             ],
           ),
         ),
-        _Section(l10n.paymentPriority, hint: l10n.paymentPriorityHint),
+        _Section(l10n.payoffOrder, hint: l10n.payoffOrderHint),
         Card(
           child: Column(
             children: [

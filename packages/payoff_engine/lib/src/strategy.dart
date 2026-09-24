@@ -4,22 +4,23 @@ part 'strategy.freezed.dart';
 
 enum StrategyId {
   avalanche,
-  lowestAprFirst,
-  boosted,
+  snowball,
+  customOrder,
   consolidation,
   balanceTransfer,
+  minimumsOnly,
 }
 
 @freezed
 sealed class Strategy with _$Strategy {
-  /// Pay the highest-APR debt first.
+  /// Extra money to the debt with the highest rate that month.
   const factory Strategy.avalanche() = Avalanche;
 
-  /// Pay the lowest-APR debt first.
-  const factory Strategy.lowestAprFirst() = LowestAprFirst;
+  /// Extra money to the smallest starting balance first.
+  const factory Strategy.snowball() = Snowball;
 
-  /// Avalanche with the budget raised to [budgetPercent] percent.
-  const factory Strategy.boosted({@Default(110) int budgetPercent}) = Boosted;
+  /// Extra money to the debts in the order they are listed.
+  const factory Strategy.customOrder() = CustomOrder;
 
   /// Replace all debts with one loan at [aprBps]; the whole budget is the
   /// fixed monthly payment.
@@ -33,14 +34,19 @@ sealed class Strategy with _$Strategy {
     required int revertAprBps,
   }) = BalanceTransfer;
 
+  /// Only the minimum on every debt: the baseline the others are compared
+  /// with.
+  const factory Strategy.minimumsOnly() = MinimumsOnly;
+
   const Strategy._();
 
   StrategyId get id => switch (this) {
     Avalanche() => StrategyId.avalanche,
-    LowestAprFirst() => StrategyId.lowestAprFirst,
-    Boosted() => StrategyId.boosted,
+    Snowball() => StrategyId.snowball,
+    CustomOrder() => StrategyId.customOrder,
     Consolidation() => StrategyId.consolidation,
     BalanceTransfer() => StrategyId.balanceTransfer,
+    MinimumsOnly() => StrategyId.minimumsOnly,
   };
 }
 
@@ -55,11 +61,12 @@ abstract class StrategyParameters with _$StrategyParameters {
   }) = _StrategyParameters;
 }
 
-/// The five strategies compared by the app, in display order.
+/// The five strategies the app ranks, in display order. The baseline
+/// ([Strategy.minimumsOnly]) is run separately by `calculateBaseline`.
 List<Strategy> standardStrategies(StrategyParameters p) => [
   const Strategy.avalanche(),
-  const Strategy.lowestAprFirst(),
-  const Strategy.boosted(),
+  const Strategy.snowball(),
+  const Strategy.customOrder(),
   Strategy.consolidation(aprBps: p.consolidationAprBps),
   Strategy.balanceTransfer(
     feeBps: p.transferFeeBps,

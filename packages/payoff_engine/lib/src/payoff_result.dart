@@ -48,7 +48,7 @@ abstract class MonthRow with _$MonthRow {
 @freezed
 abstract class PayoffPlan with _$PayoffPlan {
   const factory PayoffPlan({
-    /// In payoff priority order.
+    /// In clearing order: the order the debts are paid off in.
     required List<PlanDebt> debts,
     required List<MonthRow> months,
     required Money totalPaid,

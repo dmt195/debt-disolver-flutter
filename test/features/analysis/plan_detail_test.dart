@@ -74,7 +74,7 @@ void main() {
     expect(find.text('£1,000.00'), findsOneWidget); // total paid
     expect(find.text('£0.00'), findsOneWidget); // total interest
     expect(find.text('£250.00'), findsOneWidget); // this month
-    expect(find.text('Payment priority'), findsOneWidget);
+    expect(find.text('Payoff order'), findsOneWidget);
   });
 
   testWidgets('charts the balance over time', (tester) async {

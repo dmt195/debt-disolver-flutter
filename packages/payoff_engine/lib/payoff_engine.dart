@@ -1,6 +1,7 @@
 /// Pure-Dart debt payoff calculator for Debt Destroyer.
 library;
 
+export 'src/allocation_order.dart';
 export 'src/calculator.dart';
 export 'src/debt.dart';
 export 'src/debt_kind.dart';

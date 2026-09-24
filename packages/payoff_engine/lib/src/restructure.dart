@@ -1,5 +1,4 @@
 import 'package:payoff_engine/src/debt.dart';
-import 'package:payoff_engine/src/debt_ordering.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/rounding.dart';
 import 'package:payoff_engine/src/strategy.dart';
@@ -29,14 +28,10 @@ Restructured restructure(
   final zero = Money.zero(currency);
   final total = debts.fold(zero, (sum, d) => sum + d.balance);
   return switch (strategy) {
-    Avalanche() || Boosted() => Restructured(
-      debts: [...debts]..sort(compareHighestAprFirst),
-      fees: zero,
-    ),
-    LowestAprFirst() => Restructured(
-      debts: [...debts]..sort(compareLowestAprFirst),
-      fees: zero,
-    ),
+    Avalanche() ||
+    Snowball() ||
+    CustomOrder() ||
+    MinimumsOnly() => Restructured(debts: [...debts], fees: zero),
     Consolidation(:final aprBps) => Restructured(
       debts: [
         Debt(

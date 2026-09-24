@@ -39,13 +39,6 @@ void main() {
     final p = runAll([debt(id: 'card', balance: 100000)], 25000);
     // Legacy: 4 months, 1000.00, for all three direct strategies.
     expectPlan(p[StrategyId.avalanche]!, months: 4, paid: 100000, interest: 0);
-    expectPlan(
-      p[StrategyId.lowestAprFirst]!,
-      months: 4,
-      paid: 100000,
-      interest: 0,
-    );
-    expectPlan(p[StrategyId.boosted]!, months: 4, paid: 100000, interest: 0);
     // Legacy: 5 months, 1008.42 (interest 8.42).
     expectPlan(
       p[StrategyId.consolidation]!,
@@ -79,19 +72,6 @@ void main() {
       months: 13,
       paid: 128478,
       interest: 8478,
-    );
-    expectPlan(
-      p[StrategyId.lowestAprFirst]!,
-      months: 13,
-      paid: 128478,
-      interest: 8478,
-    );
-    // Legacy: 12 months, 1277.11.
-    expectPlan(
-      p[StrategyId.boosted]!,
-      months: 12,
-      paid: 127711,
-      interest: 7711,
     );
     // Legacy: 13 months, 1226.73.
     expectPlan(
@@ -146,21 +126,6 @@ void main() {
       interest: 46187,
       order: ['c1', 'c2', 'l1'],
     );
-    // Legacy: 22 months, 7050.05 (2p lower).
-    expectPlan(
-      p[StrategyId.lowestAprFirst]!,
-      months: 22,
-      paid: 705007,
-      interest: 55007,
-      order: ['l1', 'c2', 'c1'],
-    );
-    // Legacy: 22 months, 6924.92 (3p lower).
-    expectPlan(
-      p[StrategyId.boosted]!,
-      months: 22,
-      paid: 692495,
-      interest: 42495,
-    );
     // Legacy: 15 months, 6672.90 (1p lower).
     expectPlan(
       p[StrategyId.consolidation]!,
@@ -177,6 +142,20 @@ void main() {
       paid: 676012,
       interest: 12,
       fees: 26000,
+    );
+    expectPlan(
+      p[StrategyId.snowball]!,
+      months: 22,
+      paid: 705007,
+      interest: 55007,
+      order: ['c2', 'c1', 'l1'],
+    );
+    expectPlan(
+      p[StrategyId.customOrder]!,
+      months: 22,
+      paid: 696187,
+      interest: 46187,
+      order: ['c1', 'c2', 'l1'],
     );
   });
 
@@ -204,22 +183,6 @@ void main() {
       months: 8,
       paid: 212424,
       interest: 12424,
-      order: ['y', 'x'],
-    );
-    // Legacy treated the APRs as equal, so lowest-first matched avalanche.
-    expectPlan(
-      p[StrategyId.lowestAprFirst]!,
-      months: 8,
-      paid: 212572,
-      interest: 12572,
-      order: ['x', 'y'],
-    );
-    // Legacy: 7 months, 2115.44 (Alpha first).
-    expectPlan(
-      p[StrategyId.boosted]!,
-      months: 7,
-      paid: 211412,
-      interest: 11412,
       order: ['y', 'x'],
     );
     // Legacy: 7 months, 2026.02 (1p lower).

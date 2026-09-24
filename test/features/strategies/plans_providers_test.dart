@@ -25,7 +25,7 @@ void main() {
 
   test('with no debts every strategy is an empty feasible plan', () async {
     final plans = await settledPlans();
-    expect(plans, hasLength(StrategyId.values.length));
+    expect(plans, hasLength(5));
     for (final result in plans) {
       expect((result as Feasible).plan.monthsToClear, 0);
     }

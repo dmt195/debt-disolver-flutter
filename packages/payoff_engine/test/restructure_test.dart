@@ -7,14 +7,17 @@ void main() {
   final low = debt(id: 'low', balance: 1000, aprBps: 500);
   final high = debt(id: 'high', balance: 2000, aprBps: 2000);
 
-  test('avalanche puts the highest APR first and adds no fees', () {
-    final r = restructure(
-      [low, high],
-      const Strategy.avalanche(),
-      budget: gbp(500),
-    );
-    expect(r.debts, [high, low]);
-    expect(r.fees, gbp(0));
+  test('direct strategies keep the list as given and add no fees', () {
+    for (final s in const [
+      Strategy.avalanche(),
+      Strategy.snowball(),
+      Strategy.customOrder(),
+      Strategy.minimumsOnly(),
+    ]) {
+      final r = restructure([low, high], s, budget: gbp(500));
+      expect(r.debts, [low, high], reason: '$s');
+      expect(r.fees, gbp(0), reason: '$s');
+    }
   });
 
   test('balance transfer is a card with a 0% promo, then the revert APR', () {

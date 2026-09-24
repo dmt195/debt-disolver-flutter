@@ -8,19 +8,29 @@ import 'helpers.dart';
 
 void main() {
   const cases = 300;
-  final strategies = standardStrategies(const StrategyParameters());
 
   List<Debt> randomDebts(Random r) => [
     for (var i = 0; i < 1 + r.nextInt(5); i++)
       debt(
         id: 'd$i',
+        type: DebtType.values[r.nextInt(DebtType.values.length)],
         balance: 1 + r.nextInt(1000000),
         aprBps: r.nextInt(3001),
         minPaymentPercentBps: r.nextInt(501),
         minPaymentFloor: r.nextInt(5001),
         allowsOverpayment: r.nextInt(4) != 0,
+        promo: r.nextInt(3) == 0
+            ? Promo(aprBps: r.nextInt(501), months: 1 + r.nextInt(24))
+            : null,
       ),
   ];
+
+  StrategyParameters randomParameters(Random r) => StrategyParameters(
+    consolidationAprBps: r.nextInt(2001),
+    transferFeeBps: r.nextInt(501),
+    promoMonths: r.nextInt(25),
+    revertAprBps: r.nextInt(3001),
+  );
 
   Money sum(Iterable<Money> xs) => xs.fold(gbp(0), (a, b) => a + b);
 
@@ -30,6 +40,10 @@ void main() {
     for (var c = 0; c < cases; c++) {
       final debts = randomDebts(r);
       final budget = gbp(1 + r.nextInt(200000));
+      final strategies = [
+        ...standardStrategies(randomParameters(r)),
+        const Strategy.minimumsOnly(),
+      ];
       for (final s in strategies) {
         final result = calculate(
           debts: debts,
@@ -45,9 +59,6 @@ void main() {
             break;
           case Feasible(:final plan):
             feasible++;
-            final effectiveBudget = s is Boosted
-                ? gbp(divideHalfEven(budget.minor * 110, 100))
-                : budget;
             final starting = sum(plan.debts.map((d) => d.startingBalance));
             expect(
               starting,
@@ -60,8 +71,8 @@ void main() {
               reason: label,
             );
             expect(
-              plan.monthsToClear,
-              lessThanOrEqualTo(kMaxMonths),
+              plan.payoffOrder.toSet(),
+              hasLength(plan.debts.length),
               reason: label,
             );
             for (final (i, row) in plan.months.indexed) {
@@ -76,33 +87,13 @@ void main() {
                 isTrue,
                 reason: label,
               );
-              expect(
-                sum(row.payments) <= effectiveBudget,
-                isTrue,
-                reason: label,
-              );
+              expect(sum(row.payments) <= budget, isTrue, reason: label);
             }
             expect(
               plan.months.last.closingBalances.every((b) => b.isZero),
               isTrue,
               reason: label,
             );
-            final aprs = [
-              for (final id in plan.payoffOrder)
-                debts
-                    .firstWhere((d) => d.id == id, orElse: () => debts.first)
-                    .aprBps,
-            ];
-            if (s is Avalanche || s is Boosted) {
-              for (var i = 1; i < aprs.length; i++) {
-                expect(aprs[i - 1] >= aprs[i], isTrue, reason: label);
-              }
-            }
-            if (s is LowestAprFirst) {
-              for (var i = 1; i < aprs.length; i++) {
-                expect(aprs[i - 1] <= aprs[i], isTrue, reason: label);
-              }
-            }
         }
       }
     }

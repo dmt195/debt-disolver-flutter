@@ -26,8 +26,8 @@ void main() {
     );
     for (final name in [
       'Highest interest first',
-      'Lowest interest first',
-      'Pay 10% more',
+      'Smallest balance first',
+      'Your order',
       'Consolidation loan',
       '0% balance transfer',
     ]) {

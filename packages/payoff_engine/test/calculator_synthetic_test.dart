@@ -70,6 +70,9 @@ void main() {
       monthlyBudget: gbp(25000),
       parameters: const StrategyParameters(),
     );
-    expect(results.map((r) => r.strategyId), StrategyId.values);
+    expect(
+      results.map((r) => r.strategyId),
+      standardStrategies(const StrategyParameters()).map((s) => s.id),
+    );
   });
 }

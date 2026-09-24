@@ -15,10 +15,11 @@ String debtTypeLabel(AppLocalizations l10n, DebtType type) => switch (type) {
 
 String strategyName(AppLocalizations l10n, StrategyId id) => switch (id) {
   StrategyId.avalanche => l10n.strategyAvalanche,
-  StrategyId.lowestAprFirst => l10n.strategyLowestAprFirst,
-  StrategyId.boosted => l10n.strategyBoosted,
+  StrategyId.snowball => l10n.strategySnowball,
+  StrategyId.customOrder => l10n.strategyCustomOrder,
   StrategyId.consolidation => l10n.strategyConsolidation,
   StrategyId.balanceTransfer => l10n.strategyBalanceTransfer,
+  StrategyId.minimumsOnly => l10n.strategyMinimumsOnly,
 };
 
 String strategyDescription(
@@ -28,8 +29,9 @@ String strategyDescription(
   String locale,
 ) => switch (id) {
   StrategyId.avalanche => l10n.strategyAvalancheDescription,
-  StrategyId.lowestAprFirst => l10n.strategyLowestAprFirstDescription,
-  StrategyId.boosted => l10n.strategyBoostedDescription,
+  StrategyId.snowball => l10n.strategySnowballDescription,
+  StrategyId.customOrder => l10n.strategyCustomOrderDescription,
+  StrategyId.minimumsOnly => l10n.strategyMinimumsOnlyDescription,
   StrategyId.consolidation => l10n.strategyConsolidationDescription(
     formatPercent(p.consolidationAprBps, locale),
   ),

@@ -106,7 +106,7 @@ void main() {
         debt(id: 'high', balance: 1000, aprBps: 2000),
       ];
       final copy = [...input];
-      run(input, 500, const Strategy.lowestAprFirst());
+      run(input, 500, const Strategy.snowball());
       run(input, 500);
       expect(input, copy);
     });
@@ -130,36 +130,89 @@ void main() {
   });
 
   group('calculate — strategies', () {
-    final debts = [
-      debt(
-        id: 'x',
-        name: 'Alpha',
-        balance: 100000,
-        aprBps: 1800,
-        minPaymentFloor: 2500,
-      ),
-      debt(
-        id: 'y',
-        name: 'Beta',
-        balance: 100000,
-        aprBps: 1850,
-        minPaymentFloor: 2500,
-      ),
-    ];
+    int col(PayoffPlan p, String id) => p.debts.indexWhere((d) => d.id == id);
 
-    test('lowestAprFirst orders ascending by APR', () {
-      final plan = planOf(run(debts, 30000, const Strategy.lowestAprFirst()));
-      expect(plan.payoffOrder, ['x', 'y']);
+    test('avalanche gives a 0% promo debt only its minimum until it ends', () {
+      final plan = planOf(
+        run([
+          debt(
+            id: 'a',
+            balance: 100000,
+            aprBps: 3000,
+            promo: const Promo(aprBps: 0, months: 2),
+          ),
+          debt(id: 'b', balance: 100000, aprBps: 1000),
+        ], 10000),
+      );
+      final a = col(plan, 'a');
+      expect(
+        [for (final r in plan.months.take(3)) r.payments[a]],
+        [gbp(0), gbp(0), gbp(10000)],
+      );
+      expect(plan.months[2].interest[a], gbp(2500)); // 30% / 12 of 1,000.00
     });
 
-    test('boosted raises the budget by 10%', () {
-      final plan = planOf(run(debts, 30000, const Strategy.boosted()));
-      final firstMonthTotal = plan.months.first.payments.fold(
-        gbp(0),
-        (a, b) => a + b,
+    test('snowball pays the smallest starting balance first', () {
+      final plan = planOf(
+        run(
+          [
+            debt(id: 'a', balance: 50000, aprBps: 2000),
+            debt(id: 'b', balance: 30000, aprBps: 500),
+          ],
+          10000,
+          const Strategy.snowball(),
+        ),
       );
-      expect(firstMonthTotal, gbp(33000));
-      expect(plan.payoffOrder, ['y', 'x']);
+      expect(plan.months.first.payments[col(plan, 'b')], gbp(10000));
+      expect(plan.payoffOrder, ['b', 'a']);
+      expect(plan.monthsToClear, 9);
+      expect(plan.totalPaid, gbp(85737));
+    });
+
+    test('custom order follows the list', () {
+      final plan = planOf(
+        run(
+          [
+            debt(id: 'a', balance: 50000, aprBps: 500),
+            debt(id: 'b', balance: 30000, aprBps: 2000),
+          ],
+          10000,
+          const Strategy.customOrder(),
+        ),
+      );
+      expect(plan.months.first.payments[col(plan, 'a')], gbp(10000));
+      expect(plan.payoffOrder, ['a', 'b']);
+      expect(plan.totalPaid, gbp(84467));
+    });
+  });
+
+  group('calculateBaseline', () {
+    test('pays only the minimums', () {
+      final result = calculateBaseline(
+        debts: [debt(id: 'a', balance: 100000, minPaymentFloor: 10000)],
+        monthlyBudget: gbp(50000),
+      );
+      expect(result.strategyId, StrategyId.minimumsOnly);
+      expect(planOf(result).monthsToClear, 10);
+    });
+
+    test('never clears when the minimum only covers the interest', () {
+      // 2% of the balance a month against 24% APR (2% a month).
+      final result = calculateBaseline(
+        debts: [
+          debt(
+            id: 'a',
+            balance: 100000,
+            aprBps: 2400,
+            minPaymentPercentBps: 200,
+          ),
+        ],
+        monthlyBudget: gbp(50000),
+      );
+      expect(
+        result,
+        const PayoffResult.neverClears(strategyId: StrategyId.minimumsOnly),
+      );
     });
   });
 

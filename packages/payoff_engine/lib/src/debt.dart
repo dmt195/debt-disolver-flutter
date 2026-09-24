@@ -3,6 +3,8 @@ import 'package:payoff_engine/src/money.dart';
 
 part 'debt.freezed.dart';
 
+/// Stored by name in the app's database: renaming a value breaks existing
+/// rows unless a migration renames them too.
 enum DebtType { creditCard, loan, personal }
 
 @freezed

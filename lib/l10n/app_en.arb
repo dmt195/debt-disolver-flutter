@@ -131,5 +131,7 @@
   "settingsPromoMonths": "Interest-free months",
   "settingsTransferFee": "Transfer fee (% of balance)",
   "settingsRevertApr": "Interest rate afterwards (APR %)",
-  "settingsSaved": "Saved"
+  "settingsSaved": "Saved",
+  "privacyChoices": "Privacy choices",
+  "privacyChoicesHint": "Change how ads use your data"
 }

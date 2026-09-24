@@ -2,6 +2,7 @@ import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
@@ -53,6 +54,7 @@ class StrategiesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.strategiesTitle)),
       body: body,
+      bottomNavigationBar: const AdBanner(),
     );
   }
 }

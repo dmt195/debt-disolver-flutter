@@ -6,6 +6,7 @@ import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -41,17 +42,23 @@ class DebtsScreen extends ConsumerWidget {
         label: Text(l10n.addDebt),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endContained,
-      bottomNavigationBar: BottomAppBar(
-        child: Row(
-          children: [
-            FilledButton(
-              onPressed: hasDebts
-                  ? () => context.push(Routes.strategies)
-                  : null,
-              child: Text(l10n.compareStrategies),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const AdBanner(),
+          BottomAppBar(
+            child: Row(
+              children: [
+                FilledButton(
+                  onPressed: hasDebts
+                      ? () => context.push(Routes.strategies)
+                      : null,
+                  child: Text(l10n.compareStrategies),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       body: switch ((debts, settings)) {
         _ when settingsState.hasError || debts.hasError => ErrorRetryView(

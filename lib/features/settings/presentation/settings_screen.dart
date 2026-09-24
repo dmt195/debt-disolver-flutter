@@ -2,6 +2,7 @@ import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/features/ads/presentation/ads_providers.dart';
 import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
 import 'package:debt_destroyer/features/settings/presentation/currency_picker.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -171,6 +172,17 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           ),
           const SizedBox(height: 8),
           FilledButton(onPressed: _save, child: Text(l10n.save)),
+          if (ref.watch(privacyOptionsRequiredProvider).value ?? false)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: Text(l10n.privacyChoices),
+              subtitle: Text(l10n.privacyChoicesHint),
+              onTap: () => runGuarded(
+                context,
+                () => ref.read(adsServiceProvider).showPrivacyOptions(),
+              ),
+            ),
         ],
       ),
     );

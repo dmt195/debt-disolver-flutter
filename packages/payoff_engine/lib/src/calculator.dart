@@ -5,6 +5,10 @@ import 'package:payoff_engine/src/payoff_result.dart';
 import 'package:payoff_engine/src/rounding.dart';
 import 'package:payoff_engine/src/strategy.dart';
 
+/// A balance above this (in minor units) means the debt is growing without
+/// bound; it also keeps `balance * aprBps` well inside 64-bit integers.
+const int kBalanceCeilingMinor = 10000000000000;
+
 /// Simulates paying off [debts] with [monthlyBudget] using [strategy].
 ///
 /// Each month: add interest, pay every minimum, then spend what is left on
@@ -45,6 +49,9 @@ PayoffResult calculate({
       final apr = ordered[i].aprBps;
       interest[i] = divideHalfEven(balances[i] * apr, 120000);
       balances[i] += interest[i];
+      if (balances[i] > kBalanceCeilingMinor) {
+        return PayoffResult.neverClears(strategyId: strategy.id);
+      }
     }
 
     final payments = List.filled(n, 0);
@@ -61,6 +68,13 @@ PayoffResult calculate({
       payments[i] = minimum < balances[i] ? minimum : balances[i];
     }
     final minimumsTotal = payments.fold(0, (a, b) => a + b);
+    if (minimumsTotal > budget.minor) {
+      return PayoffResult.infeasible(
+        strategyId: strategy.id,
+        shortfall: Money(minimumsTotal - budget.minor, currency),
+        month: month,
+      );
+    }
 
     var remaining = budget.minor - minimumsTotal;
     for (var i = 0; i < n; i++) {

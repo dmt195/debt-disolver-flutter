@@ -8,6 +8,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 
 - **Design spec (source of truth):** `docs/superpowers/specs/2026-09-24-flutter-rebuild-design.md`. Read it before any Flutter work; if a decision here conflicts with it, the spec wins.
 - **v2 spec:** docs/superpowers/specs/2026-09-24-v2-planning-design.md (builds on the v1 spec).
+- **v3 spec (draft):** `docs/superpowers/specs/2026-09-25-v3-ux-redesign-design.md`: three-tab navigation, charts first, illustrations, progress check-ins, reminders (builds on v1 and v2).
 - **Implementation plans:** `docs/superpowers/plans/`.
 - **Target architecture:** feature-first with clean layers (`lib/features/<feature>/{domain,data,presentation}`). State uses Riverpod with codegen, storage uses Drift (SQLite) plus shared_preferences for settings, navigation uses go_router, models use freezed, and charts use fl_chart. The payoff calculator lives in a pure-Dart package, `packages/payoff_engine/`, with no Flutter imports.
 - **Money is never a float:** amounts are integer minor units (`Money`), APRs are integer basis points, and rounding is half-even, once per month.

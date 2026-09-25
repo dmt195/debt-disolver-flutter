@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
+import 'package:debt_destroyer/core/illustrations/brick_wall.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/progress/domain/progress.dart';
 import 'package:debt_destroyer/features/progress/presentation/check_in_screen.dart';
@@ -243,5 +244,55 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  group('the hero wall', () {
+    Future<void> phone(WidgetTester tester, double width) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = Size(width * 3, 844 * 3);
+      addTearDown(tester.view.reset);
+    }
+
+    testWidgets('stands beside the date at phone width', (tester) async {
+      await phone(tester, 390);
+      await pumpApp(tester, location: Routes.home, debts: debts);
+      expect(find.byType(BrickWall), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byType(BrickWall)).dx,
+        greaterThan(tester.getTopLeft(find.text('Debt-free by')).dx),
+      );
+    });
+
+    testWidgets('loses bricks as debt is paid', (tester) async {
+      await phone(tester, 390);
+      final app = await pumpApp(tester, location: Routes.home, debts: debts);
+      await app.progress.saveCheckIn(
+        at: DateTime(2026, 9, 24),
+        balances: {
+          'od': const Money(10000, 'GBP'),
+          'car': const Money(90000, 'GBP'),
+        },
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<BrickWall>(find.byType(BrickWall)).percent, 50);
+    });
+
+    testWidgets('steps aside in a narrow hero', (
+      tester,
+    ) async {
+      await phone(tester, 340);
+      await pumpApp(tester, location: Routes.home, debts: debts);
+      expect(find.byType(BrickWall), findsNothing);
+    });
+
+    testWidgets('steps aside with large text', (tester) async {
+      await phone(tester, 390);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, location: Routes.home, debts: debts);
+      expect(find.byType(BrickWall), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
   });
 }

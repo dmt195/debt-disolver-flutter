@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/charts/comparison_bars.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
@@ -138,5 +139,22 @@ void main() {
       find.descendant(of: cheapest, matching: find.text('Bonus')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('compares scenarios as bars', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')],
+      scenarios: [bonus],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.scenarios,
+    );
+    await tester.tap(find.text('Compare'));
+    await tester.pumpAndSettle();
+    expect(find.text('Interest paid, best plan in each'), findsOneWidget);
+    final bars = tester.widget<ComparisonBars>(find.byType(ComparisonBars));
+    expect([for (final b in bars.bars) b.label], ['Current', 'Bonus']);
+    expect([for (final b in bars.bars) b.highlight], [false, true]);
+    expect(bars.bars.first.trailing, 'Jan 2027'); // 4 months from Sep 2026
   });
 }

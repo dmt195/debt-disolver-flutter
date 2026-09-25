@@ -296,6 +296,10 @@
   "privacyChoicesHint": "Change how ads use your data",
 
   "scenarioCurrent": "Current",
+  "compareChartTitle": "Interest paid, best plan in each",
+  "compareChartLabel": "Interest in each scenario's best plan. {summary}",
+  "@compareChartLabel": {"placeholders": {"summary": {"type": "String"}}},
+  "compareChartKey": "Bar length is interest; the date is when you'd be debt-free.",
   "saveAsScenario": "Save as scenario",
   "scenarioNameLabel": "Name",
   "scenarioSaved": "Scenario saved",

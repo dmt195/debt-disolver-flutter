@@ -17,6 +17,7 @@ String strategyName(AppLocalizations l10n, StrategyId id) => switch (id) {
   StrategyId.avalanche => l10n.strategyAvalanche,
   StrategyId.snowball => l10n.strategySnowball,
   StrategyId.customOrder => l10n.strategyCustomOrder,
+  StrategyId.cardTransfers => l10n.strategyCardTransfers,
   StrategyId.consolidation => l10n.strategyConsolidation,
   StrategyId.balanceTransfer => l10n.strategyBalanceTransfer,
   StrategyId.minimumsOnly => l10n.strategyMinimumsOnly,
@@ -31,6 +32,7 @@ String strategyDescription(
   StrategyId.avalanche => l10n.strategyAvalancheDescription,
   StrategyId.snowball => l10n.strategySnowballDescription,
   StrategyId.customOrder => l10n.strategyCustomOrderDescription,
+  StrategyId.cardTransfers => l10n.strategyCardTransfersDescription,
   StrategyId.minimumsOnly => l10n.strategyMinimumsOnlyDescription,
   StrategyId.consolidation => l10n.strategyConsolidationDescription(
     p.consolidationTermMonths,
@@ -54,6 +56,7 @@ String? strategyNickname(AppLocalizations l10n, StrategyId id) => switch (id) {
   StrategyId.avalanche => l10n.strategyAvalancheNickname,
   StrategyId.snowball => l10n.strategySnowballNickname,
   StrategyId.customOrder ||
+  StrategyId.cardTransfers ||
   StrategyId.consolidation ||
   StrategyId.balanceTransfer ||
   StrategyId.minimumsOnly => null,
@@ -64,6 +67,7 @@ String? strategyBestFor(AppLocalizations l10n, StrategyId id) => switch (id) {
   StrategyId.avalanche => l10n.strategyAvalancheBestFor,
   StrategyId.snowball => l10n.strategySnowballBestFor,
   StrategyId.customOrder => l10n.strategyCustomOrderBestFor,
+  StrategyId.cardTransfers => l10n.strategyCardTransfersBestFor,
   StrategyId.consolidation => l10n.strategyConsolidationBestFor,
   StrategyId.balanceTransfer => l10n.strategyBalanceTransferBestFor,
   StrategyId.minimumsOnly => null,
@@ -84,6 +88,8 @@ String notApplicableReason(
 ) => switch (reason) {
   NotApplicableReason.noTransferableBalances => l10n.notApplicableNoTransfer,
   NotApplicableReason.nothingToConsolidate => l10n.notApplicableNoConsolidation,
+  NotApplicableReason.noCardOffers => l10n.notApplicableNoCardOffers,
+  NotApplicableReason.noWorthwhileMoves => l10n.notApplicableNoWorthwhileMoves,
 };
 
 /// e.g. `2 years 3 months`, `1 year`, `5 months`.

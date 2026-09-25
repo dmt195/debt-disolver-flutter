@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/core/labels.dart';
+import 'package:debt_destroyer/features/analysis/presentation/plan_change_lines.dart';
 import 'package:debt_destroyer/l10n/app_localizations_en.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -83,6 +84,7 @@ void main() {
     expect(strategyNickname(l10n, StrategyId.snowball), 'The snowball method');
     for (final id in [
       StrategyId.customOrder,
+      StrategyId.cardTransfers,
       StrategyId.consolidation,
       StrategyId.balanceTransfer,
       StrategyId.minimumsOnly,
@@ -104,5 +106,43 @@ void main() {
       expect(strategyBestFor(l10n, s.id), isNotEmpty, reason: '${s.id}');
     }
     expect(strategyBestFor(l10n, StrategyId.minimumsOnly), isNull);
+  });
+
+  test('describes card moves, with and without a promo', () {
+    final lines = planChangeLines(
+      l10n,
+      const PlanChange.cardTransfers(
+        moves: [
+          CardMove(
+            fromDebtId: 's',
+            fromName: 'Store',
+            toDebtId: 'a',
+            toName: 'Amex',
+            amount: Money(58252, 'GBP'),
+            fee: Money(1748, 'GBP'),
+            promo: Promo(aprBps: 0, months: 12),
+          ),
+          CardMove(
+            fromDebtId: 'v',
+            fromName: 'Visa',
+            toDebtId: 'a',
+            toName: 'Amex',
+            amount: Money(10000, 'GBP'),
+            fee: Money(300, 'GBP'),
+          ),
+        ],
+        fee: Money(2048, 'GBP'),
+      ),
+      'en_GB',
+    );
+    expect(lines, [
+      'Move £582.52 from Store to Amex (fee £17.48, 0% for 12 months)',
+      'Move £100.00 from Visa to Amex (fee £3.00)',
+      // Adjacent strings are intentional: one long line, split for width.
+      // ignore: no_adjacent_strings_in_list
+      "Check your card's terms: most won't take a balance from a card by "
+          'the same bank. This plan assumes payments above the minimum clear '
+          'the highest-rate balance first, as UK and US law requires.',
+    ]);
   });
 }

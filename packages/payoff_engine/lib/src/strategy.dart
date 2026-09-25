@@ -7,6 +7,7 @@ enum StrategyId {
   avalanche,
   snowball,
   customOrder,
+  cardTransfers,
   consolidation,
   balanceTransfer,
   minimumsOnly,
@@ -22,6 +23,11 @@ sealed class Strategy with _$Strategy {
 
   /// Extra money to the debts in the order they are listed.
   const factory Strategy.customOrder() = CustomOrder;
+
+  /// Move the most expensive card balances onto the user's own cards'
+  /// transfer offers where that saves money, then pay off highest interest
+  /// first.
+  const factory Strategy.cardTransfers() = CardTransfers;
 
   /// Replace every consolidatable debt with one loan at [aprBps], repaid
   /// over [termMonths] months, plus a [feeBps] arrangement fee. What the
@@ -54,6 +60,7 @@ sealed class Strategy with _$Strategy {
     Avalanche() => StrategyId.avalanche,
     Snowball() => StrategyId.snowball,
     CustomOrder() => StrategyId.customOrder,
+    CardTransfers() => StrategyId.cardTransfers,
     Consolidation() => StrategyId.consolidation,
     BalanceTransfer() => StrategyId.balanceTransfer,
     MinimumsOnly() => StrategyId.minimumsOnly,
@@ -77,12 +84,13 @@ abstract class StrategyParameters with _$StrategyParameters {
   }) = _StrategyParameters;
 }
 
-/// The five strategies the app ranks, in display order. The baseline
+/// The six strategies the app ranks, in display order. The baseline
 /// ([Strategy.minimumsOnly]) is run separately by `calculateBaseline`.
 List<Strategy> standardStrategies(StrategyParameters p) => [
   const Strategy.avalanche(),
   const Strategy.snowball(),
   const Strategy.customOrder(),
+  const Strategy.cardTransfers(),
   Strategy.consolidation(
     aprBps: p.consolidationAprBps,
     termMonths: p.consolidationTermMonths,

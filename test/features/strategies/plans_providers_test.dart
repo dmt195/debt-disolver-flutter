@@ -39,7 +39,7 @@ void main() {
 
   test('with no debts every strategy is an empty feasible plan', () async {
     final plans = await settledPlans();
-    expect(plans.ranked, hasLength(5));
+    expect(plans.ranked, hasLength(6));
     for (final result in plans.ranked) {
       expect((result as Feasible).plan.monthsToClear, 0);
     }
@@ -48,8 +48,10 @@ void main() {
   test('recalculates when a debt is added, cheapest first', () async {
     await container.read(debtActionsProvider.notifier).add(testDebt(id: ''));
     final plans = await settledPlans();
+    // cardTransfers is not applicable: testDebt has no transfer offer.
     final costs = [
-      for (final r in plans.ranked) (r as Feasible).plan.totalPaid.minor,
+      for (final r in plans.ranked)
+        if (r is Feasible) r.plan.totalPaid.minor,
     ];
     expect(costs.first, greaterThan(100000));
     expect(costs, [...costs]..sort());

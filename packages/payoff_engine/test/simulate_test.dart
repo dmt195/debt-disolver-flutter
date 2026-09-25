@@ -112,11 +112,9 @@ void main() {
       promo: const Promo(aprBps: 0, months: 12),
     );
 
-    // StrategyId.cardTransfers doesn't exist until Task 3; Task 3 switches
-    // these to it when it adds the id.
     PayoffPlan run(int budget) => planOf(
       simulate(
-        strategyId: StrategyId.avalanche,
+        strategyId: StrategyId.cardTransfers,
         debts: [own, moved],
         budget: gbp(budget),
         fees: gbp(0),
@@ -148,7 +146,7 @@ void main() {
     test('the minimums of all cards must fit the budget', () {
       expect(
         simulate(
-          strategyId: StrategyId.avalanche,
+          strategyId: StrategyId.cardTransfers,
           debts: [own, moved],
           budget: gbp(2000),
           fees: gbp(0),
@@ -158,7 +156,7 @@ void main() {
           ],
         ),
         PayoffResult.infeasible(
-          strategyId: StrategyId.avalanche,
+          strategyId: StrategyId.cardTransfers,
           shortfall: gbp(10),
           month: 1,
         ),

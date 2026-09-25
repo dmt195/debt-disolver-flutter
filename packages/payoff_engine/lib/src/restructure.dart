@@ -1,6 +1,7 @@
 import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/debt_kind.dart';
 import 'package:payoff_engine/src/debt_ordering.dart';
+import 'package:payoff_engine/src/fee_fit.dart';
 import 'package:payoff_engine/src/fixed_loan_payment.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/payoff_result.dart';
@@ -50,6 +51,8 @@ RestructureOutcome restructure(List<Debt> debts, Strategy strategy) {
     Avalanche() ||
     Snowball() ||
     CustomOrder() ||
+    // `calculate` chooses card-transfers' moves before reaching here.
+    CardTransfers() ||
     MinimumsOnly() => Restructured(debts: [...debts], fees: zero),
     Consolidation() => _consolidate(debts, strategy),
     BalanceTransfer() => _transfer(debts, strategy),
@@ -122,7 +125,7 @@ RestructureOutcome _transfer(List<Debt> debts, BalanceTransfer t) {
   var fees = 0;
   final moved = <String, int>{};
   for (final d in candidates) {
-    final amount = _largestFitting(room, d.balance.minor, fee);
+    final amount = largestFittingAmount(room, d.balance.minor, fee);
     if (amount == 0) continue;
     moved[d.id] = amount;
     fees += fee(amount);
@@ -167,20 +170,4 @@ RestructureOutcome _transfer(List<Debt> debts, BalanceTransfer t) {
       promoMonths: t.promoMonths,
     ),
   );
-}
-
-/// The largest amount up to [max] that fits in [room] together with its fee.
-/// The amount plus its fee rises with the amount, so a binary search finds it.
-int _largestFitting(int room, int max, int Function(int) fee) {
-  var low = 0;
-  var high = max;
-  while (low < high) {
-    final mid = low + (high - low + 1) ~/ 2;
-    if (mid + fee(mid) <= room) {
-      low = mid;
-    } else {
-      high = mid - 1;
-    }
-  }
-  return low;
 }

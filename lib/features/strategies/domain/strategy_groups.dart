@@ -9,6 +9,7 @@ bool isBorrowingAlternative(StrategyId id) => switch (id) {
   StrategyId.avalanche ||
   StrategyId.snowball ||
   StrategyId.customOrder ||
+  StrategyId.cardTransfers ||
   StrategyId.minimumsOnly => false,
 };
 

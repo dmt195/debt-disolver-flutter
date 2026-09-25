@@ -1,4 +1,5 @@
 import 'package:payoff_engine/src/allocation_order.dart';
+import 'package:payoff_engine/src/card_transfers.dart';
 import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/payoff_result.dart';
@@ -51,6 +52,10 @@ PayoffResult calculate({
     );
   }
 
+  if (strategy is CardTransfers) {
+    return _cardTransfers(debts, monthlyBudget, strategy);
+  }
+
   return switch (restructure(debts, strategy)) {
     NotRestructurable(:final reason) => PayoffResult.notApplicable(
       strategyId: strategy.id,
@@ -97,7 +102,10 @@ PayoffResult _simulateBest({
 
   var best = run();
   final looksAhead = switch (strategy) {
-    Avalanche() || Consolidation() || BalanceTransfer() => true,
+    Avalanche() ||
+    CardTransfers() ||
+    Consolidation() ||
+    BalanceTransfer() => true,
     Snowball() || CustomOrder() || MinimumsOnly() => false,
   };
   if (!looksAhead || best is! Feasible) return best;
@@ -118,6 +126,65 @@ bool _cheaper(PayoffPlan a, PayoffPlan b) {
   final byPaid = a.totalPaid.compareTo(b.totalPaid);
   return byPaid != 0 ? byPaid < 0 : a.monthsToClear < b.monthsToClear;
 }
+
+/// Greedy search for worthwhile moves between the user's own cards: each
+/// round simulates every candidate on top of the moves kept so far and
+/// keeps the one that makes the plan cheapest, until none helps or
+/// [kMaxCardMoves] are made. A plan that isn't feasible is never preferred.
+PayoffResult _cardTransfers(List<Debt> debts, Money budget, Strategy strategy) {
+  if (!debts.any((d) => d.transferOffer != null)) {
+    return PayoffResult.notApplicable(
+      strategyId: strategy.id,
+      reason: NotApplicableReason.noCardOffers,
+    );
+  }
+  final zero = Money.zero(budget.currency);
+  PayoffResult evaluate(List<CardMove> moves) {
+    final applied = applyCardMoves(debts, moves);
+    final fee = moves.fold(zero, (s, m) => s + m.fee);
+    return _simulateBest(
+      strategy: strategy,
+      debts: applied.debts,
+      groups: applied.groups,
+      budget: budget,
+      fees: fee,
+      change: moves.isEmpty
+          ? null
+          : PlanChange.cardTransfers(moves: moves, fee: fee),
+    );
+  }
+
+  var moves = const <CardMove>[];
+  var best = evaluate(moves);
+  while (moves.length < kMaxCardMoves) {
+    List<CardMove>? roundMoves;
+    var roundBest = best;
+    for (final candidate in cardMoveCandidates(debts, moves)) {
+      final tried = [...moves, candidate];
+      final result = evaluate(tried);
+      if (_better(result, roundBest)) {
+        roundBest = result;
+        roundMoves = tried;
+      }
+    }
+    if (roundMoves == null) break;
+    moves = roundMoves;
+    best = roundBest;
+  }
+  if (moves.isEmpty) {
+    return PayoffResult.notApplicable(
+      strategyId: strategy.id,
+      reason: NotApplicableReason.noWorthwhileMoves,
+    );
+  }
+  return best;
+}
+
+bool _better(PayoffResult a, PayoffResult b) => switch ((a, b)) {
+  (Feasible(plan: final pa), Feasible(plan: final pb)) => _cheaper(pa, pb),
+  (Feasible(), _) => true,
+  _ => false,
+};
 
 /// Runs every strategy in [standardStrategies], in that order.
 List<PayoffResult> calculateAll({

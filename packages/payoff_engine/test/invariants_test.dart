@@ -11,18 +11,28 @@ void main() {
 
   List<Debt> randomDebts(Random r) => [
     for (var i = 0; i < 1 + r.nextInt(5); i++)
-      debt(
-        id: 'd$i',
-        type: DebtType.values[r.nextInt(DebtType.values.length)],
-        balance: 1 + r.nextInt(1000000),
-        aprBps: r.nextInt(3001),
-        minPaymentPercentBps: r.nextInt(501),
-        minPaymentFloor: r.nextInt(5001),
-        allowsOverpayment: r.nextInt(4) != 0,
-        promo: r.nextInt(3) == 0
-            ? Promo(aprBps: r.nextInt(501), months: 1 + r.nextInt(24))
-            : null,
-      ),
+      if (DebtType.values[r.nextInt(DebtType.values.length)] case final type)
+        debt(
+          id: 'd$i',
+          type: type,
+          balance: 1 + r.nextInt(1000000),
+          aprBps: r.nextInt(3001),
+          minPaymentPercentBps: r.nextInt(501),
+          minPaymentFloor: r.nextInt(5001),
+          allowsOverpayment: r.nextInt(4) != 0,
+          promo: r.nextInt(3) == 0
+              ? Promo(aprBps: r.nextInt(501), months: 1 + r.nextInt(24))
+              : null,
+          transferOffer: isTransferable(type) && r.nextInt(3) == 0
+              ? TransferOffer(
+                  feeBps: r.nextInt(501),
+                  promo: r.nextBool()
+                      ? Promo(aprBps: r.nextInt(301), months: 1 + r.nextInt(24))
+                      : null,
+                  availableCredit: gbp(1 + r.nextInt(500000)),
+                )
+              : null,
+        ),
   ];
 
   StrategyParameters randomParameters(Random r) => StrategyParameters(
@@ -122,6 +132,20 @@ void main() {
                 isTrue,
                 reason: '$label: loan outlives its term',
               );
+            }
+            if (plan.change case CardTransferChange(:final moves)) {
+              for (final target in debts.where(
+                (d) => d.transferOffer != null,
+              )) {
+                final used = moves
+                    .where((m) => m.toDebtId == target.id)
+                    .fold(gbp(0), (s, m) => s + m.amount + m.fee);
+                expect(
+                  used <= target.transferOffer!.availableCredit,
+                  isTrue,
+                  reason: '$label: room exceeded on ${target.id}',
+                );
+              }
             }
         }
       }

@@ -30,6 +30,7 @@ AllocationOrder allocationOrder(
     Snowball() => fixed(sortedBy(compareSmallestBalanceFirst)),
     CustomOrder() => fixed(indexes),
     Avalanche() ||
+    CardTransfers() ||
     Consolidation() ||
     BalanceTransfer() ||
     MinimumsOnly() => switch (horizon) {

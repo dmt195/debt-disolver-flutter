@@ -44,5 +44,25 @@ List<String> planChangeLines(
         ),
         if (fee.isPositive) l10n.changeArrangementFee(money(fee)),
       ],
+    CardTransferChange(:final moves) => [
+      for (final m in moves)
+        if (m.promo case final promo?)
+          l10n.changeCardMovePromo(
+            money(m.amount),
+            m.fromName,
+            m.toName,
+            money(m.fee),
+            formatPercent(promo.aprBps, locale),
+            promo.months,
+          )
+        else
+          l10n.changeCardMove(
+            money(m.amount),
+            m.fromName,
+            m.toName,
+            money(m.fee),
+          ),
+      l10n.changeCardMoveReminder,
+    ],
   };
 }

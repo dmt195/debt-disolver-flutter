@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/strategy.dart';
 
@@ -77,7 +78,12 @@ abstract class PayoffPlan with _$PayoffPlan {
 /// Calculation stops after this many months (100 years).
 const int kMaxMonths = 1200;
 
-enum NotApplicableReason { noTransferableBalances, nothingToConsolidate }
+enum NotApplicableReason {
+  noTransferableBalances,
+  nothingToConsolidate,
+  noCardOffers,
+  noWorthwhileMoves,
+}
 
 /// A balance moved to a transfer card or replaced by a consolidation loan.
 @freezed
@@ -87,6 +93,21 @@ abstract class MovedBalance with _$MovedBalance {
     required String name,
     required Money amount,
   }) = _MovedBalance;
+}
+
+/// A balance moved from one of the user's cards onto another's transfer
+/// offer. [amount] left the source; [amount] plus [fee] joined the target.
+@freezed
+abstract class CardMove with _$CardMove {
+  const factory CardMove({
+    required String fromDebtId,
+    required String fromName,
+    required String toDebtId,
+    required String toName,
+    required Money amount,
+    required Money fee,
+    Promo? promo,
+  }) = _CardMove;
 }
 
 /// What a strategy changed about the user's debts.
@@ -111,4 +132,10 @@ sealed class PlanChange with _$PlanChange {
     required int termMonths,
     required int aprBps,
   }) = ConsolidationChange;
+
+  /// [moves] in the order they were chosen; [fee] is their total fee.
+  const factory PlanChange.cardTransfers({
+    required List<CardMove> moves,
+    required Money fee,
+  }) = CardTransferChange;
 }

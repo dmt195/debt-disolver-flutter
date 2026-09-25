@@ -34,12 +34,29 @@ void main() {
   });
 
   test('checks the fee and the promo', () {
+    // Valid edges
+    expect(errors(offer(feeBps: 10000)), isEmpty);
+    // Invalid edges and out of range
+    expect(errors(offer(feeBps: -1)), {DebtValidationError.offerFeeOutOfRange});
     expect(errors(offer(feeBps: 10001)), {
       DebtValidationError.offerFeeOutOfRange,
     });
+    // Promo APR valid edge
+    expect(
+      errors(offer(promo: const Promo(aprBps: 10000, months: 3))),
+      isEmpty,
+    );
+    // Promo APR out of range
     expect(errors(offer(promo: const Promo(aprBps: 10001, months: 3))), {
       DebtValidationError.offerPromoAprOutOfRange,
     });
+    // Promo months valid edges
+    expect(errors(offer(promo: const Promo(aprBps: 0, months: 1))), isEmpty);
+    expect(
+      errors(offer(promo: const Promo(aprBps: 0, months: kMaxPromoMonths))),
+      isEmpty,
+    );
+    // Promo months out of range
     expect(errors(offer(promo: const Promo(aprBps: 0, months: 0))), {
       DebtValidationError.offerPromoMonthsOutOfRange,
     });
@@ -50,6 +67,10 @@ void main() {
   });
 
   test('checks the available credit', () {
+    // Valid edges
+    expect(errors(offer(credit: gbp(1))), isEmpty);
+    expect(errors(offer(credit: gbp(kMaxAmountMinor))), isEmpty);
+    // Invalid edges and out of range
     expect(errors(offer(credit: gbp(0))), {
       DebtValidationError.offerCreditNotPositive,
     });

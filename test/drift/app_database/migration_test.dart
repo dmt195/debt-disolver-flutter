@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -64,6 +65,40 @@ void main() {
         expect(row.promoAprBps, isNull);
         expect(row.promoEndsYearMonth, isNull);
         expect(await newDb.select(newDb.scenarios).get(), isEmpty);
+      },
+    );
+  });
+
+  test('v2 debts survive the upgrade to v3 with no offer', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 3,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: AppDatabase.new,
+      createItems: (batch, oldDb) {
+        batch.insert(
+          oldDb.debts,
+          v2.DebtsCompanion.insert(
+            id: 'a',
+            name: 'Visa',
+            type: 'creditCard',
+            balanceMinor: 123456,
+            aprBps: 1990,
+            minPaymentPercentBps: 300,
+            minPaymentFloorMinor: 2500,
+            allowsOverpayment: 1,
+            sortIndex: 0,
+            createdAt: 1790000000,
+            updatedAt: 1790000000,
+          ),
+        );
+      },
+      validateItems: (newDb) async {
+        final row = await newDb.select(newDb.debts).getSingle();
+        expect(row.balanceMinor, 123456);
+        expect(row.offerFeeBps, isNull);
+        expect(row.offerAvailableCreditMinor, isNull);
       },
     );
   });

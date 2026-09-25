@@ -110,6 +110,12 @@ class DriftDebtRepository implements DebtRepository {
                   minPaymentFloorMinor: Value(
                     rescale(row.minPaymentFloorMinor, min: 0),
                   ),
+                  offerAvailableCreditMinor: Value(
+                    switch (row.offerAvailableCreditMinor) {
+                      final credit? => rescale(credit, min: 1),
+                      null => null,
+                    },
+                  ),
                 ),
               );
             }
@@ -166,6 +172,20 @@ class DriftDebtRepository implements DebtRepository {
         final int apr when left >= 1 => Promo(aprBps: apr, months: left),
         _ => null, // none, or it has ended
       },
+      transferOffer: switch ((row.offerFeeBps, row.offerAvailableCreditMinor)) {
+        (final int fee, final int credit) => TransferOffer(
+          feeBps: fee,
+          promo: switch ((row.offerPromoAprBps, row.offerPromoMonths)) {
+            (final int apr, final int months) => Promo(
+              aprBps: apr,
+              months: months,
+            ),
+            _ => null,
+          },
+          availableCredit: Money(credit, currencyCode),
+        ),
+        _ => null,
+      },
     );
   }
 
@@ -183,5 +203,9 @@ class DriftDebtRepository implements DebtRepository {
       final promo? => promoEndYearMonth(promo.months, _now()),
       null => null,
     }),
+    offerFeeBps: Value(debt.transferOffer?.feeBps),
+    offerPromoAprBps: Value(debt.transferOffer?.promo?.aprBps),
+    offerPromoMonths: Value(debt.transferOffer?.promo?.months),
+    offerAvailableCreditMinor: Value(debt.transferOffer?.availableCredit.minor),
   );
 }

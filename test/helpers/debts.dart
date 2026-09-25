@@ -12,6 +12,7 @@ Debt testDebt({
   DebtType type = DebtType.creditCard,
   String currency = 'GBP',
   Promo? promo,
+  TransferOffer? transferOffer,
 }) => Debt(
   id: id,
   name: name ?? 'Debt $id',
@@ -22,4 +23,5 @@ Debt testDebt({
   minPaymentFloor: Money(minPaymentFloor, currency),
   allowsOverpayment: allowsOverpayment,
   promo: promo,
+  transferOffer: transferOffer,
 );

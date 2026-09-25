@@ -25,6 +25,12 @@ class InMemoryDebtRepository implements DebtRepository {
       d.copyWith(
         balance: Money(d.balance.minor, currency),
         minPaymentFloor: Money(d.minPaymentFloor.minor, currency),
+        transferOffer: d.transferOffer?.copyWith(
+          availableCredit: Money(
+            d.transferOffer!.availableCredit.minor,
+            currency,
+          ),
+        ),
       ),
   ];
 
@@ -96,6 +102,12 @@ class InMemoryDebtRepository implements DebtRepository {
         minPaymentFloor: Money(
           rescale(d.minPaymentFloor.minor, 0),
           toCurrencyCode,
+        ),
+        transferOffer: d.transferOffer?.copyWith(
+          availableCredit: Money(
+            rescale(d.transferOffer!.availableCredit.minor, 1),
+            toCurrencyCode,
+          ),
         ),
       );
     }

@@ -293,4 +293,41 @@ void main() {
       expect(row.promoEndsYearMonth, isNull);
     });
   });
+
+  group('transfer offers', () {
+    const offer = TransferOffer(
+      feeBps: 300,
+      promo: Promo(aprBps: 0, months: 12),
+      availableCredit: Money(200000, 'GBP'),
+    );
+
+    test('round-trip with and without a promo', () async {
+      await repo.add(testDebt(id: 'a', transferOffer: offer));
+      await repo.add(
+        testDebt(id: 'b', transferOffer: offer.copyWith(promo: null)),
+      );
+      final debts = await repo.loadAll('GBP');
+      expect(debts[0].transferOffer, offer);
+      expect(debts[1].transferOffer, offer.copyWith(promo: null));
+    });
+
+    test('saving without an offer clears it', () async {
+      final d = testDebt(id: 'a', transferOffer: offer);
+      await repo.add(d);
+      await repo.update(d.copyWith(transferOffer: null));
+      final row = await db.select(db.debtRows).getSingle();
+      expect(row.offerFeeBps, isNull);
+      expect(row.offerAvailableCreditMinor, isNull);
+    });
+
+    test('switching currency rescales the available credit', () async {
+      await repo.convertAmounts(toCurrencyCode: 'GBP');
+      await repo.add(testDebt(id: 'a', transferOffer: offer));
+      await repo.convertAmounts(toCurrencyCode: 'JPY');
+      expect(
+        (await repo.loadAll('JPY')).single.transferOffer!.availableCredit,
+        const Money(2000, 'JPY'),
+      );
+    });
+  });
 }

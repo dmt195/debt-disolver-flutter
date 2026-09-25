@@ -26,6 +26,13 @@ class DebtRows extends Table {
   /// Last month of the promotion as `yyyymm` (see promo_dates.dart).
   IntColumn get promoEndsYearMonth => integer().nullable()();
 
+  /// Balance-transfer offer on this card (see TransferOffer); all null when
+  /// there is none. The promo columns are both null or both set.
+  IntColumn get offerFeeBps => integer().nullable()();
+  IntColumn get offerPromoAprBps => integer().nullable()();
+  IntColumn get offerPromoMonths => integer().nullable()();
+  IntColumn get offerAvailableCreditMinor => integer().nullable()();
+
   /// Position in the user's own list order (0 first).
   IntColumn get sortIndex => integer()();
   DateTimeColumn get createdAt => dateTime()();
@@ -80,7 +87,7 @@ class AppDatabase extends _$AppDatabase {
       AppDatabase(driftDatabase(name: 'debt_destroyer'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +96,12 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.debts, schema.debts.promoAprBps);
         await m.addColumn(schema.debts, schema.debts.promoEndsYearMonth);
         await m.createTable(schema.scenarios);
+      },
+      from2To3: (m, schema) async {
+        await m.addColumn(schema.debts, schema.debts.offerFeeBps);
+        await m.addColumn(schema.debts, schema.debts.offerPromoAprBps);
+        await m.addColumn(schema.debts, schema.debts.offerPromoMonths);
+        await m.addColumn(schema.debts, schema.debts.offerAvailableCreditMinor);
       },
     ),
   );

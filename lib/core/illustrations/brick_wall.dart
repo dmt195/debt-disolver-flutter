@@ -53,6 +53,7 @@ class BrickWallPainter extends InkPainter {
     required this.percent,
     required this.progress,
     super.ink,
+    super.brick,
   });
 
   final int percent;
@@ -61,7 +62,7 @@ class BrickWallPainter extends InkPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
-    withInk(ink, () => _paint(canvas, size));
+    withInk(ink, () => _paint(canvas, size), brick: brick);
   }
 
   void _paint(Canvas canvas, Size size) {
@@ -101,5 +102,6 @@ class BrickWallPainter extends InkPainter {
   bool shouldRepaint(BrickWallPainter oldDelegate) =>
       oldDelegate.percent != percent ||
       oldDelegate.progress != progress ||
-      oldDelegate.ink != ink;
+      oldDelegate.ink != ink ||
+      oldDelegate.brick != brick;
 }

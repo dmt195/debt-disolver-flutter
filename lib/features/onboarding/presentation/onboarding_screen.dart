@@ -166,7 +166,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             constraints: const BoxConstraints(maxHeight: 120),
             child: Center(
               child: Illustration(
-                painter: SetupArt(ink: context.colors.ink),
+                painter: SetupArt(
+                  ink: context.colors.ink,
+                  brick: context.colors.track,
+                ),
                 aspectRatio: 2.5,
               ),
             ),

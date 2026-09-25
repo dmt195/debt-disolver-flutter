@@ -13,24 +13,30 @@ const kWhite = Color(0xFFFFFFFF);
 
 /// A painter that draws in a given ink.
 abstract class InkPainter extends CustomPainter {
-  const InkPainter({this.ink = kInk});
+  const InkPainter({this.ink = kInk, this.brick = kBrickFill});
 
   final Color ink;
+
+  /// The bricks' fill: light on hi-vis, the theme's track on the ground.
+  final Color brick;
 }
 
 Color _ink = kInk;
+Color _brick = kBrickFill;
 
 /// The ink outlines and the ball are drawn in, set by [withInk].
 Color get currentInk => _ink;
 
-/// Runs [draw] with outlines in [ink].
-void withInk(Color ink, void Function() draw) {
-  final previous = _ink;
+/// Runs [draw] with outlines in [ink] and bricks filled with [brick].
+void withInk(Color ink, void Function() draw, {Color brick = kBrickFill}) {
+  final (previousInk, previousBrick) = (_ink, _brick);
   _ink = ink;
+  _brick = brick;
   try {
     draw();
   } finally {
-    _ink = previous;
+    _ink = previousInk;
+    _brick = previousBrick;
   }
 }
 
@@ -64,12 +70,7 @@ void fitDesign(Canvas canvas, Size size, Size design) {
 
 /// One brick: a rounded, outlined block, turned [turn] radians about its
 /// centre.
-void drawBrick(
-  Canvas canvas,
-  Rect rect, {
-  Color fill = kBrickFill,
-  double turn = 0,
-}) {
+void drawBrick(Canvas canvas, Rect rect, {Color? fill, double turn = 0}) {
   final shape = RRect.fromRectAndRadius(
     Rect.fromCenter(
       center: Offset.zero,
@@ -82,7 +83,7 @@ void drawBrick(
     ..save()
     ..translate(rect.center.dx, rect.center.dy)
     ..rotate(turn)
-    ..drawRRect(shape, fillOf(fill))
+    ..drawRRect(shape, fillOf(fill ?? _brick))
     ..drawRRect(shape, inkStroke())
     ..restore();
 }

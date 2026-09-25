@@ -124,6 +124,7 @@ void main() {
       await open(tester);
       final art = tester.widget<Illustration>(find.byType(Illustration));
       expect((art.painter as SetupArt).ink, DestroyerColors.dark.ink);
+      expect((art.painter as SetupArt).brick, DestroyerColors.dark.track);
     });
 
     testWidgets('with reduced motion, Skip lands at once', (tester) async {

@@ -71,9 +71,9 @@ void main() {
     }
   }
 
-  for (final (brightness, ink) in [
-    (Brightness.light, DestroyerColors.light.ink),
-    (Brightness.dark, DestroyerColors.dark.ink),
+  for (final (brightness, ink, brick) in [
+    (Brightness.light, DestroyerColors.light.ink, DestroyerColors.light.track),
+    (Brightness.dark, DestroyerColors.dark.ink, DestroyerColors.dark.track),
   ]) {
     testWidgets('scenes on the ground draw in ${brightness.name} ink', (
       tester,
@@ -101,7 +101,11 @@ void main() {
           .map((p) => p.painter);
       expect(painters, hasLength(4));
       for (final p in painters) {
-        expect((p! as InkPainter).ink, ink);
+        final painter = p! as InkPainter;
+        expect(painter.ink, ink);
+        // Bricks filled from the theme too: light bricks with light
+        // outlines were a white blob in dark mode.
+        expect(painter.brick, brick);
       }
     });
   }

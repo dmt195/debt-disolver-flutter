@@ -24,17 +24,18 @@ class EmptyLot extends StatelessWidget {
   const EmptyLot({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _scene(_EmptyLotPainter(ink: context.colors.ink));
+  Widget build(BuildContext context) => _scene(
+    _EmptyLotPainter(ink: context.colors.ink, brick: context.colors.track),
+  );
 }
 
 class _EmptyLotPainter extends InkPainter {
-  const _EmptyLotPainter({super.ink});
+  const _EmptyLotPainter({super.ink, super.brick});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
-    withInk(ink, () => _paint(canvas, size));
+    withInk(ink, () => _paint(canvas, size), brick: brick);
   }
 
   void _paint(Canvas canvas, Size size) {
@@ -47,7 +48,8 @@ class _EmptyLotPainter extends InkPainter {
   }
 
   @override
-  bool shouldRepaint(_EmptyLotPainter oldDelegate) => oldDelegate.ink != ink;
+  bool shouldRepaint(_EmptyLotPainter oldDelegate) =>
+      oldDelegate.ink != ink || oldDelegate.brick != brick;
 }
 
 /// A traffic cone [height] tall standing at [base].
@@ -92,17 +94,18 @@ class Signpost extends StatelessWidget {
   const Signpost({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      _scene(_SignpostPainter(ink: context.colors.ink));
+  Widget build(BuildContext context) => _scene(
+    _SignpostPainter(ink: context.colors.ink, brick: context.colors.track),
+  );
 }
 
 class _SignpostPainter extends InkPainter {
-  const _SignpostPainter({super.ink});
+  const _SignpostPainter({super.ink, super.brick});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
-    withInk(ink, () => _paint(canvas, size));
+    withInk(ink, () => _paint(canvas, size), brick: brick);
   }
 
   void _paint(Canvas canvas, Size size) {
@@ -132,7 +135,8 @@ class _SignpostPainter extends InkPainter {
   }
 
   @override
-  bool shouldRepaint(_SignpostPainter oldDelegate) => oldDelegate.ink != ink;
+  bool shouldRepaint(_SignpostPainter oldDelegate) =>
+      oldDelegate.ink != ink || oldDelegate.brick != brick;
 }
 
 /// The check-in result: the wall losing its paid-off bricks as [progress]
@@ -148,7 +152,12 @@ class ClimbWall extends StatelessWidget {
     constraints: const BoxConstraints(maxHeight: 120),
     child: Center(
       child: Illustration(
-        painter: _ClimbWallPainter(percent, progress, ink: context.colors.ink),
+        painter: _ClimbWallPainter(
+          percent,
+          progress,
+          ink: context.colors.ink,
+          brick: context.colors.track,
+        ),
         aspectRatio: 1.7,
       ),
     ),
@@ -156,7 +165,12 @@ class ClimbWall extends StatelessWidget {
 }
 
 class _ClimbWallPainter extends InkPainter {
-  const _ClimbWallPainter(this.percent, this.progress, {super.ink});
+  const _ClimbWallPainter(
+    this.percent,
+    this.progress, {
+    super.ink,
+    super.brick,
+  });
 
   final int percent;
   final double progress;
@@ -168,7 +182,12 @@ class _ClimbWallPainter extends InkPainter {
     final t = progress.clamp(0.0, 1.0);
     final now = (percent.clamp(0, 100) * t).round();
     canvas.save();
-    BrickWallPainter(percent: now, progress: t, ink: ink).paint(canvas, size);
+    BrickWallPainter(
+      percent: now,
+      progress: t,
+      ink: ink,
+      brick: brick,
+    ).paint(canvas, size);
     canvas.restore();
     fitDesign(canvas, size, design);
     withInk(ink, () => drawFlag(canvas, climbFlagBase(now), 28, raise: t));
@@ -178,7 +197,8 @@ class _ClimbWallPainter extends InkPainter {
   bool shouldRepaint(_ClimbWallPainter oldDelegate) =>
       oldDelegate.percent != percent ||
       oldDelegate.progress != progress ||
-      oldDelegate.ink != ink;
+      oldDelegate.ink != ink ||
+      oldDelegate.brick != brick;
 }
 
 /// Where the check-in flag stands with [percent] paid: on the highest brick
@@ -216,13 +236,19 @@ class ClearedPlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _scene(
-    _ClearedPlotPainter(raise, flag, ink: ink ?? context.colors.ink),
+    _ClearedPlotPainter(
+      raise,
+      flag,
+      ink: ink ?? context.colors.ink,
+      // Light bricks on hi-vis; the theme's track on the ground.
+      brick: ink == null ? context.colors.track : kBrickFill,
+    ),
     maxHeight: maxHeight,
   );
 }
 
 class _ClearedPlotPainter extends InkPainter {
-  const _ClearedPlotPainter(this.raise, this.flag, {super.ink});
+  const _ClearedPlotPainter(this.raise, this.flag, {super.ink, super.brick});
 
   final double raise;
   final Color flag;
@@ -230,7 +256,7 @@ class _ClearedPlotPainter extends InkPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
-    withInk(ink, () => _paint(canvas, size));
+    withInk(ink, () => _paint(canvas, size), brick: brick);
   }
 
   void _paint(Canvas canvas, Size size) {
@@ -256,5 +282,6 @@ class _ClearedPlotPainter extends InkPainter {
   bool shouldRepaint(_ClearedPlotPainter oldDelegate) =>
       oldDelegate.raise != raise ||
       oldDelegate.flag != flag ||
-      oldDelegate.ink != ink;
+      oldDelegate.ink != ink ||
+      oldDelegate.brick != brick;
 }

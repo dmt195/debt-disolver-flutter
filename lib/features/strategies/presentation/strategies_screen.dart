@@ -217,7 +217,12 @@ class _RaceCard extends ConsumerWidget {
               lines: lines,
               semanticLabel: l10n.raceLabel(summary),
               startLabel: month(0),
-              endLabel: month(longest),
+              // The minimums line runs on past the slowest plan.
+              endLabel: month(
+                lines
+                    .map((l) => l.values.length - 1)
+                    .reduce((a, b) => a > b ? a : b),
+              ),
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -547,7 +552,7 @@ class _StrategyCard extends ConsumerWidget {
                 Text(
                   nickname,
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
+                    color: context.colors.ink,
                   ),
                 ),
               Text(
@@ -619,7 +624,10 @@ class _FeasibleDetails extends ConsumerWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               text,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
+              style: TextStyle(
+                color: context.colors.ink,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         if (plan.change case CardTransferChange(:final moves, :final fee))

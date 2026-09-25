@@ -28,7 +28,10 @@ abstract final class Routes {
 
   static String editDebt(String id) => '/debts/$id';
 
-  static String plan(StrategyId id) => '$plans/${id.name}';
+  /// A strategy's plan. [current] shows it on Current settings, ignoring the
+  /// selected scenario and the slider: the plan Home follows.
+  static String plan(StrategyId id, {bool current = false}) =>
+      '$plans/${id.name}${current ? '?view=current' : ''}';
 
   static String editScenario(String id) => '$scenarios/$id';
 }
@@ -118,8 +121,10 @@ GoRouter router(Ref ref) {
                     path: ':strategyId',
                     redirect: (context, state) =>
                         _strategyId(state) == null ? Routes.plans : null,
-                    builder: (context, state) =>
-                        PlanDetailScreen(strategyId: _strategyId(state)!),
+                    builder: (context, state) => PlanDetailScreen(
+                      strategyId: _strategyId(state)!,
+                      current: state.uri.queryParameters['view'] == 'current',
+                    ),
                   ),
                 ],
               ),

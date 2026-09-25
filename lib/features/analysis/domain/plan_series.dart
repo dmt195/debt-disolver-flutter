@@ -151,3 +151,15 @@ AprHeat aprHeat(int aprBps) => aprBps >= 2000
     : aprBps >= 1000
     ? AprHeat.medium
     : AprHeat.low;
+
+/// One month's balance for each user debt, from per-column balances (major
+/// units): portions are added to their card, and cleared debts left out.
+List<({PlanDebtGroup debt, double amount})> groupedBalances(
+  List<PlanDebtGroup> groups,
+  List<double> columnBalances,
+) => [
+  for (final g in groups)
+    if (g.columns.fold<double>(0, (s, c) => s + columnBalances[c])
+        case final amount when amount > 0.005)
+      (debt: g, amount: amount),
+];

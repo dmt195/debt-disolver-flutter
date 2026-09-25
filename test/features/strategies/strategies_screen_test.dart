@@ -4,6 +4,7 @@ import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 import '../../helpers/debts.dart';
@@ -561,5 +562,27 @@ void main() {
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.settings);
+  });
+
+  testWidgets('the chart is labelled with the month at its right edge', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      location: Routes.plans,
+      debts: [testDebt(id: 'a')],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+    );
+    final chart = tester.widget<BalanceLineChart>(
+      find.byType(BalanceLineChart).first,
+    );
+    final lastMonth = chart.lines
+        .map((l) => l.values.length - 1)
+        .reduce((a, b) => a > b ? a : b);
+    // The fixed clock is 24 Sep 2026.
+    expect(
+      chart.endLabel,
+      DateFormat.yMMM('en_GB').format(DateTime(2026, 9 + lastMonth)),
+    );
   });
 }

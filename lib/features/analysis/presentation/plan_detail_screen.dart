@@ -20,6 +20,7 @@ import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart'
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/domain/savings.dart';
+import 'package:debt_destroyer/features/strategies/presentation/current_plans.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,18 +28,33 @@ import 'package:intl/intl.dart' show DateFormat;
 import 'package:payoff_engine/payoff_engine.dart';
 
 class PlanDetailScreen extends ConsumerWidget {
-  const PlanDetailScreen({required this.strategyId, super.key});
+  const PlanDetailScreen({
+    required this.strategyId,
+    this.current = false,
+    super.key,
+  });
 
   final StrategyId strategyId;
+
+  /// Show the plan on Current settings, without the selected scenario or
+  /// the slider's extra (as Home follows it).
+  final bool current;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final title = Text(strategyName(l10n, strategyId));
-    final result = ref.watch(planProvider(strategyId));
+    final result = current
+        ? ref.watch(currentPlanProvider(strategyId))
+        : ref.watch(planProvider(strategyId));
     return switch (result) {
       AsyncData(value: Feasible(:final plan)) when plan.monthsToClear > 0 =>
-        _PlanPage(title: title, plan: plan, strategyId: strategyId),
+        _PlanPage(
+          title: title,
+          plan: plan,
+          strategyId: strategyId,
+          current: current,
+        ),
       AsyncData() || AsyncError() => Scaffold(
         appBar: AppBar(title: title),
         body: Center(
@@ -61,11 +77,13 @@ class _PlanPage extends ConsumerStatefulWidget {
     required this.title,
     required this.plan,
     required this.strategyId,
+    required this.current,
   });
 
   final Widget title;
   final PayoffPlan plan;
   final StrategyId strategyId;
+  final bool current;
 
   @override
   ConsumerState<_PlanPage> createState() => _PlanPageState();
@@ -84,7 +102,9 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
     final title = widget.title;
     final locale = ref.watch(formatLocaleProvider);
     final now = ref.watch(clockProvider)();
-    final activeScenario = ref.watch(activeScenarioProvider).value;
+    final activeScenario = widget.current
+        ? null
+        : ref.watch(activeScenarioProvider).value;
     final scenarioName = activeScenario?.name;
     final nickname = strategyNickname(l10n, strategyId);
     final extraLine = activeScenario == null
@@ -107,7 +127,9 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
         ...changeLines,
       ],
     );
-    final baseline = ref.watch(plansProvider).value?.baseline;
+    final baseline = widget.current
+        ? ref.watch(currentPlansProvider).value?.baseline
+        : ref.watch(plansProvider).value?.baseline;
     final debts = ref.watch(debtsProvider).value ?? const <Debt>[];
     return Scaffold(
       appBar: AppBar(
@@ -251,12 +273,16 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
             names: [for (final d in plan.debts) planDebtName(l10n, d)],
             hidden: hiddenColumns,
             semanticLabel: l10n.detailChartLabel(plan.monthsToClear, order),
-            tooltipTitle: (month, total) => l10n.detailTooltip(
-              month,
-              DateFormat.yMMM(locale)
-                  .format(DateTime(now.year, now.month + month)),
-              money(total),
-            ),
+            tooltip: (month, balances, total) => [
+              l10n.detailTooltip(
+                month,
+                DateFormat.yMMM(locale)
+                    .format(DateTime(now.year, now.month + month)),
+                money(total),
+              ),
+              for (final b in groupedBalances(groups, balances))
+                '${b.debt.name} ${money(b.amount)}',
+            ].join('\n'),
           ),
           const SizedBox(height: 8),
           Wrap(

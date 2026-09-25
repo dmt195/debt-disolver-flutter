@@ -65,3 +65,12 @@ Future<HomePlan> homePlan(Ref ref) async {
   }
   return const HomeNeverClears();
 }
+
+/// One strategy's result on Current settings (the baseline included): what
+/// Home's chart opens.
+@riverpod
+Future<PayoffResult> currentPlan(Ref ref, StrategyId strategyId) async {
+  final set = await ref.watch(currentPlansProvider.future);
+  if (strategyId == StrategyId.minimumsOnly) return set.baseline;
+  return set.ranked.firstWhere((r) => r.strategyId == strategyId);
+}

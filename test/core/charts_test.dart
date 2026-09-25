@@ -92,7 +92,7 @@ void main() {
           colors: const [Colors.red, Colors.blue],
           names: const ['A', 'B'],
           hidden: const {0},
-          tooltipTitle: (m, t) => 'Month $m',
+          tooltip: (m, balances, total) => 'Month $m',
         ),
       ),
     );

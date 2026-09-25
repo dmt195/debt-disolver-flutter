@@ -173,7 +173,8 @@ class _Following extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         InkWell(
-          onTap: () => context.go(Routes.plan(result.strategyId)),
+          onTap: () =>
+              context.go(Routes.plan(result.strategyId, current: true)),
           borderRadius: BorderRadius.circular(6),
           child: OutlinedCard(
             title: l10n.homeProjectionTitle,
@@ -194,7 +195,14 @@ class _Following extends ConsumerWidget {
                     DateFormat.yMMMM(locale).format(debtFree),
                   ),
                   startLabel: DateFormat.yMMM(locale).format(now),
-                  endLabel: DateFormat.yMMM(locale).format(debtFree),
+                  // The minimums line runs on past debt-free.
+                  endLabel: DateFormat.yMMM(locale).format(
+                    monthsAhead(
+                      lines
+                          .map((l) => l.values.length - 1)
+                          .reduce((a, b) => a > b ? a : b),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(

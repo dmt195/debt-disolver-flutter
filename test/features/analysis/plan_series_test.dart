@@ -96,4 +96,22 @@ void main() {
     expect(aprHeat(1000), AprHeat.medium);
     expect(aprHeat(790), AprHeat.low);
   });
+
+  test("a month's balances are summed per debt, portions with their card", () {
+    final groups = groupPlanDebts(plan, name);
+    // Overdraft 80.00; Visa 250.00 plus the moved 70.00; zeros are left out.
+    expect(
+      [
+        for (final b in groupedBalances(groups, [80, 250, 70]))
+          (b.debt.id, b.amount),
+      ],
+      [('od', 80.0), ('visa', 320.0)],
+    );
+    expect(
+      [
+        for (final b in groupedBalances(groups, [0, 25, 0])) b.debt.id,
+      ],
+      ['visa'],
+    );
+  });
 }

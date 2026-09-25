@@ -3,14 +3,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 /// Each debt's balance over time, stacked, with a touch scrubber: dragging
-/// across shows the month, its total and the debts still owing.
+/// across shows the month and what is owed on each debt.
 class StackedBalanceChart extends StatelessWidget {
   const StackedBalanceChart({
     required this.stacks,
     required this.colors,
     required this.names,
     required this.semanticLabel,
-    required this.tooltipTitle,
+    required this.tooltip,
     this.height = 200,
     this.hidden = const {},
     super.key,
@@ -23,7 +23,10 @@ class StackedBalanceChart extends StatelessWidget {
   final List<Color> colors;
   final List<String> names;
   final String semanticLabel;
-  final String Function(int month, double total) tooltipTitle;
+
+  /// The tooltip for a month, given each column's own balance (hidden
+  /// columns as 0) and the visible total.
+  final String Function(int month, List<double> balances, double total) tooltip;
   final double height;
 
   /// Columns drawn with no height.
@@ -96,11 +99,9 @@ class StackedBalanceChart extends StatelessWidget {
                   if (spots.isEmpty) return const [];
                   final m = spots.first.x.toInt();
                   final row = rows[m];
-                  final text = [
-                    tooltipTitle(m, row.isEmpty ? 0 : row.last),
-                    for (var i = 0; i < n; i++)
-                      if (!hidden.contains(i) && own(row, i) > 0.005) names[i],
-                  ].join('\n');
+                  final text = tooltip(m, [
+                    for (var i = 0; i < n; i++) own(row, i),
+                  ], row.isEmpty ? 0 : row.last);
                   return [
                     LineTooltipItem(
                       text,

@@ -185,7 +185,13 @@ ThemeData buildTheme(Brightness brightness) {
         textStyle: buttonText,
       ),
     ),
+    tabBarTheme: TabBarThemeData(
+      labelColor: c.ink,
+      unselectedLabelColor: c.ink2,
+      indicatorColor: dark ? _hiVis : _navy,
+    ),
     inputDecorationTheme: InputDecorationTheme(
+      floatingLabelStyle: TextStyle(color: c.ink),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(6),
         borderSide: BorderSide(color: c.outline, width: 2),

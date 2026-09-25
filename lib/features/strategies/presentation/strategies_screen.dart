@@ -1,10 +1,16 @@
 import 'dart:async';
 
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/core/widgets/cheapest_badge.dart';
+import 'package:debt_destroyer/core/widgets/hi_vis_block.dart';
+import 'package:debt_destroyer/core/widgets/outlined_card.dart';
 import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
+import 'package:debt_destroyer/features/analysis/domain/plan_series.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenario_name_dialog.dart';
@@ -13,10 +19,12 @@ import 'package:debt_destroyer/features/settings/presentation/settings_controlle
 import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/domain/savings.dart';
 import 'package:debt_destroyer/features/strategies/domain/strategy_groups.dart';
+import 'package:debt_destroyer/features/strategies/presentation/current_plans.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:payoff_engine/payoff_engine.dart';
 
 class StrategiesScreen extends ConsumerWidget {
@@ -39,12 +47,22 @@ class StrategiesScreen extends ConsumerWidget {
           AsyncData(value: final ActiveScenario scenario),
         ) =>
           ListView(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             children: [
               const _ScenarioPicker(),
-              _PayMoreSlider(budget: scenario.monthlyBudget),
+              _RaceCard(value),
+              const SizedBox(height: 12),
+              HiVisBlock(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _PayMoreSlider(budget: scenario.monthlyBudget),
+                    _PayMoreEffect(plans: value, active: scenario),
+                  ],
+                ),
+              ),
               _SaveAsScenarioButton(active: scenario),
-              _BaselineLine(value.baseline),
               ..._strategySections(context, value, scenario.parameters),
             ],
           ),
@@ -85,25 +103,253 @@ List<Widget> _strategySections(
 ) {
   final l10n = context.l10n;
   final cheapest = bestPayOffMethod(plans.ranked)?.strategyId;
-  Widget card(PayoffResult result) => _StrategyCard(
-    result: result,
-    baseline: plans.baseline,
-    parameters: parameters,
-    cheapest: result.strategyId == cheapest,
-  );
+  final payOff = [
+    for (final r in plans.ranked)
+      if (!isBorrowingAlternative(r.strategyId)) r,
+  ];
   final alternatives = [
     for (final r in plans.ranked)
       if (isBorrowingAlternative(r.strategyId)) r,
   ];
+  final maxInterest = [
+    for (final r in plans.ranked)
+      if (r case Feasible(:final plan)) plan.totalInterest.minor,
+  ].fold<int>(0, (m, v) => v > m ? v : m);
+  final race = raceStrategies(plans);
+  Widget card(PayoffResult result, {int? rank}) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: _StrategyCard(
+      result: result,
+      baseline: plans.baseline,
+      parameters: parameters,
+      cheapest: result.strategyId == cheapest,
+      rank: rank,
+      raceIndex: race.indexOf(result.strategyId),
+      maxInterest: maxInterest,
+    ),
+  );
   return [
     _SectionHeading(l10n.payOffMethodsHeading),
-    for (final r in plans.ranked)
-      if (!isBorrowingAlternative(r.strategyId)) card(r),
-    if (alternatives.isNotEmpty) ...[
-      _SectionHeading(l10n.alternativesHeading, note: l10n.alternativesNote),
-      for (final r in alternatives) card(r),
-    ],
+    for (final (i, r) in payOff.indexed) card(r, rank: i + 1),
+    _BaselineLine(plans.baseline),
+    if (alternatives.isNotEmpty)
+      _Alternatives(children: [for (final r in alternatives) card(r)]),
   ];
+}
+
+/// The strategies drawn on the race chart, in order: every feasible way to
+/// pay off (never a borrowing alternative).
+List<StrategyId> raceStrategies(PlanSet plans) => [
+  for (final r in plans.ranked)
+    if (r is Feasible && !isBorrowingAlternative(r.strategyId)) r.strategyId,
+];
+
+/// Line style for the [i]th raced strategy: solid, dashed, dotted, then
+/// solid again, so no two neighbours rely on colour alone.
+LineStyle raceStyle(int i) =>
+    const [LineStyle.solid, LineStyle.dashed, LineStyle.dotted][i % 3];
+
+/// Total owed over time for each way to pay off, plus minimums only.
+class _RaceCard extends ConsumerWidget {
+  const _RaceCard(this.plans);
+
+  final PlanSet plans;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final c = context.colors;
+    final locale = ref.watch(formatLocaleProvider);
+    final now = ref.watch(clockProvider)();
+    final raced = [
+      for (final id in raceStrategies(plans))
+        plans.ranked.firstWhere((r) => r.strategyId == id) as Feasible,
+    ];
+    if (raced.isEmpty) return const SizedBox.shrink();
+    final longest = raced.fold<int>(
+      0,
+      (m, r) => r.plan.monthsToClear > m ? r.plan.monthsToClear : m,
+    );
+    final lines = [
+      for (final (i, r) in raced.indexed)
+        ChartLine(
+          values: totalOwedSeries(r.plan),
+          color: c.series[i % c.series.length],
+          style: raceStyle(i),
+          width: i == 0 ? 3 : 2.5,
+          label: strategyName(l10n, r.strategyId),
+        ),
+      if (plans.baseline case Feasible(:final plan))
+        ChartLine(
+          values: totalOwedSeries(plan).take(longest + 13).toList(),
+          color: c.faint,
+          style: LineStyle.dashed,
+          width: 2,
+          label: l10n.raceMinimums,
+        ),
+    ];
+    String month(int months) =>
+        DateFormat.yMMM(locale).format(DateTime(now.year, now.month + months));
+    final summary = [
+      for (final r in raced)
+        '${strategyName(l10n, r.strategyId)}: ${month(r.plan.monthsToClear)}',
+    ].join('; ');
+    Widget swatch(ChartLine line) => SizedBox(
+      width: 18,
+      child: CustomPaint(
+        size: const Size(18, 3),
+        painter: _LineSwatch(line.color, line.style),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: OutlinedCard(
+        title: l10n.raceTitle,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            BalanceLineChart(
+              lines: lines,
+              semanticLabel: l10n.raceLabel(summary),
+              startLabel: month(0),
+              endLabel: month(longest),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                for (final line in lines)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      swatch(line),
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          line.label ?? '',
+                          style: TextStyle(fontSize: 11.5, color: c.ink2),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A short sample of a chart line, for legends.
+class _LineSwatch extends CustomPainter {
+  const _LineSwatch(this.color, this.style);
+
+  final Color color;
+  final LineStyle style;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5;
+    final y = size.height / 2;
+    final (dash, gap) = switch (style) {
+      LineStyle.solid => (size.width, 0.0),
+      LineStyle.dashed => (5.0, 3.0),
+      LineStyle.dotted => (2.0, 3.0),
+    };
+    for (var x = 0.0; x < size.width; x += dash + gap) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset((x + dash).clamp(0, size.width), y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LineSwatch oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.style != style;
+}
+
+/// Borrowing alternatives: collapsed until asked for, with their caveat.
+class _Alternatives extends StatefulWidget {
+  const _Alternatives({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  State<_Alternatives> createState() => _AlternativesState();
+}
+
+class _AlternativesState extends State<_Alternatives> {
+  var _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionHeading(l10n.alternativesHeading, note: l10n.alternativesNote),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () => setState(() => _open = !_open),
+            icon: Icon(_open ? Icons.expand_less : Icons.expand_more),
+            label: Text(_open ? l10n.alternativesHide : l10n.alternativesShow),
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+        if (_open) ...widget.children,
+      ],
+    );
+  }
+}
+
+/// "3 months sooner, £190 less interest": what the slider's extra changes,
+/// against the same settings with no extra. Only for Current, whose
+/// no-extra plans Home already calculates.
+class _PayMoreEffect extends ConsumerWidget {
+  const _PayMoreEffect({required this.plans, required this.active});
+
+  final PlanSet plans;
+  final ActiveScenario active;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final locale = ref.watch(formatLocaleProvider);
+    final extra = effectiveExtraMinor(
+      ref.watch(extraPaymentProvider),
+      active.monthlyBudget,
+    );
+    if (active.id != null || extra <= 0) return const SizedBox.shrink();
+    final before = ref.watch(currentPlansProvider).value;
+    final now = bestPayOffMethod(plans.ranked);
+    final was = before == null ? null : bestPayOffMethod(before.ranked);
+    if (now == null || was == null) return const SizedBox.shrink();
+    final months = was.plan.monthsToClear - now.plan.monthsToClear;
+    final interest = was.plan.totalInterest - now.plan.totalInterest;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(
+        l10n.payMoreEffect(
+          formatDuration(l10n, months < 0 ? 0 : months),
+          formatMoney(
+            interest.isNegative ? Money.zero(interest.currency) : interest,
+            locale,
+          ),
+        ),
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    );
+  }
 }
 
 class _SectionHeading extends StatelessWidget {
@@ -194,12 +440,24 @@ class _StrategyCard extends ConsumerWidget {
     required this.baseline,
     required this.parameters,
     required this.cheapest,
+    required this.maxInterest,
+    this.rank,
+    this.raceIndex = -1,
   });
 
   final PayoffResult result;
   final PayoffResult baseline;
   final StrategyParameters parameters;
   final bool cheapest;
+
+  /// Position among the ways to pay off (1 first); null for alternatives.
+  final int? rank;
+
+  /// Index of this strategy's line on the race chart, or -1 if not drawn.
+  final int raceIndex;
+
+  /// The most interest any feasible plan pays, for the interest bar.
+  final int maxInterest;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -228,25 +486,56 @@ class _StrategyCard extends ConsumerWidget {
       ),
     };
 
+    final c = context.colors;
+    final plan = switch (result) {
+      Feasible(:final plan) when plan.monthsToClear > 0 => plan,
+      _ => null,
+    };
     return Card(
       key: ValueKey(id),
-      color: cheapest ? theme.colorScheme.primaryContainer : null,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: result is Feasible ? () => context.push(Routes.plan(id)) : null,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
+                  if (rank != null) ...[
+                    Text('$rank', style: displayStyle(30, color: c.ink)),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: Text(
                       strategyName(l10n, id),
-                      style: theme.textTheme.titleMedium,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                  if (cheapest) Chip(label: Text(l10n.cheapest)),
+                  if (plan != null && raceIndex >= 0)
+                    SizedBox(
+                      width: 84,
+                      child: BalanceLineChart(
+                        compact: true,
+                        height: 34,
+                        semanticLabel: '',
+                        lines: [
+                          ChartLine(
+                            values: totalOwedSeries(plan),
+                            color: c.series[raceIndex % c.series.length],
+                            style: raceStyle(raceIndex),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (cheapest) ...[
+                    const SizedBox(width: 8),
+                    const CheapestBadge(),
+                  ],
                 ],
               ),
               if (strategyNickname(l10n, id) case final nickname?)
@@ -272,6 +561,18 @@ class _StrategyCard extends ConsumerWidget {
                 ),
               const SizedBox(height: 8),
               details,
+              if (plan != null && maxInterest > 0) ...[
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: plan.totalInterest.minor / maxInterest,
+                    minHeight: 6,
+                    color: c.ink2,
+                    backgroundColor: c.track,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -399,16 +700,25 @@ class _PayMoreSliderState extends ConsumerState<_PayMoreSlider> {
     );
     final value = _dragging ?? committed.toDouble();
     final extra = Money(value.round(), widget.budget.currency);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.payMore(formatMoney(extra, locale)),
-            style: Theme.of(context).textTheme.titleSmall,
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.payMore(formatMoney(extra, locale)),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+        SliderTheme(
+          data: SliderThemeData(
+            activeTrackColor: c.onHiVis,
+            inactiveTrackColor: c.onHiVis.withValues(alpha: 0.25),
+            thumbColor: Colors.white,
+            overlayColor: c.onHiVis.withValues(alpha: 0.12),
+            valueIndicatorColor: c.onHiVis,
+            thumbShape: const _OutlinedThumb(),
+            trackHeight: 6,
           ),
-          Slider(
+          child: Slider(
             key: const ValueKey('payMore'),
             value: value,
             max: max.toDouble(),
@@ -428,12 +738,12 @@ class _PayMoreSliderState extends ConsumerState<_PayMoreSlider> {
               setState(() => _dragging = null);
             },
           ),
-          Text(
-            l10n.payMoreTotal(formatMoney(widget.budget + extra, locale)),
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
+        ),
+        Text(
+          l10n.payMoreTotal(formatMoney(widget.budget + extra, locale)),
+          style: const TextStyle(fontSize: 12.5),
+        ),
+      ],
     );
   }
 }
@@ -522,5 +832,41 @@ class _SaveAsScenarioButton extends ConsumerWidget {
     if (!saved || created == null) return;
     ref.read(selectedScenarioIdProvider.notifier).select(created!.id);
     messenger.showSnackBar(SnackBar(content: Text(l10n.scenarioSaved)));
+  }
+}
+
+/// A white slider thumb with a navy ring, as on the hi-vis block.
+class _OutlinedThumb extends SliderComponentShape {
+  const _OutlinedThumb();
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
+      const Size.square(24);
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    context.canvas
+      ..drawCircle(center, 11, Paint()..color = Colors.white)
+      ..drawCircle(
+        center,
+        11,
+        Paint()
+          ..color = sliderTheme.activeTrackColor!
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3,
+      );
   }
 }

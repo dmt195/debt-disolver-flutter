@@ -138,7 +138,9 @@ class _Following extends ConsumerWidget {
       children: [
         swatch,
         const SizedBox(width: 6),
-        Text(label, style: TextStyle(fontSize: 12, color: c.ink2)),
+        Flexible(
+          child: Text(label, style: TextStyle(fontSize: 12, color: c.ink2)),
+        ),
       ],
     );
 

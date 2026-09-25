@@ -89,3 +89,12 @@ class GoRouterNavigator {
       .last
       .matchedLocation;
 }
+
+/// A phone-width screen tall enough to build a long list without scrolling
+/// (390 × [height] logical pixels), reset after the test.
+void useTallScreen(WidgetTester tester, {double height = 2400}) {
+  tester.view
+    ..devicePixelRatio = 3
+    ..physicalSize = Size(390 * 3, height * 3);
+  addTearDown(tester.view.reset);
+}

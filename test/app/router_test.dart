@@ -86,12 +86,13 @@ void main() {
   testWidgets('going back from plan detail keeps the Plans tab', (
     tester,
   ) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       location: Routes.plans,
       debts: [testDebt(id: 'a')],
     );
-    await tester.tap(find.text('Highest interest first').first);
+    await tester.tap(find.byKey(const ValueKey(StrategyId.avalanche)));
     await tester.pumpAndSettle();
     expect(find.byType(PlanDetailScreen), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);

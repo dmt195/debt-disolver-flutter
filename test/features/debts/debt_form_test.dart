@@ -419,4 +419,19 @@ void main() {
     );
     expect(app.repository.stored, isEmpty);
   });
+
+  testWidgets('fits a phone screen with the promo section open', (
+    tester,
+  ) async {
+    tester.view
+      ..devicePixelRatio = 3
+      ..physicalSize = const Size(390 * 3, 844 * 3);
+    addTearDown(tester.view.reset);
+    await pumpApp(tester, location: Routes.newDebt);
+    await tester.ensureVisible(find.byKey(const ValueKey('promo')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('promo')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 }

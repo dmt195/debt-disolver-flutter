@@ -33,11 +33,16 @@ class OutlinedCard extends StatelessWidget {
                   Expanded(
                     child: Text(title!, style: displayStyle(17, color: c.ink)),
                   ),
-                  if (trailing != null)
-                    Text(
-                      trailing!,
-                      style: TextStyle(fontSize: 12.5, color: c.ink2),
+                  if (trailing != null) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        trailing!,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(fontSize: 12.5, color: c.ink2),
+                      ),
                     ),
+                  ],
                 ],
               ),
               const SizedBox(height: 8),

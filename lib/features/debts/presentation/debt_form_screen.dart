@@ -238,6 +238,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
             padding: const EdgeInsets.only(bottom: 12),
             child: DropdownButtonFormField<DebtType>(
               key: const ValueKey('type'),
+              isExpanded: true,
               initialValue: _type,
               decoration: InputDecoration(
                 labelText: l10n.fieldType,
@@ -324,6 +325,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
               padding: const EdgeInsets.only(bottom: 12),
               child: DropdownButtonFormField<int>(
                 key: const ValueKey('promoUntil'),
+                isExpanded: true,
                 initialValue: _promoUntil,
                 decoration: InputDecoration(
                   labelText: l10n.fieldPromoUntil,

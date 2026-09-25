@@ -25,6 +25,7 @@ void main() {
   testWidgets(
     'add a promo debt, compare, pay more, save a scenario, open its plan',
     (tester) async {
+      useTallScreen(tester);
       final app = await pumpApp(tester);
 
       await tapVisible(tester, find.text('Add debt'));
@@ -69,8 +70,9 @@ void main() {
         const Money(45000, 'GBP'),
       );
 
-      await tester.scrollUntilVisible(find.text('Highest interest first'), 100);
-      await tapVisible(tester, find.text('Highest interest first'));
+      final avalanche = find.byKey(const ValueKey(StrategyId.avalanche));
+      await tester.scrollUntilVisible(avalanche, 100);
+      await tapVisible(tester, avalanche);
       expect(app.router.location, Routes.plan(StrategyId.avalanche));
       expect(find.text('Scenario: Stretch'), findsOneWidget);
     },

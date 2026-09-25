@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,21 @@ import 'package:payoff_engine/payoff_engine.dart';
 
 import '../../helpers/debts.dart';
 import '../../helpers/pump_app.dart';
+
+/// A strategy's name on its card (the race chart's legend repeats it).
+Finder inCard(String text) => find.descendant(
+  of: find.byWidgetPredicate((w) => w is Card && w.key is ValueKey<StrategyId>),
+  matching: find.text(text),
+);
+
+/// Opens the collapsed borrowing alternatives.
+Future<void> showAlternatives(WidgetTester tester) async {
+  await tester.scrollUntilVisible(find.text('Show alternatives'), 100);
+  await tester.ensureVisible(find.text('Show alternatives'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Show alternatives'));
+  await tester.pumpAndSettle();
+}
 
 void main() {
   // 1,000.00 at 0% with no minimum, paid at 250.00 a month.
@@ -48,12 +64,14 @@ void main() {
   );
 
   testWidgets('ranks every strategy and marks the cheapest', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [simple],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
       location: Routes.plans,
     );
+    await showAlternatives(tester);
     for (final name in [
       'Highest interest first',
       'Smallest balance first',
@@ -61,8 +79,8 @@ void main() {
       'Consolidation loan',
       '0% balance transfer',
     ]) {
-      await tester.scrollUntilVisible(find.text(name), 100);
-      expect(find.text(name), findsOneWidget);
+      await tester.scrollUntilVisible(inCard(name), 100);
+      expect(inCard(name), findsOneWidget);
     }
     await tester.scrollUntilVisible(find.text('Cheapest'), -100);
     expect(find.text('Cheapest'), findsOneWidget);
@@ -74,7 +92,7 @@ void main() {
     expect(
       find.descendant(
         of: cheapestCard,
-        matching: find.text('Highest interest first'),
+        matching: inCard('Highest interest first'),
       ),
       findsOneWidget,
     );
@@ -85,6 +103,7 @@ void main() {
   testWidgets('explains a budget that cannot cover the minimums', (
     tester,
   ) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [testDebt(id: 'a')],
@@ -98,24 +117,27 @@ void main() {
   });
 
   testWidgets('opens a feasible plan', (tester) async {
+    useTallScreen(tester);
     final app = await pumpApp(
       tester,
       debts: [simple],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
       location: Routes.plans,
     );
-    await tester.tap(find.text('Highest interest first'));
+    await tester.tap(inCard('Highest interest first'));
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.plan(StrategyId.avalanche));
   });
 
   testWidgets('with no debts, asks for one', (tester) async {
+    useTallScreen(tester);
     await pumpApp(tester, location: Routes.plans);
     expect(find.text('Add a debt to see your plans.'), findsOneWidget);
     expect(find.byType(Card), findsNothing);
   });
 
   testWidgets('says why a strategy does not apply', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [simple], // 0% card: nothing worth transferring
@@ -124,17 +146,20 @@ void main() {
     );
     const reason =
         'Not available: there are no card balances with interest to move.';
+    await showAlternatives(tester);
     await tester.scrollUntilVisible(find.text(reason), 100);
     expect(find.text(reason), findsOneWidget);
   });
 
   testWidgets('says when the transfer assumes a credit limit', (tester) async {
+    useTallScreen(tester);
     final app = await pumpApp(
       tester,
       debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
       location: Routes.plans,
     );
+    await showAlternatives(tester);
     // 1,000.00 plus the 4% fee.
     const note = 'Assumes a £1,040.00 credit limit.';
     await tester.scrollUntilVisible(find.text(note), 100);
@@ -148,6 +173,7 @@ void main() {
   testWidgets('compares each plan with paying only the minimums', (
     tester,
   ) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%, min 3% or 25.00
@@ -174,6 +200,7 @@ void main() {
   });
 
   testWidgets('shows no savings for a plan that costs more', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       // 0%, and the minimum is the whole budget: nothing can beat it.
@@ -197,6 +224,7 @@ void main() {
   });
 
   testWidgets('says when minimums alone never clear the debts', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [simple], // no minimum payment at all
@@ -214,6 +242,7 @@ void main() {
   });
 
   testWidgets('opens the baseline plan', (tester) async {
+    useTallScreen(tester);
     final app = await pumpApp(
       tester,
       debts: [testDebt(id: 'a')],
@@ -227,6 +256,7 @@ void main() {
   });
 
   testWidgets('the slider pays more each month', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [simple], // 1,000.00 at 0%
@@ -243,6 +273,7 @@ void main() {
   });
 
   testWidgets('shows plans for a chosen scenario', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [simple],
@@ -261,6 +292,7 @@ void main() {
   testWidgets('saves the slider as a scenario and switches to it', (
     tester,
   ) async {
+    useTallScreen(tester);
     final app = await pumpApp(
       tester,
       debts: [simple],
@@ -285,6 +317,7 @@ void main() {
   });
 
   testWidgets('a duplicate name is explained in the dialog', (tester) async {
+    useTallScreen(tester);
     final app = await pumpApp(
       tester,
       debts: [simple],
@@ -305,6 +338,7 @@ void main() {
   });
 
   testWidgets('opens the scenarios screen', (tester) async {
+    useTallScreen(tester);
     final app = await pumpApp(tester, debts: [simple], location: Routes.plans);
     await tester.tap(find.byTooltip('Scenarios'));
     await tester.pumpAndSettle();
@@ -312,6 +346,7 @@ void main() {
   });
 
   testWidgets('the limit link edits the scenario being viewed', (tester) async {
+    useTallScreen(tester);
     final app = await pumpApp(
       tester,
       debts: [testDebt(id: 'a')],
@@ -322,7 +357,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Bonus').last);
     await tester.pumpAndSettle();
+    await showAlternatives(tester);
     await tester.scrollUntilVisible(find.text('Set yours'), 100);
+    await tester.ensureVisible(find.text('Set yours'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Set yours'));
     await tester.pumpAndSettle();
@@ -332,6 +369,7 @@ void main() {
   testWidgets('separates pay-off methods from borrowing alternatives', (
     tester,
   ) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%
@@ -363,6 +401,7 @@ void main() {
   testWidgets('a borrowing alternative is never marked cheapest', (
     tester,
   ) async {
+    useTallScreen(tester);
     // The 5% consolidation loan costs least here (£9.25 interest), but the
     // badge goes to the cheapest way to pay off: highest interest first.
     await pumpApp(
@@ -379,7 +418,7 @@ void main() {
     expect(
       find.descendant(
         of: cheapestCard,
-        matching: find.text('Highest interest first'),
+        matching: inCard('Highest interest first'),
       ),
       findsOneWidget,
     );
@@ -387,6 +426,7 @@ void main() {
   });
 
   testWidgets('shows the card moves and their fees', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [store, amex],
@@ -398,6 +438,7 @@ void main() {
   });
 
   testWidgets('says when no card has an offer', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [store],
@@ -414,6 +455,7 @@ void main() {
   testWidgets('says when no move between your cards would save money', (
     tester,
   ) async {
+    useTallScreen(tester);
     // 13% onto 12% with a 10% fee never pays for itself.
     await pumpApp(
       tester,
@@ -440,6 +482,7 @@ void main() {
   testWidgets('marks the card-transfers card cheapest when it wins', (
     tester,
   ) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [store, amex],
@@ -454,9 +497,60 @@ void main() {
     expect(
       find.descendant(
         of: cheapestCard,
-        matching: find.text('Move balances between your cards'),
+        matching: inCard('Move balances between your cards'),
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('races the pay-off methods to zero', (tester) async {
+    useTallScreen(tester);
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plans,
+    );
+    expect(find.text('Race to zero'), findsOneWidget);
+    final chart = tester.widget<BalanceLineChart>(
+      find.byType(BalanceLineChart).first,
+    );
+    // Highest interest first, smallest balance first, your order, and the
+    // minimums-only line (dashed, last).
+    expect(chart.lines, hasLength(4));
+    expect(chart.lines.last.style, LineStyle.dashed);
+    expect(chart.lines[1].style, isNot(chart.lines[0].style));
+  });
+
+  testWidgets('borrowing alternatives are collapsed until asked for', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plans,
+    );
+    expect(find.text('Show alternatives'), findsOneWidget);
+    expect(inCard('Consolidation loan'), findsNothing);
+    await showAlternatives(tester);
+    await tester.scrollUntilVisible(inCard('Consolidation loan'), 200);
+    expect(inCard('Consolidation loan'), findsOneWidget);
+  });
+
+  testWidgets('the slider says what paying more changes', (tester) async {
+    useTallScreen(tester);
+    await pumpApp(
+      tester,
+      debts: [simple], // 1,000.00 at 0%
+      settings: {SettingsKeys.monthlyBudgetMinor: 25000},
+      location: Routes.plans,
+    );
+    expect(find.textContaining('less interest'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('payMore')));
+    await tester.pumpAndSettle();
+    // 4 months at 250.00 becomes 3 at 375.00; no interest at 0%.
+    expect(find.text('1 month sooner, £0.00 less interest'), findsOneWidget);
   });
 }

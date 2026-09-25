@@ -5,6 +5,7 @@ import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/debts/data/drift_debt_repository.dart';
 import 'package:debt_destroyer/features/scenarios/data/drift_scenario_repository.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -328,6 +329,51 @@ void main() {
         (await repo.loadAll('JPY')).single.transferOffer!.availableCredit,
         const Money(2000, 'JPY'),
       );
+    });
+  });
+
+  group('cleared debts', () {
+    Future<void> clear(String id) =>
+        (db.update(db.debtRows)..where((t) => t.id.equals(id))).write(
+          DebtRowsCompanion(
+            balanceMinor: const Value(0),
+            clearedAt: Value(DateTime(2026, 9, 20)),
+          ),
+        );
+
+    test('are left out of planning and listed apart', () async {
+      await repo.add(testDebt(id: 'a', name: 'Visa'));
+      await repo.add(testDebt(id: 'b', name: 'Loan'));
+      await clear('a');
+      expect([for (final d in await repo.loadAll('GBP')) d.id], ['b']);
+      expect([for (final d in await all()) d.id], ['b']);
+      final cleared = await repo.watchCleared().first;
+      expect(
+        [for (final c in cleared) (c.id, c.name, c.clearedAt)],
+        [('a', 'Visa', DateTime(2026, 9, 20))],
+      );
+    });
+
+    test('reopening puts the debt back at the end with its balance', () async {
+      await repo.add(testDebt(id: 'a'));
+      await repo.add(testDebt(id: 'b'));
+      await clear('a');
+      await repo.reopen('a', const Money(5000, 'GBP'));
+      final debts = await repo.loadAll('GBP');
+      expect([for (final d in debts) d.id], ['b', 'a']);
+      expect(debts.last.balance, const Money(5000, 'GBP'));
+      expect(await repo.watchCleared().first, isEmpty);
+      expect(() => repo.reopen('b', const Money(1, 'GBP')), throwsStateError);
+    });
+
+    test('reorder covers uncleared debts only', () async {
+      await repo.add(testDebt(id: 'a'));
+      await repo.add(testDebt(id: 'b'));
+      await repo.add(testDebt(id: 'c'));
+      await clear('b');
+      await repo.reorder(['c', 'a']);
+      expect([for (final d in await repo.loadAll('GBP')) d.id], ['c', 'a']);
+      expect(() => repo.reorder(['c', 'a', 'b']), throwsArgumentError);
     });
   });
 }

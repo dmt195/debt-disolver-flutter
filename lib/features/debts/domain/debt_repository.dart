@@ -1,12 +1,14 @@
+import 'package:debt_destroyer/features/debts/domain/cleared_debt.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 abstract interface class DebtRepository {
-  /// All debts in the user's order, re-emitted after every change. Amounts
-  /// are labelled with [currencyCode].
+  /// The debts still being paid, in the user's order, re-emitted after every
+  /// change. Cleared debts are left out. Amounts are labelled with
+  /// [currencyCode].
   Stream<List<Debt>> watchAll(String currencyCode);
 
-  /// The current debts, read once. Use this rather than the latest stream
-  /// value when a decision must see the effect of a write just made.
+  /// The debts still being paid, read once. Use this rather than the latest
+  /// stream value when a decision must see the effect of a write just made.
   Future<List<Debt>> loadAll(String currencyCode);
 
   /// Appends [debt] to the end of the list.
@@ -16,12 +18,20 @@ abstract interface class DebtRepository {
   /// is none.
   Future<void> update(Debt debt);
 
-  /// Removes the debt with [id], if it exists.
+  /// Removes the debt with [id], cleared or not, if it exists. Its check-in
+  /// history is kept.
   Future<void> delete(String id);
 
-  /// Sets the list order. [idsInOrder] must contain every stored id exactly
-  /// once, or [ArgumentError] is thrown.
+  /// Sets the list order. [idsInOrder] must contain every uncleared id
+  /// exactly once, or [ArgumentError] is thrown.
   Future<void> reorder(List<String> idsInOrder);
+
+  /// Cleared debts, most recently cleared first.
+  Stream<List<ClearedDebt>> watchCleared();
+
+  /// Starts paying the cleared debt [id] again with [balance]: it goes back
+  /// to the end of the list. Throws [StateError] if no such debt is cleared.
+  Future<void> reopen(String id, Money balance);
 
   /// The currency the stored amounts are currently in, or null before the
   /// first [convertAmounts].

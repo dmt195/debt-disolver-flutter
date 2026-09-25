@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/core/currency.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
+import 'package:debt_destroyer/features/debts/domain/cleared_debt.dart';
 import 'package:debt_destroyer/features/debts/domain/debt_repository.dart';
 import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
 import 'package:drift/drift.dart';
@@ -25,10 +26,12 @@ class DriftDebtRepository implements DebtRepository {
   ];
 
   SimpleSelectStatement<$DebtRowsTable, DebtRow> _ordered() =>
-      _db.select(_db.debtRows)..orderBy([
-        (t) => OrderingTerm(expression: t.sortIndex),
-        (t) => OrderingTerm(expression: t.createdAt),
-      ]);
+      _db.select(_db.debtRows)
+        ..where((t) => t.clearedAt.isNull())
+        ..orderBy([
+          (t) => OrderingTerm(expression: t.sortIndex),
+          (t) => OrderingTerm(expression: t.createdAt),
+        ]);
 
   @override
   Future<void> add(Debt debt) => _db.transaction(() async {
@@ -60,8 +63,50 @@ class DriftDebtRepository implements DebtRepository {
       (_db.delete(_db.debtRows)..where((t) => t.id.equals(id))).go();
 
   @override
+  Stream<List<ClearedDebt>> watchCleared() =>
+      (_db.select(_db.debtRows)
+            ..where((t) => t.clearedAt.isNotNull())
+            ..orderBy([(t) => OrderingTerm.desc(t.clearedAt)]))
+          .watch()
+          .map(
+            (rows) => [
+              for (final r in rows)
+                ClearedDebt(
+                  id: r.id,
+                  name: r.name,
+                  type: r.type,
+                  clearedAt: r.clearedAt!,
+                ),
+            ],
+          );
+
+  @override
+  Future<void> reopen(String id, Money balance) => _db.transaction(() async {
+    final row =
+        await (_db.select(_db.debtRows)
+              ..where((t) => t.id.equals(id) & t.clearedAt.isNotNull()))
+            .getSingleOrNull();
+    if (row == null) throw StateError('No cleared debt with id $id');
+    final max = _db.debtRows.sortIndex.max();
+    final query = _db.selectOnly(_db.debtRows)
+      ..addColumns([max])
+      ..where(_db.debtRows.clearedAt.isNull());
+    final last = await query.map((r) => r.read(max)).getSingle();
+    await (_db.update(_db.debtRows)..where((t) => t.id.equals(id))).write(
+      DebtRowsCompanion(
+        balanceMinor: Value(balance.minor),
+        clearedAt: const Value(null),
+        sortIndex: Value((last ?? -1) + 1),
+        updatedAt: Value(_now()),
+      ),
+    );
+  });
+
+  @override
   Future<void> reorder(List<String> idsInOrder) => _db.transaction(() async {
-    final stored = await _db.select(_db.debtRows).map((r) => r.id).get();
+    final stored = await (_db.select(
+      _db.debtRows,
+    )..where((t) => t.clearedAt.isNull())).map((r) => r.id).get();
     if (idsInOrder.length != stored.length ||
         !stored.toSet().containsAll(idsInOrder) ||
         idsInOrder.toSet().length != idsInOrder.length) {

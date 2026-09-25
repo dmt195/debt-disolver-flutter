@@ -51,10 +51,11 @@ void main() {
     );
     expect(find.text('Store card demolished.'), findsOneWidget);
     expect(find.text("That's £300.00 gone for good."), findsOneWidget);
-    expect(find.text('2 of 3 debts down'), findsOneWidget);
+    expect(find.text('1 of 3 debts down'), findsOneWidget);
     await tester.tap(find.text('Keep going'));
     await tester.pumpAndSettle();
     expect(find.text('Overdraft demolished.'), findsOneWidget);
+    expect(find.text('2 of 3 debts down'), findsOneWidget);
     await tester.tap(find.text('Keep going'));
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.home);

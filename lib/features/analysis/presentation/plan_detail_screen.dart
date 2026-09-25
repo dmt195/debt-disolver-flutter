@@ -222,9 +222,13 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
   }
 
   /// Follow this plan is offered for a way to pay off that isn't already
-  /// followed, on Current settings (spec §4.6).
+  /// followed, on Current settings (spec §4.6), and never for a borrowing
+  /// alternative.
   bool _canFollow(ActiveScenario? active) {
     if (widget.strategyId == StrategyId.minimumsOnly) return false;
+    // Progress tracks the user's own debts; a new loan or transfer card
+    // isn't one of them yet.
+    if (isBorrowingAlternative(widget.strategyId)) return false;
     if (!widget.current && active?.id != null) return false;
     final settings = ref.watch(settingsControllerProvider).value;
     final plans = ref.watch(currentPlansProvider).value;

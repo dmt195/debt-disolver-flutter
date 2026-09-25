@@ -141,7 +141,19 @@ Map<String, Money> expectedBalances(
     for (final g in groupPlanDebts(plan, (d) => d.name))
       g.id: g.columns.fold<int>(0, (s, c) => s + row[c].minor),
   };
-  return {for (final d in debts) d.id: Money(byGroup[d.id] ?? 0, currency)};
+  // A card whose balance the plan moves onto another card expects 0. A debt
+  // the plan doesn't pay at all (replaced by a consolidation loan or a
+  // transfer card) keeps its balance: never pre-fill it as paid off.
+  bool movedOnward(String id) =>
+      plan.debts.any((d) => d.id.endsWith('#from-$id'));
+  return {
+    for (final d in debts)
+      d.id: switch (byGroup[d.id]) {
+        final minor? => Money(minor, currency),
+        null when movedOnward(d.id) => Money.zero(currency),
+        null => d.balance,
+      },
+  };
 }
 
 /// The starting point due now, if any (spec §6.3): the first ever; a plan
@@ -177,9 +189,11 @@ Map<String, Money> expectedBalances(
     for (final d in uncleared) d.id,
     for (final c in cleared) c.id,
   };
+  // A deleted debt was still owing when last mentioned; one cleared since
+  // the start and then tidied away is not a change of plan.
   for (final MapEntry(key: id, value: b)
       in history.checkInFor(latest).balances.entries) {
-    if (b.balance.isPositive && !known.contains(id)) {
+    if (!known.contains(id) && (latestMention(id)?.isPositive ?? false)) {
       return (reason: StartReason.debtDeleted, debtName: b.name);
     }
   }

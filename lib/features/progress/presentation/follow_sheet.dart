@@ -95,10 +95,6 @@ class _FollowSheetState extends ConsumerState<_FollowSheet> {
             ),
             const SizedBox(height: 8),
             Text(l10n.followConfirm),
-            if (isBorrowingAlternative(chosen)) ...[
-              const SizedBox(height: 8),
-              Text(l10n.alternativesNote, style: TextStyle(color: c.ink2)),
-            ],
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _saving

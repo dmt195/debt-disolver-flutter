@@ -17,35 +17,46 @@ import 'package:go_router/go_router.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 /// Today's balances, pre-filled with what the plan expected (spec §4.8).
-class CheckInScreen extends ConsumerWidget {
+class CheckInScreen extends ConsumerStatefulWidget {
   const CheckInScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CheckInScreen> createState() => _CheckInScreenState();
+}
+
+class _CheckInScreenState extends ConsumerState<CheckInScreen> {
+  /// What the plan expected when the screen opened. Fixed from then on, so
+  /// a starting point recorded meanwhile (a debt added from here) doesn't
+  /// change the figures under the user.
+  Map<String, Money>? _expected;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final debts = ref.watch(debtsProvider).value;
     final history = ref.watch(progressHistoryProvider).value;
     final home = ref.watch(homePlanProvider).value;
     final settings = ref.watch(settingsControllerProvider).value;
-    final body =
-        debts == null || history == null || home == null || settings == null
+    if (debts != null && history != null && home != null) {
+      _expected ??= switch (home) {
+        HomeFollowing(:final result) => expectedBalances(
+          result.plan,
+          switch (history.lastCheckIn) {
+            final last? => monthIndex(last.at, ref.read(clockProvider)()),
+            null => 0,
+          },
+          debts,
+        ),
+        _ => {for (final d in debts) d.id: d.balance},
+      };
+    }
+    final expected = _expected;
+    final body = debts == null || expected == null || settings == null
         ? const Center(child: CircularProgressIndicator())
         : _CheckInForm(
-            // A debt added from here gets a field of its own.
-            key: ValueKey([for (final d in debts) d.id].join(',')),
             debts: debts,
             currencyCode: settings.currencyCode,
-            expected: switch (home) {
-              HomeFollowing(:final result) => expectedBalances(
-                result.plan,
-                switch (history.lastCheckIn) {
-                  final last? => monthIndex(last.at, ref.read(clockProvider)()),
-                  null => 0,
-                },
-                debts,
-              ),
-              _ => {for (final d in debts) d.id: d.balance},
-            },
+            expected: expected,
           );
     return Scaffold(
       appBar: AppBar(
@@ -68,7 +79,6 @@ class _CheckInForm extends ConsumerStatefulWidget {
     required this.debts,
     required this.currencyCode,
     required this.expected,
-    super.key,
   });
 
   final List<Debt> debts;
@@ -96,6 +106,26 @@ class _CheckInFormState extends ConsumerState<_CheckInForm> {
           text: formatAmountInput(widget.expected[d.id] ?? d.balance, locale),
         ),
     };
+  }
+
+  /// A debt added meanwhile gets a field; one deleted loses it. What was
+  /// typed in the others stays.
+  @override
+  void didUpdateWidget(_CheckInForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final locale = ref.read(formatLocaleProvider);
+    final ids = {for (final d in widget.debts) d.id};
+    for (final id in [..._fields.keys]) {
+      if (!ids.contains(id)) _fields.remove(id)!.dispose();
+    }
+    for (final d in widget.debts) {
+      _fields.putIfAbsent(
+        d.id,
+        () => TextEditingController(
+          text: formatAmountInput(widget.expected[d.id] ?? d.balance, locale),
+        ),
+      );
+    }
   }
 
   @override

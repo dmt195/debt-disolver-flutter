@@ -39,9 +39,13 @@ void main() {
   ProgressController progress() =>
       container.read(progressControllerProvider.notifier);
 
-  Future<String> addDebt(String name, {int balance = 100000}) async {
+  Future<String> addDebt(
+    String name, {
+    int balance = 100000,
+    int aprBps = 1990,
+  }) async {
     final outcome = await actions().add(
-      testDebt(id: '', name: name, balance: balance),
+      testDebt(id: '', name: name, balance: balance, aprBps: aprBps),
     );
     return (outcome as DebtSaved).debt.id;
   }
@@ -189,5 +193,49 @@ void main() {
     expect(summary.paid.amount, const Money(40000, 'GBP'));
     expect(summary.standing, isNot(isA<NoProgressYet>()));
     expect(summary.chart, isNotNull);
+  });
+
+  group('what a cleared debt frees up', () {
+    // Minimums: Amex 25.00, Visa 30.00; the default budget of 300.00 leaves
+    // 245.00 extra, which goes to Amex (the higher rate) first.
+    test('the focus debt passes on its minimum and the extra', () async {
+      final amex = await addDebt('Amex', balance: 30000, aprBps: 2990);
+      final visa = await addDebt('Visa');
+      await settled();
+      final outcome = await progress().saveCheckIn({
+        amex: const Money(0, 'GBP'),
+        visa: const Money(100000, 'GBP'),
+      });
+      final cleared = outcome.cleared.single;
+      expect(cleared.rollsOn, const Money(27000, 'GBP'));
+      expect(cleared.next, 'Visa');
+    });
+
+    test('with no plan to follow, just its minimum', () async {
+      final amex = await addDebt('Amex', balance: 30000, aprBps: 2990);
+      await addDebt('Visa');
+      await settled();
+      await container
+          .read(settingsControllerProvider.notifier)
+          .setMonthlyBudget(1000); // below the minimums
+      final outcome = await progress().markPaidOff(amex);
+      expect(outcome.cleared.single.rollsOn, const Money(2500, 'GBP'));
+    });
+
+    test('each debt cleared at once is counted in turn', () async {
+      final amex = await addDebt('Amex', balance: 30000, aprBps: 2990);
+      final store = await addDebt('Store', balance: 20000, aprBps: 2490);
+      final visa = await addDebt('Visa');
+      await settled();
+      final outcome = await progress().saveCheckIn({
+        amex: const Money(0, 'GBP'),
+        store: const Money(0, 'GBP'),
+        visa: const Money(100000, 'GBP'),
+      });
+      expect(
+        [for (final c in outcome.cleared) (c.clearedCount, c.totalCount)],
+        [(1, 3), (2, 3)],
+      );
+    });
   });
 }

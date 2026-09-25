@@ -382,6 +382,12 @@ void main() {
       expect(find.text('Follow this plan'), findsNothing);
     });
 
+    testWidgets('not offered for a borrowing alternative', (tester) async {
+      // Progress can't track the new loan or card, so these aren't followed.
+      await openPlan(tester, StrategyId.consolidation);
+      expect(find.text('Follow this plan'), findsNothing);
+    });
+
     testWidgets('not offered for minimums only', (tester) async {
       await openPlan(tester, StrategyId.minimumsOnly);
       expect(find.text('Follow this plan'), findsNothing);

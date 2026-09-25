@@ -133,11 +133,11 @@ typedef Cleared = ({
   /// Everything paid off it since it was first recorded.
   Money gone,
 
-  /// What it was being paid each month, which now moves on to [next].
-  Money? rollsOn,
+  /// What it frees up each month, which now moves on to [next].
+  Money rollsOn,
   String? next,
 
-  /// Debts cleared so far (after this check-in) out of all debts.
+  /// Debts cleared, counting this one, out of all debts.
   int clearedCount,
   int totalCount,
 });
@@ -203,13 +203,18 @@ class ProgressController extends _$ProgressController {
     final order = plan == null
         ? [for (final d in debts) d.id]
         : [for (final g in groupPlanDebts(plan, (d) => d.name)) g.id];
-    final payments = plan == null
-        ? const <String, Money>{}
-        : {
-            for (final p in firstMonthPayments(plan, (d) => d.name))
-              p.debt.id: p.amount,
-          };
-    final clearedCount = clearedBefore.length + clearing.length;
+    // What a cleared debt frees up each month: its own minimum, plus the
+    // extra over the minimums if it was the debt getting it (the first still
+    // taking overpayments in clearing order).
+    final extra =
+        settings.monthlyBudget - totalMinimumPayments(debts, currency: code);
+    final focus = order
+        .map((id) => current[id])
+        .firstWhere((d) => d != null && d.allowsOverpayment, orElse: () => null)
+        ?.id;
+    Money freed(Debt debt) => debt.id == focus && extra.isPositive
+        ? minimumPayment(debt) + extra
+        : minimumPayment(debt);
     final totalCount = clearedBefore.length + debts.length;
     String? nextAfter(String id) {
       final start = order.indexOf(id);
@@ -223,14 +228,14 @@ class ProgressController extends _$ProgressController {
 
     final outcome = (
       cleared: [
-        for (final id in clearing)
+        for (final (i, id) in clearing.indexed)
           (
             debtId: id,
             name: current[id]!.name,
             gone: first[id] ?? current[id]!.balance,
-            rollsOn: payments[id],
+            rollsOn: freed(current[id]!),
             next: nextAfter(id),
-            clearedCount: clearedCount,
+            clearedCount: clearedBefore.length + i + 1,
             totalCount: totalCount,
           ),
       ],

@@ -117,4 +117,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.cleared('loan'));
   });
+
+  testWidgets('a debt added meanwhile keeps what was typed', (tester) async {
+    final app = await open(tester);
+    await tester.enterText(field('visa'), '600');
+    await app.repository.add(testDebt(id: 'amex', name: 'Amex', balance: 7000));
+    await tester.pumpAndSettle();
+    expect(textOf(tester, 'visa'), '600');
+    expect(textOf(tester, 'amex'), input(7000));
+  });
 }

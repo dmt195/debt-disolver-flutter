@@ -52,10 +52,7 @@ class CelebrationScreen extends ConsumerWidget {
         children: [
           if (debt.next case final next?) ...[
             Text(
-              l10n.celebrationRollsOn(
-                formatMoney(debt.rollsOn ?? debt.gone, locale),
-                next,
-              ),
+              l10n.celebrationRollsOn(formatMoney(debt.rollsOn, locale), next),
               style: const TextStyle(fontSize: 15),
             ),
             const SizedBox(height: 10),

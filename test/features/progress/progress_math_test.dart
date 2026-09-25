@@ -209,6 +209,32 @@ void main() {
     });
   });
 
+  test('a debt the plan replaced keeps its balance, never 0', () {
+    // A consolidation plan pays one synthetic loan instead of the debts.
+    final plan = PayoffPlan(
+      debts: [
+        PlanDebt(
+          id: kConsolidationDebtId,
+          name: 'Loan',
+          startingBalance: gbp(31000),
+        ),
+      ],
+      months: [
+        MonthRow(
+          month: 1,
+          interest: [gbp(0)],
+          payments: [gbp(1000)],
+          closingBalances: [gbp(30000)],
+        ),
+      ],
+      totalPaid: gbp(31000),
+      totalInterest: gbp(0),
+      totalFees: gbp(1000),
+    );
+    final debts = [testDebt(id: 'a', balance: 30000)];
+    expect(expectedBalances(plan, 1, debts), {'a': gbp(30000)});
+  });
+
   group('next starting point', () {
     final a = testDebt(id: 'a', name: 'Visa');
     final b = testDebt(id: 'b', name: 'Loan');
@@ -281,6 +307,10 @@ void main() {
         ),
         isNull,
       );
+    });
+
+    test('deleting a debt cleared since the start is not a restart', () {
+      expect(next(afterClearing, [a]), isNull);
     });
 
     test('re-opening a cleared debt counts as added', () {

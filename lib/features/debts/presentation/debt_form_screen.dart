@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
@@ -5,6 +6,7 @@ import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
+import 'package:debt_destroyer/features/progress/presentation/progress_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -397,9 +399,28 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
             onPressed: _saving ? null : _save,
             child: Text(l10n.save),
           ),
+          if (widget.existing case final debt?) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _saving ? null : () => _markPaidOff(debt.id),
+              child: Text(l10n.markPaidOff),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// The same as a check-in with this debt at 0 (spec §4.4).
+  Future<void> _markPaidOff(String id) async {
+    setState(() => _saving = true);
+    final done = await runGuarded(context, () async {
+      await ref.read(progressControllerProvider.notifier).markPaidOff(id);
+      return true;
+    });
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (done ?? false) context.go(Routes.cleared(id));
   }
 
   Future<void> _save() async {

@@ -434,4 +434,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('marking a debt paid off celebrates and clears it', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    final app = await pumpApp(
+      tester,
+      debts: [
+        testDebt(id: 'a', name: 'Visa'),
+        testDebt(id: 'b', name: 'Loan'),
+      ],
+      location: Routes.editDebt('a'),
+    );
+    await tester.tap(find.text('Mark as paid off'));
+    await tester.pumpAndSettle();
+    expect(app.router.location, Routes.cleared('a'));
+    expect(find.text('Visa demolished.'), findsOneWidget);
+    expect([for (final d in await app.repository.loadAll('GBP')) d.id], ['b']);
+  });
+
+  testWidgets('a new debt has nothing to mark as paid off', (tester) async {
+    await pumpApp(tester, location: Routes.newDebt);
+    expect(find.text('Mark as paid off'), findsNothing);
+  });
 }

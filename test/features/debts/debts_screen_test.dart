@@ -2,6 +2,7 @@ import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/charts/segment_bar.dart';
 import 'package:debt_destroyer/core/charts/share_donut.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
+import 'package:debt_destroyer/features/progress/domain/progress.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -167,5 +168,58 @@ void main() {
       debts: [testDebt(id: 'a', name: 'A very long debt name indeed')],
     );
     expect(tester.takeException(), isNull);
+  });
+
+  group('cleared debts', () {
+    Future<AppHarness> withCleared(WidgetTester tester) async {
+      useTallScreen(tester);
+      final app = await pumpApp(tester, debts: [card, loan]);
+      await app.progress.saveCheckIn(
+        at: DateTime(2026, 9, 24), // the test clock: after the first start
+        balances: {'a': card.balance, 'b': const Money(0, 'GBP')},
+      );
+      await tester.pumpAndSettle();
+      return app;
+    }
+
+    testWidgets('are listed apart, collapsed', (tester) async {
+      await withCleared(tester);
+      expect(find.byType(DebtTile), findsOneWidget);
+      expect(find.text('Cleared (1)'), findsOneWidget);
+      await tester.tap(find.text('Cleared (1)'));
+      await tester.pumpAndSettle();
+      expect(find.text('Car loan'), findsOneWidget);
+      expect(find.text('Cleared 24 Sept 2026'), findsOneWidget);
+    });
+
+    testWidgets('can be reopened with a new balance', (tester) async {
+      final app = await withCleared(tester);
+      await tester.tap(find.text('Cleared (1)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reopen'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), '500');
+      await tester.tap(find.widgetWithText(FilledButton, 'Reopen'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DebtTile), findsNWidgets(2));
+      expect(find.text('Cleared (1)'), findsNothing);
+      final history = await app.progress.load('GBP');
+      expect(
+        (history.starts.last.reason, history.starts.last.debtName),
+        (StartReason.debtAdded, 'Car loan'),
+      );
+    });
+
+    testWidgets('can be deleted after asking', (tester) async {
+      final app = await withCleared(tester);
+      await tester.tap(find.text('Cleared (1)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Delete'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(find.text('Cleared (1)'), findsNothing);
+      expect(await app.repository.watchCleared().first, isEmpty);
+    });
   });
 }

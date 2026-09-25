@@ -14,13 +14,16 @@ import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/core/widgets/outlined_card.dart';
 import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
 import 'package:debt_destroyer/features/analysis/domain/plan_series.dart';
+import 'package:debt_destroyer/features/debts/domain/cleared_debt.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
+import 'package:debt_destroyer/features/progress/presentation/progress_providers.dart';
 import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/presentation/current_plans.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:payoff_engine/payoff_engine.dart';
 
 class DebtsScreen extends ConsumerWidget {
@@ -171,10 +174,12 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
       ),
     );
 
+    const cleared = _ClearedSection();
     if (debts.isEmpty) {
       return ListView(
         children: [
           header,
+          cleared,
           Padding(
             padding: const EdgeInsets.all(24),
             child: Text(l10n.debtsEmpty, textAlign: TextAlign.center),
@@ -184,6 +189,7 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
     }
     return ReorderableListView.builder(
       header: header,
+      footer: cleared,
       padding: const EdgeInsets.only(bottom: 16),
       itemCount: debts.length,
       onReorderItem: (from, to) => _reorder(debts, from, to),
@@ -576,6 +582,221 @@ class _ShortfallBanner extends StatelessWidget {
             child: Text(l10n.changeBudget),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Debts paid off: collapsed below the list, each can be reopened or
+/// deleted (spec §4.3).
+class _ClearedSection extends ConsumerWidget {
+  const _ClearedSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final c = context.colors;
+    final locale = ref.watch(formatLocaleProvider);
+    final cleared = ref.watch(clearedDebtsProvider).value ?? const [];
+    if (cleared.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: Text(
+            l10n.debtsCleared(cleared.length),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          children: [
+            for (final debt in cleared)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: c.track,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(debtTypeIcon(debt.type), color: c.ink2),
+                ),
+                title: Text(debt.name),
+                subtitle: Text(
+                  l10n.debtClearedOn(
+                    DateFormat.yMMMd(locale).format(debt.clearedAt),
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton(
+                      onPressed: () => _reopen(context, ref, debt),
+                      child: Text(l10n.reopenDebt),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: l10n.delete,
+                      onPressed: () => _delete(context, ref, debt),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reopen(BuildContext context, WidgetRef ref, ClearedDebt debt) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (context) => _ReopenSheet(debt: debt),
+      );
+
+  Future<void> _delete(
+    BuildContext context,
+    WidgetRef ref,
+    ClearedDebt debt,
+  ) async {
+    final l10n = context.l10n;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (sheet) => Padding(
+        padding: const EdgeInsets.fromLTRB(18, 20, 18, 22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.deleteDebtTitle(debt.name),
+              style: displayStyle(22, color: sheet.colors.ink),
+            ),
+            const SizedBox(height: 8),
+            Text(l10n.deleteDebtBody),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(sheet, false),
+                    child: Text(l10n.cancel),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(sheet, true),
+                    child: Text(l10n.delete),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    if ((confirmed ?? false) && context.mounted) {
+      await runGuarded(
+        context,
+        () => ref.read(debtActionsProvider.notifier).delete(debt.id),
+      );
+    }
+  }
+}
+
+/// Starts paying a cleared debt again, with the balance it now has.
+class _ReopenSheet extends ConsumerStatefulWidget {
+  const _ReopenSheet({required this.debt});
+
+  final ClearedDebt debt;
+
+  @override
+  ConsumerState<_ReopenSheet> createState() => _ReopenSheetState();
+}
+
+class _ReopenSheetState extends ConsumerState<_ReopenSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _balance = TextEditingController();
+
+  @override
+  void dispose() {
+    _balance.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final currency = ref
+        .read(settingsControllerProvider)
+        .requireValue
+        .currencyCode;
+    final minor = parseAmountMinor(
+      _balance.text,
+      currencyCode: currency,
+      locale: ref.read(formatLocaleProvider),
+    )!;
+    await runGuarded(
+      context,
+      () => ref
+          .read(progressControllerProvider.notifier)
+          .reopen(widget.debt.id, Money(minor, currency)),
+    );
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final locale = ref.watch(formatLocaleProvider);
+    final currency =
+        ref.watch(settingsControllerProvider).value?.currencyCode ?? 'GBP';
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        18,
+        20,
+        18,
+        22 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.reopenTitle(widget.debt.name),
+              style: displayStyle(22, color: context.colors.ink),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _balance,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(labelText: l10n.fieldBalance),
+              validator: (text) {
+                final minor = parseAmountMinor(
+                  text ?? '',
+                  currencyCode: currency,
+                  locale: locale,
+                );
+                if (minor == null || minor <= 0) {
+                  return l10n.errorInvalidAmount(
+                    formatAmountInput(Money(123400, currency), locale),
+                  );
+                }
+                return minor > kMaxAmountMinor ? l10n.errorTooLarge : null;
+              },
+            ),
+            const SizedBox(height: 16),
+            FilledButton(onPressed: _save, child: Text(l10n.reopenDebt)),
+          ],
+        ),
       ),
     );
   }

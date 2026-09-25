@@ -30,6 +30,23 @@ abstract class Promo with _$Promo {
   }) = _Promo;
 }
 
+/// A balance-transfer offer on one of the user's own cards: what moving a
+/// balance onto it costs, and how much it can take.
+@freezed
+abstract class TransferOffer with _$TransferOffer {
+  const factory TransferOffer({
+    /// Fee as a share of the amount moved, in basis points.
+    required int feeBps,
+
+    /// Room left on the card; moves plus their fees must fit.
+    required Money availableCredit,
+
+    /// Rate and length for moved money, counted from the move (a plan's
+    /// month 1). Afterwards moved money pays the card's own APR.
+    Promo? promo,
+  }) = _TransferOffer;
+}
+
 @freezed
 abstract class Debt with _$Debt {
   const factory Debt({
@@ -52,6 +69,9 @@ abstract class Debt with _$Debt {
 
     /// A promotional rate charged instead of [aprBps] while it lasts.
     Promo? promo,
+
+    /// A balance-transfer offer on this card, if the user has one.
+    TransferOffer? transferOffer,
   }) = _Debt;
 }
 

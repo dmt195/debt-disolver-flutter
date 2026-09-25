@@ -1,4 +1,5 @@
 import 'package:payoff_engine/src/debt.dart';
+import 'package:payoff_engine/src/debt_kind.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/strategy.dart';
 
@@ -30,6 +31,13 @@ enum DebtValidationError {
   floorCurrencyMismatch,
   promoAprOutOfRange,
   promoMonthsOutOfRange,
+  offerOnNonCard,
+  offerFeeOutOfRange,
+  offerPromoAprOutOfRange,
+  offerPromoMonthsOutOfRange,
+  offerCreditNotPositive,
+  offerCreditTooLarge,
+  offerCurrencyMismatch,
 }
 
 enum DebtListValidationError { tooMany, duplicateId, mixedCurrencies }
@@ -65,6 +73,23 @@ Set<DebtValidationError> validateDebt(Debt debt) => {
   if (debt.promo case final promo?
       when promo.months < 1 || promo.months > kMaxPromoMonths)
     DebtValidationError.promoMonthsOutOfRange,
+  if (debt.transferOffer != null && !isTransferable(debt.type))
+    DebtValidationError.offerOnNonCard,
+  if (debt.transferOffer case final o? when !_isRate(o.feeBps))
+    DebtValidationError.offerFeeOutOfRange,
+  if (debt.transferOffer?.promo case final p? when !_isRate(p.aprBps))
+    DebtValidationError.offerPromoAprOutOfRange,
+  if (debt.transferOffer?.promo case final p?
+      when p.months < 1 || p.months > kMaxPromoMonths)
+    DebtValidationError.offerPromoMonthsOutOfRange,
+  if (debt.transferOffer case final o? when !o.availableCredit.isPositive)
+    DebtValidationError.offerCreditNotPositive,
+  if (debt.transferOffer case final o?
+      when o.availableCredit.minor > kMaxAmountMinor)
+    DebtValidationError.offerCreditTooLarge,
+  if (debt.transferOffer case final o?
+      when o.availableCredit.currency != debt.balance.currency)
+    DebtValidationError.offerCurrencyMismatch,
 };
 
 Set<BudgetValidationError> validateBudget(Money budget) => {

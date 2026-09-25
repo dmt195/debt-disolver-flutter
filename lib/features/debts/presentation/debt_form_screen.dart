@@ -398,6 +398,14 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           byField[_Field.minFloor] = l10n.errorFloorNegative;
         case DebtValidationError.minPaymentFloorTooLarge:
           byField[_Field.minFloor] = l10n.errorTooLarge;
+        case DebtValidationError.offerOnNonCard ||
+            DebtValidationError.offerFeeOutOfRange ||
+            DebtValidationError.offerPromoAprOutOfRange ||
+            DebtValidationError.offerPromoMonthsOutOfRange ||
+            DebtValidationError.offerCreditNotPositive ||
+            DebtValidationError.offerCreditTooLarge ||
+            DebtValidationError.offerCurrencyMismatch:
+          break; // the form has no offer fields until Task 5
         case DebtValidationError.floorCurrencyMismatch:
           break; // not reachable from this form: one currency throughout
         case DebtValidationError.promoAprOutOfRange:

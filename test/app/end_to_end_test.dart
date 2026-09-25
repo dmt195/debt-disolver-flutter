@@ -48,8 +48,8 @@ void main() {
         const Promo(aprBps: 0, months: 12),
       );
 
-      await tapVisible(tester, find.text('Compare strategies'));
-      expect(app.router.location, Routes.strategies);
+      await tapVisible(tester, find.text('See plans'));
+      expect(app.router.location, Routes.plans);
       expect(find.textContaining('Minimums only: '), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('payMore')));

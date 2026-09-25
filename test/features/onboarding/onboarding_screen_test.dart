@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ void main() {
     expect(find.text('300'), findsOneWidget);
   });
 
-  testWidgets('saves the chosen currency and budget, then opens debts', (
+  testWidgets('saves the chosen currency and budget, then opens Home', (
     tester,
   ) async {
     final app = await open(tester);
@@ -40,7 +41,7 @@ void main() {
     expect(settings.currencyCode, 'EUR');
     expect(settings.monthlyBudget, const Money(45000, 'EUR'));
     expect(settings.onboardingComplete, isTrue);
-    expect(find.text('Your debts'), findsOneWidget);
+    expect(find.byType(HomeScreen), findsOneWidget);
   });
 
   testWidgets('does not continue with an invalid budget', (tester) async {

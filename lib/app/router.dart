@@ -1,13 +1,15 @@
+import 'package:debt_destroyer/app/app_shell.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_detail_screen.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
+import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenario_form_screen.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_screen.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_screen.dart';
 import 'package:debt_destroyer/features/strategies/presentation/strategies_screen.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -16,22 +18,24 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'router.g.dart';
 
 abstract final class Routes {
-  static const debts = '/';
+  static const home = '/';
+  static const debts = '/debts';
   static const newDebt = '/debts/new';
-  static const onboarding = '/onboarding';
-  static const strategies = '/strategies';
+  static const plans = '/plans';
+  static const scenarios = '/plans/scenarios';
   static const settings = '/settings';
-  static const scenarios = '/scenarios';
-
-  static String plan(StrategyId id) => '$strategies/${id.name}';
+  static const onboarding = '/onboarding';
 
   static String editDebt(String id) => '/debts/$id';
+
+  static String plan(StrategyId id) => '$plans/${id.name}';
 
   static String editScenario(String id) => '$scenarios/$id';
 }
 
-/// App navigation. Until onboarding is complete every location redirects to
-/// the onboarding screen; afterwards onboarding redirects home.
+/// App navigation: three tabs (Home, Debts, Plans) in a shell, and full-screen
+/// routes above them. Until onboarding is complete every location redirects
+/// to the onboarding screen; afterwards onboarding redirects to Home.
 @Riverpod(keepAlive: true)
 GoRouter router(Ref ref) {
   final onboardingComplete = ValueNotifier<bool?>(null);
@@ -43,46 +47,83 @@ GoRouter router(Ref ref) {
     )
     ..onDispose(onboardingComplete.dispose);
 
+  final rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
   final router = GoRouter(
+    navigatorKey: rootKey,
     refreshListenable: onboardingComplete,
     redirect: (context, state) {
       final complete = onboardingComplete.value;
       if (complete == null) return null; // settings still loading
       final atOnboarding = state.matchedLocation == Routes.onboarding;
       if (!complete && !atOnboarding) return Routes.onboarding;
-      if (complete && atOnboarding) return Routes.debts;
+      if (complete && atOnboarding) return Routes.home;
       return null;
     },
     routes: [
-      GoRoute(
-        path: Routes.debts,
-        builder: (context, state) => const DebtsScreen(),
-        routes: [
-          GoRoute(
-            path: 'debts/new',
-            builder: (context, state) => const DebtFormScreen(),
+      // Home, Debts and Plans, each with its own stack.
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, shell) => AppShell(shell: shell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.home,
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: 'debts/:debtId',
-            builder: (context, state) =>
-                DebtFormScreen(debtId: state.pathParameters['debtId']),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.debts,
+                builder: (context, state) => const DebtsScreen(),
+                routes: [
+                  // The form is a focused task: full screen, no tabs.
+                  GoRoute(
+                    path: 'new',
+                    parentNavigatorKey: rootKey,
+                    builder: (context, state) => const DebtFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ':debtId',
+                    parentNavigatorKey: rootKey,
+                    builder: (context, state) =>
+                        DebtFormScreen(debtId: state.pathParameters['debtId']),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
-      ),
-      GoRoute(
-        path: Routes.onboarding,
-        builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: Routes.strategies,
-        builder: (context, state) => const StrategiesScreen(),
-        routes: [
-          GoRoute(
-            path: ':strategyId',
-            redirect: (context, state) =>
-                _strategyId(state) == null ? Routes.strategies : null,
-            builder: (context, state) =>
-                PlanDetailScreen(strategyId: _strategyId(state)!),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: Routes.plans,
+                builder: (context, state) => const StrategiesScreen(),
+                routes: [
+                  // Before ':strategyId', so "scenarios" is never read as a
+                  // strategy.
+                  GoRoute(
+                    path: 'scenarios',
+                    builder: (context, state) => const ScenariosScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':scenarioId',
+                        builder: (context, state) => ScenarioFormScreen(
+                          scenarioId: state.pathParameters['scenarioId']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: ':strategyId',
+                    redirect: (context, state) =>
+                        _strategyId(state) == null ? Routes.plans : null,
+                    builder: (context, state) =>
+                        PlanDetailScreen(strategyId: _strategyId(state)!),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -91,16 +132,8 @@ GoRouter router(Ref ref) {
         builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
-        path: Routes.scenarios,
-        builder: (context, state) => const ScenariosScreen(),
-        routes: [
-          GoRoute(
-            path: ':scenarioId',
-            builder: (context, state) => ScenarioFormScreen(
-              scenarioId: state.pathParameters['scenarioId']!,
-            ),
-          ),
-        ],
+        path: Routes.onboarding,
+        builder: (context, state) => const OnboardingScreen(),
       ),
     ],
   );

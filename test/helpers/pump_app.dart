@@ -53,7 +53,7 @@ Future<AppHarness> pumpApp(
   final container = ProviderScope.containerOf(
     tester.element(find.byType(MaterialApp)),
   );
-  if (location != Routes.debts) {
+  if (location != Routes.home) {
     container.read(routerProvider).go(location);
     await tester.pumpAndSettle();
   }

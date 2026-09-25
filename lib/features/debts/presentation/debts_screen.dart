@@ -63,7 +63,7 @@ class DebtsScreen extends ConsumerWidget {
                     Expanded(
                       child: FilledButton(
                         onPressed: hasDebts
-                            ? () => context.push(Routes.strategies)
+                            ? () => context.go(Routes.plans)
                             : null,
                         child: Text(
                           l10n.compareStrategies,

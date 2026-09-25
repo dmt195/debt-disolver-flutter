@@ -52,7 +52,7 @@ void main() {
       tester,
       debts: [simple],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     for (final name in [
       'Highest interest first',
@@ -89,7 +89,7 @@ void main() {
       tester,
       debts: [testDebt(id: 'a')],
       settings: {SettingsKeys.monthlyBudgetMinor: 1000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     expect(
       find.textContaining('short of the minimum payments in month 1'),
@@ -102,7 +102,7 @@ void main() {
       tester,
       debts: [simple],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.tap(find.text('Highest interest first'));
     await tester.pumpAndSettle();
@@ -110,8 +110,8 @@ void main() {
   });
 
   testWidgets('with no debts, asks for one', (tester) async {
-    await pumpApp(tester, location: Routes.strategies);
-    expect(find.text('Add a debt to compare strategies.'), findsOneWidget);
+    await pumpApp(tester, location: Routes.plans);
+    expect(find.text('Add a debt to see your plans.'), findsOneWidget);
     expect(find.byType(Card), findsNothing);
   });
 
@@ -120,7 +120,7 @@ void main() {
       tester,
       debts: [simple], // 0% card: nothing worth transferring
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     const reason =
         'Not available: there are no card balances with interest to move.';
@@ -133,7 +133,7 @@ void main() {
       tester,
       debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     // 1,000.00 plus the 4% fee.
     const note = 'Assumes a £1,040.00 credit limit.';
@@ -152,7 +152,7 @@ void main() {
       tester,
       debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%, min 3% or 25.00
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     expect(
       find.text('Minimums only: 5 years 2 months · £587.88 interest'),
@@ -186,7 +186,7 @@ void main() {
         ),
       ],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     expect(
       find.text('Minimums only: 4 months · £0.00 interest'),
@@ -201,7 +201,7 @@ void main() {
       tester,
       debts: [simple], // no minimum payment at all
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     expect(
       find.text('Paying only the minimums would never clear these debts.'),
@@ -218,7 +218,7 @@ void main() {
       tester,
       debts: [testDebt(id: 'a')],
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.tap(find.byKey(const ValueKey('baseline')));
     await tester.pumpAndSettle();
@@ -231,7 +231,7 @@ void main() {
       tester,
       debts: [simple], // 1,000.00 at 0%
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     expect(find.text('Pay £0.00 more a month'), findsOneWidget);
     // £5 steps up to £250; the middle of the track is £125.
@@ -248,7 +248,7 @@ void main() {
       debts: [simple],
       scenarios: [bonus],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     expect(find.text('Debt-free in 4 months'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('scenario')));
@@ -265,7 +265,7 @@ void main() {
       tester,
       debts: [simple],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.tap(find.byKey(const ValueKey('payMore'))); // +£125
     await tester.pumpAndSettle();
@@ -290,7 +290,7 @@ void main() {
       debts: [simple],
       scenarios: [bonus],
       settings: {SettingsKeys.monthlyBudgetMinor: 25000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.tap(find.text('Save as scenario'));
     await tester.pumpAndSettle();
@@ -305,11 +305,7 @@ void main() {
   });
 
   testWidgets('opens the scenarios screen', (tester) async {
-    final app = await pumpApp(
-      tester,
-      debts: [simple],
-      location: Routes.strategies,
-    );
+    final app = await pumpApp(tester, debts: [simple], location: Routes.plans);
     await tester.tap(find.byTooltip('Scenarios'));
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.scenarios);
@@ -320,7 +316,7 @@ void main() {
       tester,
       debts: [testDebt(id: 'a')],
       scenarios: [bonus],
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.tap(find.byKey(const ValueKey('scenario')));
     await tester.pumpAndSettle();
@@ -340,7 +336,7 @@ void main() {
       tester,
       debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.scrollUntilVisible(
       find.text('Ways to pay off your debts'),
@@ -373,7 +369,7 @@ void main() {
       tester,
       debts: [testDebt(id: 'a')],
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.scrollUntilVisible(find.text('Cheapest'), 100);
     final cheapestCard = find.ancestor(
@@ -395,7 +391,7 @@ void main() {
       tester,
       debts: [store, amex],
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.scrollUntilVisible(find.text('1 move · £30.00 in fees'), 100);
     expect(find.text('1 move · £30.00 in fees'), findsOneWidget);
@@ -406,7 +402,7 @@ void main() {
       tester,
       debts: [store],
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     const reason =
         'No card has a balance transfer offer yet. Add one on a '
@@ -434,7 +430,7 @@ void main() {
         ),
       ],
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     const reason = 'No move between your cards would save money.';
     await tester.scrollUntilVisible(find.text(reason), 100);
@@ -448,7 +444,7 @@ void main() {
       tester,
       debts: [store, amex],
       settings: {SettingsKeys.monthlyBudgetMinor: 30000},
-      location: Routes.strategies,
+      location: Routes.plans,
     );
     await tester.scrollUntilVisible(find.text('Cheapest'), 100);
     final cheapestCard = find.ancestor(

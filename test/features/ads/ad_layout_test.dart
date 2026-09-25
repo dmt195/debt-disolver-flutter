@@ -32,7 +32,7 @@ void main() {
     );
 
     final banner = tester.getRect(find.byKey(bannerKey));
-    for (final label in ['Add debt', 'Compare strategies']) {
+    for (final label in ['Add debt', 'See plans']) {
       final button = tester.getRect(
         find
             .ancestor(
@@ -46,8 +46,8 @@ void main() {
       expect(button.overlaps(banner), isFalse, reason: label);
       expect(button.bottom, lessThanOrEqualTo(banner.top - 8), reason: label);
     }
-    // The banner sits on the safe area's edge: no empty strip below it.
-    const screenHeight = 2532 / 3;
-    expect(banner.bottom, closeTo(screenHeight - 34, 1));
+    // The banner sits directly on the bottom nav: no empty strip between.
+    final nav = tester.getRect(find.byType(NavigationBar));
+    expect(banner.bottom, closeTo(nav.top, 1));
   });
 }

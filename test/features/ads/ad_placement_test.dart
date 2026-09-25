@@ -31,7 +31,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ad banner'), findsOneWidget);
 
-    await app.router.go(tester, Routes.strategies);
+    await app.router.go(tester, Routes.plans);
     expect(find.text('Ad banner'), findsOneWidget);
   });
 

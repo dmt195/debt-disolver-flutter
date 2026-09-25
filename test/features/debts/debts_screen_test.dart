@@ -35,7 +35,7 @@ void main() {
     await pumpApp(tester);
     expect(find.textContaining('No debts yet'), findsOneWidget);
     final compare = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Compare strategies'),
+      find.widgetWithText(FilledButton, 'See plans'),
     );
     expect(compare.onPressed, isNull);
   });
@@ -61,9 +61,9 @@ void main() {
 
   testWidgets('compare opens the strategies', (tester) async {
     final app = await pumpApp(tester, debts: [card]);
-    await tester.tap(find.text('Compare strategies'));
+    await tester.tap(find.text('See plans'));
     await tester.pumpAndSettle();
-    expect(app.router.location, Routes.strategies);
+    expect(app.router.location, Routes.plans);
   });
 
   testWidgets('tapping a debt opens it for editing', (tester) async {

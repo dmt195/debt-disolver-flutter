@@ -53,6 +53,7 @@ Gotchas:
 - Promotions are stored as their last calendar month (`promoEndsYearMonth`, `yyyymm`) and read as "months left" using the repository's clock; an ended promo reads back as none. Widget tests fix the clock at 24 Sep 2026.
 - `plansProvider` gives a `PlanSet` (`ranked` plus the minimums-only `baseline`) for the *active scenario* (the selected saved scenario, or Current = Settings) plus the slider's `extraPaymentProvider`, which resets when the currency or the selection changes.
 - `DriftDebtRepository.convertAmounts` also rescales saved scenarios (same database, same transaction). The in-memory test repositories don't rescale scenarios.
+- Consolidation and balance transfer are *borrowing alternatives* (`isBorrowingAlternative` in `lib/features/strategies/domain/strategy_groups.dart`): shown in their own section with a caveat, and never marked cheapest or picked as the best plan (`bestPayOffMethod`).
 - Strategy-parameter fields (Settings and the scenario editor) come from `ParameterFields` in `lib/features/settings/presentation/parameter_fields.dart`; add new parameters there once.
 
 ## Legacy Android app (reference only)

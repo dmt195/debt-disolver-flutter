@@ -78,6 +78,7 @@ void main() {
     expect(find.text('£0.00'), findsOneWidget); // total interest
     expect(find.text('£250.00'), findsOneWidget); // this month
     expect(find.text('Payoff order'), findsOneWidget);
+    expect(find.text('The avalanche method'), findsOneWidget);
   });
 
   testWidgets('charts the balance over time', (tester) async {

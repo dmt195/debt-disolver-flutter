@@ -116,13 +116,18 @@ void main() {
     );
     await tester.tap(find.text('Compare'));
     await tester.pumpAndSettle();
-    // The 5% consolidation loan is cheapest in both.
+    // Borrowing alternatives are left out: the best pay-off method is
+    // highest interest first in both.
     expect(
-      find.text('Consolidation loan: debt-free in 4 months, £9.25 interest'),
+      find.text(
+        'Highest interest first: debt-free in 4 months, £37.82 interest',
+      ),
       findsOneWidget,
     );
     expect(
-      find.text('Consolidation loan: debt-free in 3 months, £6.30 interest'),
+      find.text(
+        'Highest interest first: debt-free in 3 months, £25.57 interest',
+      ),
       findsOneWidget,
     );
     final cheapest = find.ancestor(

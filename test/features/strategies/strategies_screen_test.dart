@@ -311,4 +311,61 @@ void main() {
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.editScenario('s1'));
   });
+
+  testWidgets('separates pay-off methods from borrowing alternatives', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')], // 1,000.00 at 19.9%
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Ways to pay off your debts'),
+      100,
+    );
+    expect(find.text('Ways to pay off your debts'), findsOneWidget);
+    expect(find.text('The avalanche method'), findsOneWidget);
+    expect(
+      find.text(
+        "Best if you'll stick to a plan: it costs the least in interest.",
+      ),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Alternatives if you can borrow'),
+      100,
+    );
+    expect(
+      find.textContaining('These mean taking on new credit.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a borrowing alternative is never marked cheapest', (
+    tester,
+  ) async {
+    // The 5% consolidation loan costs least here (£9.25 interest), but the
+    // badge goes to the cheapest way to pay off: highest interest first.
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    await tester.scrollUntilVisible(find.text('Cheapest'), 100);
+    final cheapestCard = find.ancestor(
+      of: find.text('Cheapest'),
+      matching: find.byType(Card),
+    );
+    expect(
+      find.descendant(
+        of: cheapestCard,
+        matching: find.text('Highest interest first'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Cheapest'), findsOneWidget);
+  });
 }

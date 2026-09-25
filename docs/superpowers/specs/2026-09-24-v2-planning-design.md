@@ -230,6 +230,14 @@ Scenarios are stored in a new Drift table, `scenarios`:
 
 The banner position is unchanged.
 
+*Revision (after v2 shipped): strategy guidance.* The strategy cards are split into two sections:
+- **"Ways to pay off your debts"**: highest interest first, smallest balance first and your order.
+- **"Alternatives if you can borrow"**: consolidation and balance transfer. Their note reads: *"These mean taking on new credit. They only help if you stop adding to your debts, and lenders may turn you down if your credit rating is poor."*
+
+Only a way to pay off can be marked **Cheapest**, and the Compare tab's best plan ignores the alternatives too. The app shouldn't nudge people towards more borrowing.
+
+Each card shows its nickname (*The avalanche method*, *The snowball method*) and a "best for" line. Plan detail shows the nickname under the title.
+
 **Scenarios page**, from the picker:
 - A list of scenarios with rename, edit and delete. Delete asks for confirmation inside the page, with no system dialog.
 - Edit reuses the Settings form's budget and strategy fields.

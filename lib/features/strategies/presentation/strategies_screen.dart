@@ -12,6 +12,7 @@ import 'package:debt_destroyer/features/scenarios/presentation/scenarios_provide
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/domain/savings.dart';
+import 'package:debt_destroyer/features/strategies/domain/strategy_groups.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,13 +45,7 @@ class StrategiesScreen extends ConsumerWidget {
               _PayMoreSlider(budget: scenario.monthlyBudget),
               _SaveAsScenarioButton(active: scenario),
               _BaselineLine(value.baseline),
-              for (final (i, result) in value.ranked.indexed)
-                _StrategyCard(
-                  result: result,
-                  baseline: value.baseline,
-                  parameters: scenario.parameters,
-                  cheapest: i == 0 && result is Feasible,
-                ),
+              ..._strategySections(context, value, scenario.parameters),
             ],
           ),
         (AsyncError(), _) => _Message(
@@ -77,6 +72,62 @@ class StrategiesScreen extends ConsumerWidget {
       ),
       body: body,
       bottomNavigationBar: const AdBanner(),
+    );
+  }
+}
+
+/// Ways to pay off, then the borrowing alternatives under their own
+/// heading and caveat. Only a way to pay off can be marked cheapest.
+List<Widget> _strategySections(
+  BuildContext context,
+  PlanSet plans,
+  StrategyParameters parameters,
+) {
+  final l10n = context.l10n;
+  final cheapest = bestPayOffMethod(plans.ranked)?.strategyId;
+  Widget card(PayoffResult result) => _StrategyCard(
+    result: result,
+    baseline: plans.baseline,
+    parameters: parameters,
+    cheapest: result.strategyId == cheapest,
+  );
+  final alternatives = [
+    for (final r in plans.ranked)
+      if (isBorrowingAlternative(r.strategyId)) r,
+  ];
+  return [
+    _SectionHeading(l10n.payOffMethodsHeading),
+    for (final r in plans.ranked)
+      if (!isBorrowingAlternative(r.strategyId)) card(r),
+    if (alternatives.isNotEmpty) ...[
+      _SectionHeading(l10n.alternativesHeading, note: l10n.alternativesNote),
+      for (final r in alternatives) card(r),
+    ],
+  ];
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading(this.title, {this.note});
+
+  final String title;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: theme.textTheme.titleMedium),
+          if (note != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(note!, style: theme.textTheme.bodySmall),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -198,10 +249,27 @@ class _StrategyCard extends ConsumerWidget {
                   if (cheapest) Chip(label: Text(l10n.cheapest)),
                 ],
               ),
+              if (strategyNickname(l10n, id) case final nickname?)
+                Text(
+                  nickname,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
               Text(
                 strategyDescription(l10n, id, parameters, locale),
                 style: theme.textTheme.bodySmall,
               ),
+              if (strategyBestFor(l10n, id) case final bestFor?)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    bestFor,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 8),
               details,
             ],

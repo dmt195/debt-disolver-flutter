@@ -2,6 +2,7 @@ import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart'
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/domain/rank_results.dart';
+import 'package:debt_destroyer/features/strategies/domain/strategy_groups.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -9,10 +10,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'scenario_comparison.g.dart';
 
 /// One row of the Compare tab: a scenario (a null id and name for Current)
-/// and its cheapest plan, or null if no plan clears the debts.
+/// and its cheapest way to pay off (borrowing alternatives aside), or null
+/// if none clears the debts.
 typedef ScenarioComparison = ({String? id, String? name, Feasible? best});
 
-/// Current, then every saved scenario, each with its cheapest plan.
+/// Current, then every saved scenario, each with its best pay-off method.
 @riverpod
 Future<List<ScenarioComparison>> scenarioComparison(Ref ref) async {
   final debts = await ref.watch(debtsProvider.future);
@@ -22,8 +24,8 @@ Future<List<ScenarioComparison>> scenarioComparison(Ref ref) async {
 
   Future<Feasible?> best(Money budget, StrategyParameters parameters) async {
     final set = await calculate(debts, budget, parameters);
-    final first = rankResults(set.ranked).first;
-    return first is Feasible ? first : null;
+    // Borrowing alternatives are never presented as the best plan.
+    return bestPayOffMethod(rankResults(set.ranked));
   }
 
   return [

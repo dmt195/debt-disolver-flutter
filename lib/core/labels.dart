@@ -49,6 +49,26 @@ String strategyDescription(
           ),
 };
 
+/// The popular nickname for a strategy, if it has one.
+String? strategyNickname(AppLocalizations l10n, StrategyId id) => switch (id) {
+  StrategyId.avalanche => l10n.strategyAvalancheNickname,
+  StrategyId.snowball => l10n.strategySnowballNickname,
+  StrategyId.customOrder ||
+  StrategyId.consolidation ||
+  StrategyId.balanceTransfer ||
+  StrategyId.minimumsOnly => null,
+};
+
+/// Who a strategy suits; null for the minimums-only baseline.
+String? strategyBestFor(AppLocalizations l10n, StrategyId id) => switch (id) {
+  StrategyId.avalanche => l10n.strategyAvalancheBestFor,
+  StrategyId.snowball => l10n.strategySnowballBestFor,
+  StrategyId.customOrder => l10n.strategyCustomOrderBestFor,
+  StrategyId.consolidation => l10n.strategyConsolidationBestFor,
+  StrategyId.balanceTransfer => l10n.strategyBalanceTransferBestFor,
+  StrategyId.minimumsOnly => null,
+};
+
 /// The name to show for a debt in a plan; the calculator's synthetic debts
 /// get translated names.
 String planDebtName(AppLocalizations l10n, PlanDebt debt) => switch (debt.id) {

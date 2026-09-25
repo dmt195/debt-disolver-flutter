@@ -62,6 +62,7 @@ class _PlanTabs extends ConsumerWidget {
     final locale = ref.watch(formatLocaleProvider);
     final activeScenario = ref.watch(activeScenarioProvider).value;
     final scenarioName = activeScenario?.name;
+    final nickname = strategyNickname(l10n, strategyId);
     final extraLine = activeScenario == null
         ? null
         : _extraLine(
@@ -84,12 +85,17 @@ class _PlanTabs extends ConsumerWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: scenarioName == null && extraLine == null
+          title: nickname == null && scenarioName == null && extraLine == null
               ? title
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     title,
+                    if (nickname != null)
+                      Text(
+                        nickname,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
                     if (scenarioName != null)
                       Text(
                         l10n.planScenario(scenarioName),

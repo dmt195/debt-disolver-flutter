@@ -74,4 +74,35 @@ void main() {
       'Not available: none of your debts can be consolidated.',
     );
   });
+
+  test('the two best-known methods have nicknames', () {
+    expect(
+      strategyNickname(l10n, StrategyId.avalanche),
+      'The avalanche method',
+    );
+    expect(strategyNickname(l10n, StrategyId.snowball), 'The snowball method');
+    for (final id in [
+      StrategyId.customOrder,
+      StrategyId.consolidation,
+      StrategyId.balanceTransfer,
+      StrategyId.minimumsOnly,
+    ]) {
+      expect(strategyNickname(l10n, id), isNull, reason: '$id');
+    }
+  });
+
+  test('every ranked strategy says who it is best for', () {
+    expect(
+      strategyBestFor(l10n, StrategyId.avalanche),
+      "Best if you'll stick to a plan: it costs the least in interest.",
+    );
+    expect(
+      strategyBestFor(l10n, StrategyId.snowball),
+      'Best if quick wins keep you going: whole debts disappear sooner.',
+    );
+    for (final s in standardStrategies(const StrategyParameters())) {
+      expect(strategyBestFor(l10n, s.id), isNotEmpty, reason: '${s.id}');
+    }
+    expect(strategyBestFor(l10n, StrategyId.minimumsOnly), isNull);
+  });
 }

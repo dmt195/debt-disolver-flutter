@@ -124,12 +124,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Spacer(),
-                    Flexible(
-                      flex: 4,
-                      child: FilledButton(
-                        onPressed: () => _goTo(_page + 1),
-                        child: Text(l10n.welcomeNext),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        // Only as tall as the button: the bar takes no more.
+                        heightFactor: 1,
+                        child: FilledButton(
+                          onPressed: () => _goTo(_page + 1),
+                          child: Text(l10n.welcomeNext),
+                        ),
                       ),
                     ),
                   ],

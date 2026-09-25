@@ -177,90 +177,116 @@ class _Following extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       children: [
         LayoutBuilder(
-          builder: (context, constraints) => HiVisBlock(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (summary != null) ...[
-                  ProgressRing(percent: summary.paid.percent),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Column(
+          builder: (context, constraints) {
+            // The wall stands under the ring, on the hero's floor, when
+            // there's room (spec §4.2).
+            final wall =
+                constraints.maxWidth >= 340 &&
+                MediaQuery.textScalerOf(context).scale(1) <= 1.5;
+            return HiVisBlock(
+              child: Stack(
+                children: [
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l10n.homeDebtFreeBy,
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        [
-                          DateFormat.MMM(locale).format(debtFree),
-                          debtFree.year,
-                        ].join('\n'),
-                        style: displayStyle(
-                          50,
-                          color: c.onHiVis,
-                        ).copyWith(height: 0.92),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.homeInDurationOnly(
-                          formatDuration(l10n, plan.monthsToClear),
-                        ),
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                      if (summary != null && summary.paid.since != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          summary.paid.amount.isNegative
-                              ? l10n.homeOwesMore(
-                                  formatMoney(
-                                    Money(
-                                      -summary.paid.amount.minor,
-                                      summary.paid.amount.currency,
-                                    ),
-                                    locale,
+                      if (wall)
+                        SizedBox(
+                          width: _wallWidth,
+                          // Tall enough that the wall never meets the ring.
+                          height: 84 + 8 + _wallWidth / 1.7,
+                          child: summary == null
+                              ? null
+                              : Align(
+                                  alignment: Alignment.topCenter,
+                                  child: ProgressRing(
+                                    percent: summary.paid.percent,
                                   ),
-                                )
-                              : l10n.homePaidOff(
-                                  formatMoney(summary.paid.amount, locale),
-                                  DateFormat.MMMM(locale)
-                                      .format(summary.paid.since!),
                                 ),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        )
+                      else if (summary != null)
+                        ProgressRing(percent: summary.paid.percent),
+                      if (wall || summary != null) const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.homeDebtFreeBy,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              [
+                                DateFormat.MMM(locale).format(debtFree),
+                                debtFree.year,
+                              ].join('\n'),
+                              style: displayStyle(
+                                50,
+                                color: c.onHiVis,
+                              ).copyWith(height: 0.92),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              l10n.homeInDurationOnly(
+                                formatDuration(l10n, plan.monthsToClear),
+                              ),
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                            if (summary != null &&
+                                summary.paid.since != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                summary.paid.amount.isNegative
+                                    ? l10n.homeOwesMore(
+                                        formatMoney(
+                                          Money(
+                                            -summary.paid.amount.minor,
+                                            summary.paid.amount.currency,
+                                          ),
+                                          locale,
+                                        ),
+                                      )
+                                    : l10n.homePaidOff(
+                                        formatMoney(
+                                          summary.paid.amount,
+                                          locale,
+                                        ),
+                                        DateFormat.MMMM(locale)
+                                            .format(summary.paid.since!),
+                                      ),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              StandingChip(standing: summary.standing),
+                            ],
+                            TextButton(
+                              onPressed: () => showFollowSheet(context),
+                              style: TextButton.styleFrom(
+                                foregroundColor: c.onHiVis,
+                                padding: EdgeInsets.zero,
+                                alignment: Alignment.centerLeft,
+                              ),
+                              child: Text(l10n.homeFollowing(strategy)),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        StandingChip(standing: summary.standing),
-                      ],
-                      TextButton(
-                        onPressed: () => showFollowSheet(context),
-                        style: TextButton.styleFrom(
-                          foregroundColor: c.onHiVis,
-                          padding: EdgeInsets.zero,
-                          alignment: Alignment.centerLeft,
-                        ),
-                        child: Text(l10n.homeFollowing(strategy)),
                       ),
                     ],
                   ),
-                ),
-                // The wall needs room beside the date (spec §4.2).
-                if (constraints.maxWidth >= 340 &&
-                    MediaQuery.textScalerOf(context).scale(1) <= 1.5) ...[
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    width: 96,
-                    child: BrickWall(percent: summary?.paid.percent ?? 0),
-                  ),
+                  if (wall)
+                    Positioned(
+                      left: 0,
+                      bottom: 0,
+                      width: _wallWidth,
+                      child: BrickWall(percent: summary?.paid.percent ?? 0),
+                    ),
                 ],
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 12),
         if (summary?.chart case final chart?)
@@ -431,6 +457,9 @@ class _Following extends ConsumerWidget {
     );
   }
 }
+
+/// The hero wall's width (it's 1.7 times as wide as tall).
+const _wallWidth = 100.0;
 
 /// How much of [debtId] is paid since the latest starting point, as the
 /// hazard bar's fill (never less than a sliver).

@@ -14,7 +14,8 @@ List<(int, int)> knockedOut(int percent, {int rows = 5, int cols = 6}) {
 }
 
 /// The Home hero's wall: a brick gone for every share paid off (spec §4.2).
-/// Two hi-vis bricks tumble to the ground as [progress] runs 0 → 1.
+/// Two navy bricks (it stands on hi-vis) tumble to the ground as
+/// [progress] runs 0 → 1.
 class BrickWall extends StatelessWidget {
   const BrickWall({required this.percent, this.progress = 1, super.key});
 
@@ -76,7 +77,7 @@ class BrickWallPainter extends CustomPainter {
           width: _brick.width,
           height: _brick.height,
         ),
-        fill: kHiVis,
+        fill: kInk,
         turn: spin * t * 3,
       );
     }

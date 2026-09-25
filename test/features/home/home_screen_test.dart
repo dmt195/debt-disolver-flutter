@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
 import 'package:debt_destroyer/core/illustrations/brick_wall.dart';
+import 'package:debt_destroyer/core/widgets/hi_vis_block.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/progress/domain/progress.dart';
 import 'package:debt_destroyer/features/progress/presentation/check_in_screen.dart';
@@ -254,14 +255,20 @@ void main() {
       addTearDown(tester.view.reset);
     }
 
-    testWidgets('stands beside the date at phone width', (tester) async {
+    testWidgets('stands under the ring, left of the date, at phone width', (
+      tester,
+    ) async {
       await phone(tester, 390);
       await pumpApp(tester, location: Routes.home, debts: debts);
       expect(find.byType(BrickWall), findsOneWidget);
+      final wall = tester.getRect(find.byType(BrickWall));
       expect(
-        tester.getTopLeft(find.byType(BrickWall)).dx,
-        greaterThan(tester.getTopLeft(find.text('Debt-free by')).dx),
+        wall.right,
+        lessThanOrEqualTo(tester.getTopLeft(find.text('Debt-free by')).dx),
       );
+      final hero = tester.getRect(find.byType(HiVisBlock).first);
+      expect(wall.bottom, lessThan(hero.bottom));
+      expect(wall.bottom, greaterThan(hero.bottom - 30));
     });
 
     testWidgets('loses bricks as debt is paid', (tester) async {

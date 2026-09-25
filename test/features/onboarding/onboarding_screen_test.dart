@@ -66,6 +66,23 @@ void main() {
       expect(find.bySemanticsLabel('Page 1 of 3'), findsOneWidget);
     });
 
+    testWidgets('Next sits at the bottom right, under the page', (
+      tester,
+    ) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = const Size(390 * 3, 844 * 3);
+      addTearDown(tester.view.reset);
+      await welcome(tester);
+      final next = tester.getRect(find.text('Next'));
+      expect(next.bottom, greaterThan(844 * 0.85));
+      expect(next.right, greaterThan(390 * 0.8));
+      expect(
+        tester.getRect(find.byType(PageView)).height,
+        greaterThan(844 * 0.6),
+      );
+    });
+
     testWidgets('Next walks through them to setup', (tester) async {
       await welcome(tester);
       await tester.tap(find.text('Next'));

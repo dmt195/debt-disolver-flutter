@@ -4,6 +4,9 @@ import 'package:flutter/rendering.dart';
 const _design = Size(200, 125);
 const _ground = 115.0;
 
+// The welcome art sits on a hi-vis panel, so the brick that matters is
+// navy rather than hi-vis.
+
 /// Welcome page 1: a tangle of debts straightens into a path to a flag.
 class TangleToPath extends CustomPainter {
   const TangleToPath();
@@ -32,7 +35,7 @@ class TangleToPath extends CustomPainter {
             18,
             11,
           ),
-          fill: row == 2 && col == 1 ? kHiVis : kBrickFill,
+          fill: row == 2 && col == 1 ? kInk : kBrickFill,
         );
       }
     }
@@ -61,7 +64,7 @@ class HighestRateFirst extends CustomPainter {
         drawBrick(
           canvas,
           Rect.fromLTWH(x, _ground - 13 - row * 13, 26, 11),
-          fill: first && row == height - 1 ? kHiVis : kBrickFill,
+          fill: first && row == height - 1 ? kInk : kBrickFill,
         );
       }
     }
@@ -92,7 +95,7 @@ class PaymentsRollOn extends CustomPainter {
         drawBrick(canvas, Rect.fromLTWH(x, _ground - 13 - row * 13, 30, 11));
       }
     }
-    // The payment, a hi-vis brick, arcs on to the next stack.
+    // The payment, a navy brick, arcs on to the next stack.
     final arc = Path()
       ..moveTo(35, _ground - 20)
       ..quadraticBezierTo(62, 20, 96, _ground - 64);
@@ -106,7 +109,7 @@ class PaymentsRollOn extends CustomPainter {
     drawBrick(
       canvas,
       const Rect.fromLTWH(46, 34, 22, 13),
-      fill: kHiVis,
+      fill: kInk,
       turn: 0.5,
     );
   }

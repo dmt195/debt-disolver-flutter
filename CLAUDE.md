@@ -8,7 +8,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 
 - **Design spec (source of truth):** `docs/superpowers/specs/2026-09-24-flutter-rebuild-design.md`. Read it before any Flutter work; if a decision here conflicts with it, the spec wins.
 - **v2 spec:** docs/superpowers/specs/2026-09-24-v2-planning-design.md (builds on the v1 spec).
-- **v3 spec (draft):** `docs/superpowers/specs/2026-09-25-v3-ux-redesign-design.md`: three-tab navigation, charts first, illustrations, progress check-ins, reminders (builds on v1 and v2).
+- **v3 spec:** `docs/superpowers/specs/2026-09-25-v3-ux-redesign-design.md`: three-tab navigation, charts first, illustrations, progress check-ins, reminders (builds on v1 and v2).
 - **Implementation plans:** `docs/superpowers/plans/`.
 - **Target architecture:** feature-first with clean layers (`lib/features/<feature>/{domain,data,presentation}`). State uses Riverpod with codegen, storage uses Drift (SQLite) plus shared_preferences for settings, navigation uses go_router, models use freezed, and charts use fl_chart. The payoff calculator lives in a pure-Dart package, `packages/payoff_engine/`, with no Flutter imports.
 - **Money is never a float:** amounts are integer minor units (`Money`), APRs are integer basis points, and rounding is half-even, once per month.
@@ -27,7 +27,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - [x] Plan 7: v3 shell and charts — three tabs (Home, Debts, Plans), Direction A theme and fonts, chart kit, chart-first Debts/Plans/Plan detail/Scenarios (`docs/superpowers/plans/2026-09-25-plan-7-shell-and-charts.md`, spec `docs/superpowers/specs/2026-09-25-v3-ux-redesign-design.md`)
 - [x] Plan 8: progress — followed plan, check-ins, starting points, restart, cleared debts, celebration (`docs/superpowers/plans/2026-09-26-plan-8-progress.md`)
 - [x] Plan 9: reminders (local notifications) (`docs/superpowers/plans/2026-09-26-plan-9-reminders.md`)
-- [ ] Plan 10: illustrations and motion (in-house `CustomPainter`s)
+- [x] Plan 10: illustrations and motion — brick wall, welcome pages, debt-type tiles, empty states, check-in count-up, wrecking-ball celebration, charts drawing in (`docs/superpowers/plans/2026-09-26-plan-10-illustrations.md`). v3 is complete.
 
 Update this checklist as the phases complete.
 
@@ -53,6 +53,7 @@ Gotchas:
 - UI text lives in `lib/l10n/app_en.arb`, read through `context.l10n`. Money and percentages are formatted and parsed with `lib/core/money_format.dart`, using `formatLocaleProvider` (the device locale). Parsing is exact integer arithmetic; never convert money through `double` except for display.
 - Widget tests use `pumpApp` (`test/helpers/pump_app.dart`): the whole app with an `InMemoryDebtRepository` and a synchronous `planCalculatorProvider`. Drift's streams and `compute` isolates don't run under the widget test clock, so never use the real ones in widget tests. After `tester.ensureVisible`, call `pumpAndSettle` before tapping. `pumpApp` opens Debts by default. It takes a `clock`, because Riverpod rejects a second `clockProvider` override, and `AppHarness.progress` is the in-memory progress repository. The default 800×600 test surface builds little of a long list: `useTallScreen(tester)` gives a 390×2400 phone. Strategy names also appear in the race chart's legend, so find a strategy's card by `ValueKey(StrategyId)`.
 - Errors found after Save are shown with `forceErrorText`. Clear a field's forced error in its `onChanged`, never at the start of Save: a stale forced error makes `validate()` fail silently.
+- Illustrations are `CustomPainter`s in `lib/core/illustrations/` built from `kit.dart` (fixed Direction A inks, `fitDesign` to draw in a design box at any size) and wrapped in `Illustration` (decorative unless labelled). Animated ones take a `progress` (0–1); widgets drive it with one `AnimationController` started once in `didChangeDependencies`, and reduced motion (`MediaQuery.disableAnimationsOf`) jumps to 1. Nothing loops, so `pumpAndSettle` always ends. Charts draw in once through `DrawIn` (`lib/core/charts/draw_in.dart`).
 - Reminders (`lib/features/reminders/`, `lib/core/notifications.dart`):
   - **Service:** local notifications go through `NotificationsService`. `pumpApp` and `createTestContainer` override it with `FakeNotificationsService` (set `granted`/`launch`, read `scheduled`, simulate a `tap`).
   - **Scheduling:** `reminderSchedulerProvider` (watched by the app) replaces the scheduled set whenever the plan, settings or history change, and only if the wanted list differs. Scheduling waits for `notificationsReadyProvider`.

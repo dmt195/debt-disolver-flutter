@@ -1,15 +1,23 @@
 import 'dart:async';
 
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/charts/segment_bar.dart';
+import 'package:debt_destroyer/core/charts/share_donut.dart';
+import 'package:debt_destroyer/core/debt_colors.dart';
+import 'package:debt_destroyer/core/debt_icons.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/core/widgets/outlined_card.dart';
 import 'package:debt_destroyer/features/ads/presentation/ad_banner.dart';
+import 'package:debt_destroyer/features/analysis/domain/plan_series.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:debt_destroyer/features/strategies/presentation/current_plans.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -43,36 +51,43 @@ class DebtsScreen extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Material(
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        onPressed: () => context.push(Routes.newDebt),
-                        icon: const Icon(Icons.add),
-                        label: Text(l10n.addDebt),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => context.push(Routes.newDebt),
+                      // Icon and label wrap rather than overflow at large
+                      // text sizes.
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.add, size: 18),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              l10n.addDebt,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton(
-                        onPressed: hasDebts
-                            ? () => context.go(Routes.plans)
-                            : null,
-                        child: Text(
-                          l10n.compareStrategies,
-                          textAlign: TextAlign.center,
-                        ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: hasDebts
+                          ? () => context.go(Routes.plans)
+                          : null,
+                      child: Text(
+                        l10n.compareStrategies,
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const Padding(
@@ -133,36 +148,71 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
     final minimums = totalMinimumPayments(debts, currency: currency);
     final budget = widget.settings.monthlyBudget;
 
-    return Column(
-      children: [
-        _SummaryCard(
-          total: debts.fold(Money.zero(currency), (sum, d) => sum + d.balance),
-          minimums: minimums,
-          budget: budget,
-          locale: locale,
+    final home = ref.watch(homePlanProvider).value;
+    final plan = home is HomeFollowing ? home.result.plan : null;
+    final ids = [for (final d in debts) d.id];
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _SummaryCard(
+            debts: debts,
+            ids: ids,
+            minimums: minimums,
+            budget: budget,
+            locale: locale,
+          ),
+          if (minimums > budget) ...[
+            const SizedBox(height: 10),
+            _ShortfallBanner(shortfall: minimums - budget, locale: locale),
+          ],
+        ],
+      ),
+    );
+
+    if (debts.isEmpty) {
+      return ListView(
+        children: [
+          header,
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(l10n.debtsEmpty, textAlign: TextAlign.center),
+          ),
+        ],
+      );
+    }
+    return ReorderableListView.builder(
+      header: header,
+      padding: const EdgeInsets.only(bottom: 16),
+      itemCount: debts.length,
+      onReorderItem: (from, to) => _reorder(debts, from, to),
+      itemBuilder: (context, i) => Padding(
+        key: ValueKey(debts[i].id),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        child: _dismissible(
+          debts[i],
+          locale,
+          ids: ids,
+          position: plan == null ? null : payoffPosition(plan, debts[i].id),
+          share: _share(debts[i], debts),
         ),
-        if (minimums > budget)
-          _ShortfallBanner(shortfall: minimums - budget, locale: locale),
-        Expanded(
-          child: debts.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(l10n.debtsEmpty, textAlign: TextAlign.center),
-                  ),
-                )
-              : ReorderableListView.builder(
-                  padding: const EdgeInsets.only(bottom: 88),
-                  itemCount: debts.length,
-                  onReorderItem: (from, to) => _reorder(debts, from, to),
-                  itemBuilder: (context, i) => _dismissible(debts[i], locale),
-                ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _dismissible(Debt debt, String locale) => Dismissible(
+  static double _share(Debt debt, List<Debt> debts) {
+    final total = debts.fold<int>(0, (s, d) => s + d.balance.minor);
+    return total == 0 ? 0 : debt.balance.minor / total;
+  }
+
+  Widget _dismissible(
+    Debt debt,
+    String locale, {
+    required List<String> ids,
+    required int? position,
+    required double share,
+  }) => Dismissible(
     key: ValueKey(debt.id),
     direction: DismissDirection.endToStart,
     background: ColoredBox(
@@ -180,7 +230,13 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
       setState(() => _removed.add(debt.id));
       unawaited(_delete(debt));
     },
-    child: DebtTile(debt: debt, locale: locale),
+    child: DebtTile(
+      debt: debt,
+      locale: locale,
+      colorIds: ids,
+      position: position,
+      share: share,
+    ),
   );
 
   Future<bool> _confirmDelete(Debt debt) async {
@@ -251,49 +307,164 @@ List<String> reorderedIds(
 }
 
 class DebtTile extends StatelessWidget {
-  const DebtTile({required this.debt, required this.locale, super.key});
+  const DebtTile({
+    required this.debt,
+    required this.locale,
+    this.colorIds = const [],
+    this.position,
+    this.share = 0,
+    super.key,
+  });
 
   final Debt debt;
   final String locale;
 
+  /// The user's list order, which gives each debt its colour.
+  final List<String> colorIds;
+
+  /// Where the debt comes in the payoff order (1 first), if known.
+  final int? position;
+
+  /// This debt's share of everything owed, 0–1.
+  final double share;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return ListTile(
-      leading: Icon(switch (debt.type) {
-        DebtType.creditCard => Icons.credit_card,
-        DebtType.storeCard => Icons.shopping_bag_outlined,
-        DebtType.loan => Icons.account_balance_outlined,
-        DebtType.overdraft => Icons.account_balance_wallet_outlined,
-        DebtType.studentLoan => Icons.school_outlined,
-        DebtType.mortgage => Icons.home_outlined,
-        DebtType.personal => Icons.people_outline,
-        DebtType.other => Icons.receipt_long_outlined,
-      }, semanticLabel: debtTypeLabel(l10n, debt.type)),
-      title: Text(debt.name),
-      subtitle: Text(
-        '${l10n.debtApr(formatPercent(debt.aprBps, locale))} · '
-        '${l10n.debtMinimum(formatMoney(minimumPayment(debt), locale))}'
-        '${debt.transferOffer != null ? ' · ${l10n.debtTransferOffer}' : ''}',
+    final c = context.colors;
+    final color = debtColor(c, debt.id, colorIds);
+    final heat = aprHeat(debt.aprBps);
+    final heatLabel = switch (heat) {
+      AprHeat.high => l10n.aprHeatHigh,
+      AprHeat.medium => l10n.aprHeatMedium,
+      AprHeat.low => l10n.aprHeatLow,
+    };
+    final details = [
+      l10n.debtApr(formatPercent(debt.aprBps, locale)),
+      l10n.debtMinimum(formatMoney(minimumPayment(debt), locale)),
+      if (debt.transferOffer != null) l10n.debtTransferOffer,
+    ].join(' · ');
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(Routes.editDebt(debt.id)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  debtTypeIcon(debt.type),
+                  color: Colors.white,
+                  size: 21,
+                  semanticLabel: debtTypeLabel(l10n, debt.type),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        Text(
+                          debt.name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        _HeatChip(label: heatLabel, high: heat == AprHeat.high),
+                        Text(
+                          formatMoney(debt.balance, locale),
+                          style: displayStyle(18, color: c.ink),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: share,
+                        minHeight: 6,
+                        color: color,
+                        backgroundColor: c.track,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 12,
+                      children: [
+                        Text(
+                          details,
+                          style: TextStyle(fontSize: 12, color: c.ink2),
+                        ),
+                        if (position != null)
+                          Text(
+                            l10n.debtClearsPosition(ordinal(position!)),
+                            style: TextStyle(fontSize: 12, color: c.ink2),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-      trailing: Text(
-        formatMoney(debt.balance, locale),
-        style: Theme.of(context).textTheme.titleMedium,
+    );
+  }
+}
+
+class _HeatChip extends StatelessWidget {
+  const _HeatChip({required this.label, required this.high});
+
+  final String label;
+  final bool high;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: high ? c.ink : null,
+        border: high ? null : Border.all(color: c.ink2, width: 1.5),
+        borderRadius: BorderRadius.circular(3),
       ),
-      onTap: () => context.push(Routes.editDebt(debt.id)),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: high ? c.ground : c.ink2,
+        ),
+      ),
     );
   }
 }
 
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
-    required this.total,
+    required this.debts,
+    required this.ids,
     required this.minimums,
     required this.budget,
     required this.locale,
   });
 
-  final Money total;
+  final List<Debt> debts;
+  final List<String> ids;
   final Money minimums;
   final Money budget;
   final String locale;
@@ -301,28 +472,81 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    Widget figure(String label, Money value) => Expanded(
-      child: Column(
+    final c = context.colors;
+    final total = debts.fold(
+      Money.zero(budget.currency),
+      (s, d) => s + d.balance,
+    );
+    final extra = budget - minimums;
+    // Wraps the amount under its label when large text leaves no room.
+    Widget figure(String label, Money value) => Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      spacing: 8,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13.5)),
+        Text(
+          formatMoney(value, locale),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+    String percent(Debt d) => total.minor == 0
+        ? '0%'
+        : '${(d.balance.minor * 100 / total.minor).round()}%';
+    return OutlinedCard(
+      child: Wrap(
+        spacing: 14,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-          Text(
-            formatMoney(value, locale),
-            style: Theme.of(context).textTheme.titleMedium,
+          ShareDonut(
+            slices: [
+              for (final d in debts)
+                (
+                  value: d.balance.minor.toDouble(),
+                  color: debtColor(c, d.id, ids),
+                ),
+            ],
+            centre: formatMoney(total, locale),
+            caption: l10n.debtsTotalCaption,
+            semanticLabel: l10n.debtsShareLabel(
+              [for (final d in debts) '${d.name} ${percent(d)}'].join(', '),
+              formatMoney(total, locale),
+            ),
+          ),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 150, maxWidth: 170),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                figure(l10n.minimumPayments, minimums),
+                const SizedBox(height: 6),
+                figure(l10n.monthlyBudget, budget),
+                const SizedBox(height: 8),
+                SegmentBar(
+                  semanticLabel: l10n.debtsExtraAtWork(
+                    formatMoney(
+                      extra.isPositive ? extra : Money.zero(budget.currency),
+                      locale,
+                    ),
+                  ),
+                  segments: [
+                    Segment(minimums.minor.toDouble(), c.ink2),
+                    if (extra.isPositive)
+                      Segment(extra.minor.toDouble(), c.hiVis),
+                  ],
+                ),
+                if (extra.isPositive) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    l10n.debtsExtraAtWork(formatMoney(extra, locale)),
+                    style: const TextStyle(fontSize: 12.5),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
-      ),
-    );
-    return Card(
-      margin: const EdgeInsets.all(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            figure(l10n.totalDebt, total),
-            figure(l10n.minimumPayments, minimums),
-            figure(l10n.monthlyBudget, budget),
-          ],
-        ),
       ),
     );
   }
@@ -338,19 +562,20 @@ class _ShortfallBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    return Card(
-      color: scheme.errorContainer,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      child: ListTile(
-        leading: Icon(Icons.warning_amber, color: scheme.onErrorContainer),
-        title: Text(
-          l10n.budgetShortfall(formatMoney(shortfall, locale)),
-          style: TextStyle(color: scheme.onErrorContainer),
-        ),
-        trailing: TextButton(
-          onPressed: () => context.push(Routes.settings),
-          child: Text(l10n.changeBudget),
-        ),
+    return OutlinedCard(
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber, color: scheme.error),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(l10n.budgetShortfall(formatMoney(shortfall, locale))),
+          ),
+          TextButton(
+            onPressed: () => context.push(Routes.settings),
+            child: Text(l10n.changeBudget),
+          ),
+        ],
       ),
     );
   }

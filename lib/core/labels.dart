@@ -100,3 +100,17 @@ String formatDuration(AppLocalizations l10n, int months) {
   if (rest == 0) return l10n.years(years);
   return l10n.yearsAndMonths(l10n.years(years), l10n.months(rest));
 }
+
+/// English ordinal: 1st, 2nd, 3rd, 4th … 11th, 12th, 13th, 21st.
+String ordinal(int n) {
+  final lastTwo = n % 100;
+  final suffix = lastTwo >= 11 && lastTwo <= 13
+      ? 'th'
+      : switch (n % 10) {
+          1 => 'st',
+          2 => 'nd',
+          3 => 'rd',
+          _ => 'th',
+        };
+  return '$n$suffix';
+}

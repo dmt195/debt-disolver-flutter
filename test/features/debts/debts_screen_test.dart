@@ -1,4 +1,6 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/charts/segment_bar.dart';
+import 'package:debt_destroyer/core/charts/share_donut.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
@@ -137,5 +139,33 @@ void main() {
         'b',
       ]);
     });
+  });
+
+  testWidgets('summarises with a donut and the budget bar', (tester) async {
+    await pumpApp(tester, debts: [card, loan]);
+    expect(find.byType(ShareDonut), findsOneWidget);
+    expect(find.byType(SegmentBar), findsOneWidget);
+    // 300.00 budget less 210.00 of minimums.
+    expect(find.text('£90.00 extra goes to work each month'), findsOneWidget);
+  });
+
+  testWidgets('each debt shows its rate band and when it clears', (
+    tester,
+  ) async {
+    await pumpApp(tester, debts: [card, loan]);
+    expect(find.text('Med'), findsOneWidget); // 19.9%
+    expect(find.text('Low'), findsOneWidget); // 6.5%
+    expect(find.text('clears 1st'), findsOneWidget);
+    expect(find.text('clears 2nd'), findsOneWidget);
+  });
+
+  testWidgets('large text does not overflow the rows', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a', name: 'A very long debt name indeed')],
+    );
+    expect(tester.takeException(), isNull);
   });
 }

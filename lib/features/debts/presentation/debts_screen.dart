@@ -273,7 +273,8 @@ class DebtTile extends StatelessWidget {
       title: Text(debt.name),
       subtitle: Text(
         '${l10n.debtApr(formatPercent(debt.aprBps, locale))} · '
-        '${l10n.debtMinimum(formatMoney(minimumPayment(debt), locale))}',
+        '${l10n.debtMinimum(formatMoney(minimumPayment(debt), locale))}'
+        '${debt.transferOffer != null ? ' · ${l10n.debtTransferOffer}' : ''}',
       ),
       trailing: Text(
         formatMoney(debt.balance, locale),

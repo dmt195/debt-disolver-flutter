@@ -298,4 +298,83 @@ void main() {
     expect(find.text('Enter a rate between 0 and 100'), findsOneWidget);
     expect(app.repository.stored, isEmpty);
   });
+
+  Future<void> tapKey(WidgetTester tester, String key) async {
+    await tester.scrollUntilVisible(
+      find.byKey(ValueKey(key)),
+      100,
+      scrollable: formList,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey(key)));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> enter(WidgetTester tester, String label, String text) async {
+    await tester.scrollUntilVisible(field(label), 100, scrollable: formList);
+    await tester.enterText(field(label), text);
+  }
+
+  testWidgets('records a balance transfer offer on a card', (tester) async {
+    final app = await pumpApp(tester, location: Routes.newDebt);
+    await fill(tester);
+    await tapKey(tester, 'offer');
+    await enter(tester, 'Transfer fee (%)', '3');
+    await tapKey(tester, 'offerPromo');
+    await enter(tester, 'Offer rate (APR %)', '0');
+    await enter(tester, 'Offer length (months)', '12');
+    await enter(tester, 'Available credit', '2000');
+    await save(tester);
+    expect(
+      app.repository.stored.single.transferOffer,
+      const TransferOffer(
+        feeBps: 300,
+        promo: Promo(aprBps: 0, months: 12),
+        availableCredit: Money(200000, 'GBP'),
+      ),
+    );
+  });
+
+  testWidgets('loans have no offer section, and switching drops the offer', (
+    tester,
+  ) async {
+    final app = await pumpApp(
+      tester,
+      debts: [
+        testDebt(
+          id: 'a',
+          transferOffer: const TransferOffer(
+            feeBps: 300,
+            availableCredit: Money(200000, 'GBP'),
+          ),
+        ),
+      ],
+      location: Routes.editDebt('a'),
+    );
+    await chooseType(tester, 'Loan');
+    expect(find.byKey(const ValueKey('offer')), findsNothing);
+    // The saved debt has a 3% minimum, so the loan keeps both minimum
+    // fields (no single "Monthly payment" field); save as is.
+    await save(tester);
+    expect(app.repository.stored.single.transferOffer, isNull);
+  });
+
+  testWidgets('explains an offer with no available credit', (tester) async {
+    final app = await pumpApp(tester, location: Routes.newDebt);
+    await fill(tester);
+    await tapKey(tester, 'offer');
+    await enter(tester, 'Transfer fee (%)', '3');
+    await enter(tester, 'Available credit', '0');
+    await save(tester);
+    await tester.scrollUntilVisible(
+      find.text('Enter the credit still available on this card'),
+      100,
+      scrollable: formList,
+    );
+    expect(
+      find.text('Enter the credit still available on this card'),
+      findsOneWidget,
+    );
+    expect(app.repository.stored, isEmpty);
+  });
 }

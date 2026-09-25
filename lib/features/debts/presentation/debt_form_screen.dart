@@ -65,7 +65,18 @@ class DebtFormScreen extends ConsumerWidget {
   }
 }
 
-enum _Field { name, balance, apr, minPercent, minFloor, promoApr }
+enum _Field {
+  name,
+  balance,
+  apr,
+  minPercent,
+  minFloor,
+  promoApr,
+  offerFee,
+  offerPromoApr,
+  offerPromoMonths,
+  offerCredit,
+}
 
 class _DebtForm extends ConsumerStatefulWidget {
   const _DebtForm({
@@ -88,6 +99,8 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
   late bool _allowsOverpayment;
   late bool _hasPromo;
   late int _promoUntil;
+  late bool _hasOffer;
+  late bool _hasOfferPromo;
   Map<_Field, String> _errors = const {};
   bool _saving = false;
 
@@ -102,6 +115,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     super.initState();
     final locale = ref.read(formatLocaleProvider);
     final d = widget.existing;
+    final offer = d?.transferOffer;
     String money(Money m) => formatAmountInput(m, locale);
     String percent(int bps) => formatPercentInput(bps, locale);
     _controllers = {
@@ -121,6 +135,18 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       _Field.promoApr: TextEditingController(
         text: percent(d?.promo?.aprBps ?? 0),
       ),
+      _Field.offerFee: TextEditingController(
+        text: offer == null ? '' : percent(offer.feeBps),
+      ),
+      _Field.offerPromoApr: TextEditingController(
+        text: percent(offer?.promo?.aprBps ?? 0),
+      ),
+      _Field.offerPromoMonths: TextEditingController(
+        text: offer?.promo == null ? '' : '${offer!.promo!.months}',
+      ),
+      _Field.offerCredit: TextEditingController(
+        text: offer == null ? '' : money(offer.availableCredit),
+      ),
     };
     _type = d?.type ?? DebtType.creditCard;
     _allowsOverpayment =
@@ -130,6 +156,8 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       d?.promo?.months ?? 12,
       ref.read(clockProvider)(),
     );
+    _hasOffer = offer != null;
+    _hasOfferPromo = offer?.promo != null;
   }
 
   @override
@@ -315,6 +343,53 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
               ),
             ),
           ],
+          if (isTransferable(_type)) ...[
+            SwitchListTile(
+              key: const ValueKey('offer'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.fieldOffer),
+              subtitle: Text(l10n.fieldOfferHint),
+              value: _hasOffer,
+              onChanged: (v) => setState(() => _hasOffer = v),
+            ),
+            if (_hasOffer) ...[
+              field(
+                _Field.offerFee,
+                l10n.fieldOfferFee,
+                keyboard: numberKeyboard,
+                validator: (v) => percent(v, required: true),
+              ),
+              SwitchListTile(
+                key: const ValueKey('offerPromo'),
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.fieldOfferPromo),
+                value: _hasOfferPromo,
+                onChanged: (v) => setState(() => _hasOfferPromo = v),
+              ),
+              if (_hasOfferPromo) ...[
+                field(
+                  _Field.offerPromoApr,
+                  l10n.fieldOfferPromoApr,
+                  keyboard: numberKeyboard,
+                  validator: (v) => percent(v, required: true),
+                ),
+                field(
+                  _Field.offerPromoMonths,
+                  l10n.fieldOfferPromoMonths,
+                  keyboard: TextInputType.number,
+                  validator: (v) => parseWholeNumber(v ?? '') == null
+                      ? l10n.errorWholeNumber
+                      : null,
+                ),
+              ],
+              field(
+                _Field.offerCredit,
+                l10n.fieldOfferCredit,
+                keyboard: numberKeyboard,
+                validator: (v) => amount(v, required: true),
+              ),
+            ],
+          ],
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _saving ? null : _save,
@@ -354,6 +429,22 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           ? Promo(
               aprBps: percent(_Field.promoApr),
               months: promoMonthsLeft(_promoUntil, now),
+            )
+          : null,
+      transferOffer: _hasOffer && isTransferable(_type)
+          ? TransferOffer(
+              feeBps: percent(_Field.offerFee),
+              promo: _hasOfferPromo
+                  ? Promo(
+                      aprBps: percent(_Field.offerPromoApr),
+                      months:
+                          parseWholeNumber(
+                            _controllers[_Field.offerPromoMonths]!.text,
+                          ) ??
+                          0,
+                    )
+                  : null,
+              availableCredit: Money(amount(_Field.offerCredit), code),
             )
           : null,
     );
@@ -398,14 +489,22 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           byField[_Field.minFloor] = l10n.errorFloorNegative;
         case DebtValidationError.minPaymentFloorTooLarge:
           byField[_Field.minFloor] = l10n.errorTooLarge;
-        case DebtValidationError.offerOnNonCard ||
-            DebtValidationError.offerFeeOutOfRange ||
-            DebtValidationError.offerPromoAprOutOfRange ||
-            DebtValidationError.offerPromoMonthsOutOfRange ||
-            DebtValidationError.offerCreditNotPositive ||
-            DebtValidationError.offerCreditTooLarge ||
-            DebtValidationError.offerCurrencyMismatch:
-          break; // the form has no offer fields until Task 5
+        case DebtValidationError.offerFeeOutOfRange:
+          byField[_Field.offerFee] = l10n.errorPercentRange;
+        case DebtValidationError.offerPromoAprOutOfRange:
+          byField[_Field.offerPromoApr] = l10n.errorRateRange;
+        case DebtValidationError.offerPromoMonthsOutOfRange:
+          byField[_Field.offerPromoMonths] = l10n.errorOfferMonths(
+            kMaxPromoMonths,
+          );
+        case DebtValidationError.offerCreditNotPositive:
+          byField[_Field.offerCredit] = l10n.errorOfferCredit;
+        case DebtValidationError.offerCreditTooLarge:
+          byField[_Field.offerCredit] = l10n.errorTooLarge;
+        case DebtValidationError.offerOnNonCard:
+        case DebtValidationError.offerCurrencyMismatch:
+          break; // not reachable: the form drops offers on non-cards and
+        // uses one currency
         case DebtValidationError.floorCurrencyMismatch:
           break; // not reachable from this form: one currency throughout
         case DebtValidationError.promoAprOutOfRange:

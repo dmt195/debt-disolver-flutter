@@ -3,6 +3,7 @@ import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:payoff_engine/payoff_engine.dart';
 
 import '../../helpers/debts.dart';
 import '../../helpers/pump_app.dart';
@@ -104,6 +105,23 @@ void main() {
     // The debt wasn't deleted, so it comes back.
     expect(find.text('Visa'), findsOneWidget);
     expect(find.text('£2,000.00'), findsWidgets);
+  });
+
+  testWidgets('marks a card that has a transfer offer', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [
+        testDebt(
+          id: 'a',
+          name: 'Amex',
+          transferOffer: const TransferOffer(
+            feeBps: 300,
+            availableCredit: Money(200000, 'GBP'),
+          ),
+        ),
+      ],
+    );
+    expect(find.textContaining('Transfer offer'), findsOneWidget);
   });
 
   group('reorderedIds', () {

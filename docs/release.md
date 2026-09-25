@@ -53,6 +53,16 @@ Android has two flavors: `dev` (`com.dmt195.debt_destroyer.dev`, "Debt Destroyer
 - **App Store privacy details:** follow Google's guidance (https://developers.google.com/admob/ios/privacy/data-disclosure): Identifiers (Device ID), Location (Coarse Location), Usage Data (Product Interaction, Advertising Data) and Diagnostics (Crash Data, Performance Data), used for third-party advertising and analytics; Device ID is used for tracking only when ATT permission is given.
 - **Screenshots:** the images in `legacy/resources` show the 2013 app; take new ones from the current build.
 
-## 5. Crash reporting (optional follow-up)
+## 5. Notifications
+
+- **Local only:** reminders are scheduled on the device with `flutter_local_notifications`, and nothing is sent to a server.
+- **No exact alarms:** the app asks for neither `SCHEDULE_EXACT_ALARM` nor `USE_EXACT_ALARM`, so the Play Console's exact-alarm declaration doesn't apply. It does use `RECEIVE_BOOT_COMPLETED`, to reschedule after a restart.
+- **Permission** is asked only when someone switches a reminder on, in setup or Settings.
+- **Testing on a device:**
+  1. Set the pay day to tomorrow in Settings › Reminders, then check the reminder arrives at about 09:00 and that tapping it opens Check in.
+  2. Restart the phone and confirm it's still scheduled.
+  3. Deny permission once and check the switch turns itself off.
+
+## 6. Crash reporting (optional follow-up)
 
 Errors currently go to `LogCrashReporter`, which only writes to the device log. To collect crashes remotely, create a Firebase project, run `flutterfire configure`, add a `CrashReporter` backed by `FirebaseCrashlytics`, and override `crashReporterProvider` with it in `lib/main.dart`, enabled only after the user's consent. Then update the privacy policy's "Crash information" section.

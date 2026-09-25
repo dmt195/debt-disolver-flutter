@@ -82,6 +82,9 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // First, and saved at once: the setting people come here to change.
+          RemindersSection(settings: widget.settings),
+          const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: CurrencyPicker(
@@ -137,8 +140,6 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           ),
           const SizedBox(height: 8),
           FilledButton(onPressed: _save, child: Text(l10n.save)),
-          const SizedBox(height: 16),
-          RemindersSection(settings: widget.settings),
           if (ref.watch(privacyOptionsRequiredProvider).value ?? false)
             ListTile(
               contentPadding: EdgeInsets.zero,

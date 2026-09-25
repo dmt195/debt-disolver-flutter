@@ -26,7 +26,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 
 - [x] Plan 7: v3 shell and charts — three tabs (Home, Debts, Plans), Direction A theme and fonts, chart kit, chart-first Debts/Plans/Plan detail/Scenarios (`docs/superpowers/plans/2026-09-25-plan-7-shell-and-charts.md`, spec `docs/superpowers/specs/2026-09-25-v3-ux-redesign-design.md`)
 - [x] Plan 8: progress — followed plan, check-ins, starting points, restart, cleared debts, celebration (`docs/superpowers/plans/2026-09-26-plan-8-progress.md`)
-- [ ] Plan 9: reminders (local notifications)
+- [x] Plan 9: reminders (local notifications) (`docs/superpowers/plans/2026-09-26-plan-9-reminders.md`)
 - [ ] Plan 10: illustrations and motion (in-house `CustomPainter`s)
 
 Update this checklist as the phases complete.
@@ -53,6 +53,12 @@ Gotchas:
 - UI text lives in `lib/l10n/app_en.arb`, read through `context.l10n`. Money and percentages are formatted and parsed with `lib/core/money_format.dart`, using `formatLocaleProvider` (the device locale). Parsing is exact integer arithmetic; never convert money through `double` except for display.
 - Widget tests use `pumpApp` (`test/helpers/pump_app.dart`): the whole app with an `InMemoryDebtRepository` and a synchronous `planCalculatorProvider`. Drift's streams and `compute` isolates don't run under the widget test clock, so never use the real ones in widget tests. After `tester.ensureVisible`, call `pumpAndSettle` before tapping. `pumpApp` opens Debts by default. It takes a `clock`, because Riverpod rejects a second `clockProvider` override, and `AppHarness.progress` is the in-memory progress repository. The default 800×600 test surface builds little of a long list: `useTallScreen(tester)` gives a 390×2400 phone. Strategy names also appear in the race chart's legend, so find a strategy's card by `ValueKey(StrategyId)`.
 - Errors found after Save are shown with `forceErrorText`. Clear a field's forced error in its `onChanged`, never at the start of Save: a stale forced error makes `validate()` fail silently.
+- Reminders (`lib/features/reminders/`, `lib/core/notifications.dart`):
+  - **Service:** local notifications go through `NotificationsService`. `pumpApp` and `createTestContainer` override it with `FakeNotificationsService` (set `granted`/`launch`, read `scheduled`, simulate a `tap`).
+  - **Scheduling:** `reminderSchedulerProvider` (watched by the app) replaces the scheduled set whenever the plan, settings or history change, and only if the wanted list differs. Scheduling waits for `notificationsReadyProvider`.
+  - **Taps and launch:** a tap, or a launch from a reminder (`openLaunchReminder` in `main.dart`), goes to `/check-in`.
+  - **Times** are wall-clock times built in `tz.local`, and scheduled inexactly (no exact-alarm permission).
+  - **Android** needs core library desugaring and the plugin's two receivers in the manifest.
 - Ads and crash reporting go through `AdsService` (`lib/features/ads/`) and `CrashReporter` (`lib/core/crash_reporter.dart`). Widget tests that need ads override `adsServiceProvider` with `FakeAdsService`. Ads appear only on the Debts and Plans screens (anchored above the bottom nav, never between list items), behind consent.
 - Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes. The database records which currency its amounts are in (`DebtRepository.convertAmounts`, idempotent), and the controller reconciles it at startup, so an interrupted switch is repaired. Settings are saved as one JSON value under `SettingsKeys.settings`.
 - The engine runs in three stages: `restructure` (transfer/consolidation turn the user's debts into the debts actually paid), `allocationOrder` (avalanche-style strategies re-rank every month by the interest a pound saves from that month to the end of the plan, so a short 0% promo doesn't delay paying a debt that will cost more later; the calculator finds the end month in a few passes and keeps the cheapest plan) and `simulate`. `PayoffPlan.debts` is in the order debts are *cleared*, not the priority order.

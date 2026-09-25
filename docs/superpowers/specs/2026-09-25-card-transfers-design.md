@@ -79,13 +79,13 @@ The Debts list shows a "Transfer offer" label in the subtitle of a debt that has
    - Start from the debts with no moves, simulated as avalanche. Each round, simulate every candidate applied on top of the moves kept so far, and keep the one that lowers `totalPaid` the most (ties: fewer months, then source name, then target name).
    - Stop when no candidate lowers `totalPaid`, or after 10 moves.
    - Each move uses up room on its target. A source can be moved more than once (to different targets) until it's empty.
-   - A moved portion is never moved again.
+   - A moved portion is never moved again. A card that has received money can't be a source, and a card money has been moved off can't be a target, so money never shuffles back and forth.
 4. **Nothing helps.** If no move lowers the cost, the result is `NotApplicable(noWorthwhileMoves)`.
 5. **Output.** `Restructured` gains a list of card groups (§3.3), and `PlanChange.cardTransfers(moves: …, fee: …)`, where `fee` is the total of the move fees and each `CardMove` is `(fromDebtId, fromName, toDebtId, toName, amount, fee, promo: Promo?)` in the order the moves were chosen.
 
 ### 3.3 Cards made of portions (simulate)
 
-- **Portions.** A move reduces the source by `x`, and adds a portion to the target with balance `x + fee(x)`, rate = the card's `aprBps`, and promo = the offer's promo. Portion ids are `<targetId>#from-<sourceId>`, and names come from the app (§4). A source reduced to zero is removed, as with the new-card transfer.
+- **Portions.** A move reduces the source by `x`, and adds a portion to the target with balance `x + fee(x)`, rate = the card's `aprBps`, and promo = the offer's promo. Portion ids are `<targetId>#from-<sourceId>`, and the engine names portions "<target name> (moved from <source name>)" (the app is English-only). A source reduced to zero is removed, as with the new-card transfer.
 - **Groups.** `simulate` takes an optional `groups: List<List<int>>` (indexes into the simulated list; the card's own portion first). Without groups, every debt is its own group, so today's behaviour is unchanged.
 - **Monthly steps for a group:**
   1. Interest per portion, at that portion's current APR.
@@ -112,7 +112,7 @@ The Debts list shows a "Transfer offer" label in the subtitle of a debt that has
 - **Plan detail and exports:**
   - The "What changes" lines and export notes list each move: "Move £1,200.00 from Visa red to Amex Blue (fee £36.00, 0% for 12 months)", or "(fee £36.00)" without a promo.
   - Then the reminder "Check your card's terms: most won't take a balance from a card by the same bank."
-  - A portion's column is named "Amex Blue (moved from Visa red)" (`planDebtName` handles `#from-` ids).
+  - A portion's column is named "Amex Blue (moved from Visa red)", the engine's name for it.
 
 All new text goes in `app_en.arb`.
 

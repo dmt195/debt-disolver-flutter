@@ -5,11 +5,14 @@ import 'package:debt_destroyer/app/app.dart';
 import 'package:debt_destroyer/core/crash_reporter.dart';
 import 'package:debt_destroyer/features/ads/presentation/ads_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(_fontLicences);
   final container = ProviderContainer();
   installErrorHandlers(container.read(crashReporterProvider));
   // Load settings before the first frame so the router knows whether to
@@ -31,4 +34,12 @@ Future<void> main() async {
   WidgetsBinding.instance.addPostFrameCallback(
     (_) => unawaited(container.read(adsServiceProvider).initialize()),
   );
+}
+
+/// The bundled fonts are under the SIL Open Font License.
+Stream<LicenseEntry> _fontLicences() async* {
+  for (final name in ['BricolageGrotesque', 'AtkinsonHyperlegible']) {
+    final text = await rootBundle.loadString('assets/fonts/OFL-$name.txt');
+    yield LicenseEntryWithLineBreaks([name], text);
+  }
 }

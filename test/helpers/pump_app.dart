@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
+import 'fake_notifications_service.dart';
 import 'in_memory_debt_repository.dart';
 import 'in_memory_progress_repository.dart';
 import 'in_memory_scenario_repository.dart';
@@ -26,6 +27,7 @@ Future<AppHarness> pumpApp(
   Map<String, Object?> settings = const {},
   List<Override> overrides = const [],
   DateTime Function()? clock,
+  FakeNotificationsService? notifications,
 }) async {
   final repository = InMemoryDebtRepository(debts);
   final progress = InMemoryProgressRepository(repository);
@@ -37,6 +39,7 @@ Future<AppHarness> pumpApp(
       overrides: [
         ...testOverrides(
           clock: clock,
+          notifications: notifications,
           prefs: storedSettings({
             SettingsKeys.onboardingComplete: true,
             ...settings,

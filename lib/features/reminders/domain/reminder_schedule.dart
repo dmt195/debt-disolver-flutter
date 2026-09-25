@@ -4,9 +4,6 @@ const kLastDay = 0;
 /// Reminders go out at nine in the morning, local time.
 const _hour = 9;
 
-/// One scheduled notification.
-typedef Reminder = ({int id, DateTime at, String title, String body});
-
 DateTime _onDay(int year, int month, int day) {
   final last = DateTime(year, month + 1, 0).day;
   final d = day == kLastDay || day > last ? last : day;

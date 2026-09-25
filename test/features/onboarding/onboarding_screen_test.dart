@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/core/illustrations/illustration.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
@@ -10,7 +11,7 @@ import '../../helpers/fake_notifications_service.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
-  Future<AppHarness> open(
+  Future<AppHarness> welcome(
     WidgetTester tester, {
     FakeNotificationsService? notifications,
   }) => pumpApp(
@@ -18,6 +19,21 @@ void main() {
     settings: {SettingsKeys.onboardingComplete: false},
     notifications: notifications,
   );
+
+  // Past the welcome pages, to the setup form.
+  Future<void> openSetup(WidgetTester tester) async {
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+  }
+
+  Future<AppHarness> open(
+    WidgetTester tester, {
+    FakeNotificationsService? notifications,
+  }) async {
+    final app = await welcome(tester, notifications: notifications);
+    await openSetup(tester);
+    return app;
+  }
 
   // The setup list builds lazily: scroll the buttons into being first.
   Future<void> tapButton(WidgetTester tester, String label) async {
@@ -37,12 +53,83 @@ void main() {
   Future<void> start(WidgetTester tester) =>
       tapButton(tester, "I'll do it later");
 
-  testWidgets('explains the app and suggests the defaults', (tester) async {
-    await open(tester);
-    expect(find.text('Welcome to Debt Destroyer'), findsOneWidget);
-    expect(find.textContaining('highest interest rate'), findsOneWidget);
-    expect(find.text('GBP (£)'), findsOneWidget);
-    expect(find.text('300'), findsOneWidget);
+  group('welcome pages', () {
+    testWidgets('open on the first, with its picture and dots', (tester) async {
+      await welcome(tester);
+      debugPrint(
+        [for (final t in tester.widgetList<Text>(find.byType(Text))) t.data]
+            .join(' | '),
+      );
+      expect(find.text('Knock down your debt, brick by brick'), findsOneWidget);
+      expect(find.textContaining('compares ways'), findsOneWidget);
+      expect(find.byType(Illustration), findsOneWidget);
+      expect(find.bySemanticsLabel('Page 1 of 3'), findsOneWidget);
+    });
+
+    testWidgets('Next walks through them to setup', (tester) async {
+      await welcome(tester);
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      expect(find.text('Highest rate first'), findsOneWidget);
+      expect(find.textContaining('highest interest rate'), findsOneWidget);
+      expect(find.bySemanticsLabel('Page 2 of 3'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      expect(find.text('Payments roll on'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+      expect(find.text('GBP (£)'), findsOneWidget);
+      expect(find.text('Skip'), findsNothing);
+    });
+
+    testWidgets('swiping moves between pages', (tester) async {
+      await welcome(tester);
+      await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('Highest rate first'), findsOneWidget);
+      await tester.fling(find.byType(PageView), const Offset(400, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(find.text('Knock down your debt, brick by brick'), findsOneWidget);
+    });
+
+    testWidgets('Skip goes straight to setup, with its picture', (
+      tester,
+    ) async {
+      await open(tester);
+      expect(find.text('GBP (£)'), findsOneWidget);
+      expect(find.text('300'), findsOneWidget);
+      expect(find.byType(Illustration), findsOneWidget);
+    });
+
+    testWidgets('with reduced motion, Skip lands at once', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await welcome(tester);
+      await tester.tap(find.text('Skip'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('GBP (£)'), findsOneWidget);
+    });
+
+    testWidgets('large text fits every page on a phone', (tester) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = const Size(360 * 3, 740 * 3);
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await welcome(tester);
+      for (var i = 0; i < 3; i++) {
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
+      }
+      expect(tester.takeException(), isNull);
+      expect(find.text('GBP (£)'), findsOneWidget);
+    });
   });
 
   testWidgets('saves the chosen currency and budget, then opens Home', (
@@ -111,6 +198,14 @@ void main() {
   ) async {
     final fake = FakeNotificationsService();
     final app = await open(tester, notifications: fake);
+    await tester.scrollUntilVisible(
+      find.text('Remind me to pay each month'),
+      100,
+      scrollable: find.byWidgetPredicate(
+        (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Remind me to pay each month'));
     await tester.pumpAndSettle();
     await start(tester);

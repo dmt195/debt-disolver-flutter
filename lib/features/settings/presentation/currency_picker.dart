@@ -18,6 +18,7 @@ class CurrencyPicker extends ConsumerWidget {
     final locale = ref.watch(formatLocaleProvider);
     return DropdownButtonFormField<String>(
       key: const ValueKey('currency'),
+      isExpanded: true,
       initialValue: value,
       decoration: InputDecoration(
         labelText: context.l10n.settingsCurrency,
@@ -27,7 +28,10 @@ class CurrencyPicker extends ConsumerWidget {
         for (final code in currencyChoices(value))
           DropdownMenuItem(
             value: code,
-            child: Text(currencyLabel(code, locale)),
+            child: Text(
+              currencyLabel(code, locale),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
       ],
       onChanged: (code) {

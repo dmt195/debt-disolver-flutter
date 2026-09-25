@@ -1,6 +1,9 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
+import 'package:debt_destroyer/core/illustrations/illustration.dart';
+import 'package:debt_destroyer/core/illustrations/welcome_art.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -13,8 +16,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
-/// First launch: what the app does, then currency and monthly budget. The
-/// router leaves this screen once onboarding is complete.
+/// First launch: three welcome pages on what the app does, then currency,
+/// monthly budget and reminders (spec §4.1). The router leaves this screen
+/// once onboarding is complete.
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -25,6 +29,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _budget = TextEditingController();
+  final _pages = PageController();
+  var _page = 0;
   String? _currency;
   bool _prefilled = false;
   bool _saving = false;
@@ -36,6 +42,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   void dispose() {
     _budget.dispose();
+    _pages.dispose();
     super.dispose();
   }
 
@@ -60,93 +67,166 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _prefilled = true;
       _budget.text = formatAmountInput(settings.monthlyBudget, locale);
     }
-    final theme = Theme.of(context);
-
-    Widget point(IconData icon, String text) => ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: theme.colorScheme.primary),
-      title: Text(text),
-    );
+    final c = context.colors;
+    final welcome = [
+      (const TangleToPath(), l10n.welcomeTitle1, l10n.onboardingIntro1),
+      (const HighestRateFirst(), l10n.welcomeTitle2, l10n.onboardingIntro2),
+      (const PaymentsRollOn(), l10n.welcomeTitle3, l10n.onboardingIntro3),
+    ];
+    final onWelcome = _page < welcome.length;
 
     return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        actions: [
+          if (onWelcome)
+            TextButton(
+              onPressed: () => _goTo(welcome.length),
+              child: Text(l10n.welcomeSkip),
+            ),
+        ],
+      ),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              Text(l10n.onboardingTitle, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 16),
-              point(Icons.compare_arrows, l10n.onboardingIntro1),
-              point(Icons.trending_down, l10n.onboardingIntro2),
-              point(Icons.flag_outlined, l10n.onboardingIntro3),
-              const SizedBox(height: 24),
-              CurrencyPicker(
-                value: currency,
-                onChanged: (code) => setState(() => _currency = code),
-              ),
-              const SizedBox(height: 16),
-              Text(l10n.onboardingBudgetQuestion),
-              const SizedBox(height: 8),
-              TextFormField(
-                key: const ValueKey('budget'),
-                controller: _budget,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: InputDecoration(
-                  labelText: l10n.monthlyBudget,
-                  border: const OutlineInputBorder(),
-                ),
-                validator: (v) => _budgetProblem(v ?? '', currency, locale),
-              ),
-              const SizedBox(height: 16),
-              OutlinedCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+        top: false,
+        child: PageView(
+          controller: _pages,
+          onPageChanged: (page) => setState(() => _page = page),
+          children: [
+            for (final (painter, title, body) in welcome)
+              _WelcomePage(painter: painter, title: title, body: body),
+            _setup(context, currency, locale),
+          ],
+        ),
+      ),
+      bottomNavigationBar: onWelcome
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                child: Row(
                   children: [
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(l10n.setupRemindMe),
-                      subtitle: Text(l10n.setupRemindMeHint),
-                      value: _remind,
-                      onChanged: (on) => setState(() => _remind = on),
+                    Semantics(
+                      label: l10n.welcomePage(_page + 1, welcome.length),
+                      excludeSemantics: true,
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < welcome.length; i++)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: const EdgeInsets.only(right: 6),
+                              width: i == _page ? 22 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: i == _page ? c.ink : c.track,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                    DropdownButtonFormField<int>(
-                      isExpanded: true,
-                      initialValue: _day,
-                      decoration: InputDecoration(labelText: l10n.remindersDay),
-                      items: [
-                        for (var day = 1; day <= 28; day++)
-                          DropdownMenuItem(
-                            value: day,
-                            child: Text(ordinal(day)),
-                          ),
-                        DropdownMenuItem(
-                          value: kLastDay,
-                          child: Text(l10n.remindersLastDay),
-                        ),
-                      ],
-                      onChanged: _remind
-                          ? (day) => setState(() => _day = day ?? 28)
-                          : null,
+                    const SizedBox(width: 12),
+                    const Spacer(),
+                    Flexible(
+                      flex: 4,
+                      child: FilledButton(
+                        onPressed: () => _goTo(_page + 1),
+                        child: Text(l10n.welcomeNext),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _saving ? null : () => _start(addDebt: true),
-                child: Text(l10n.setupAddFirstDebt),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton(
-                onPressed: _saving ? null : () => _start(addDebt: false),
-                child: Text(l10n.setupLater),
-              ),
-            ],
+            )
+          : null,
+    );
+  }
+
+  void _goTo(int page) {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pages.jumpToPage(page);
+    } else {
+      _pages.animateToPage(
+        page,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  Widget _setup(BuildContext context, String currency, String locale) {
+    final l10n = context.l10n;
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 120),
+            child: const Center(
+              child: Illustration(painter: SetupArt(), aspectRatio: 2.5),
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          Text(l10n.setupTitle, style: displayStyle(30)),
+          const SizedBox(height: 16),
+          CurrencyPicker(
+            value: currency,
+            onChanged: (code) => setState(() => _currency = code),
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.onboardingBudgetQuestion),
+          const SizedBox(height: 8),
+          TextFormField(
+            key: const ValueKey('budget'),
+            controller: _budget,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: l10n.monthlyBudget,
+              border: const OutlineInputBorder(),
+            ),
+            validator: (v) => _budgetProblem(v ?? '', currency, locale),
+          ),
+          const SizedBox(height: 16),
+          OutlinedCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.setupRemindMe),
+                  subtitle: Text(l10n.setupRemindMeHint),
+                  value: _remind,
+                  onChanged: (on) => setState(() => _remind = on),
+                ),
+                DropdownButtonFormField<int>(
+                  isExpanded: true,
+                  initialValue: _day,
+                  decoration: InputDecoration(labelText: l10n.remindersDay),
+                  items: [
+                    for (var day = 1; day <= 28; day++)
+                      DropdownMenuItem(value: day, child: Text(ordinal(day))),
+                    DropdownMenuItem(
+                      value: kLastDay,
+                      child: Text(l10n.remindersLastDay),
+                    ),
+                  ],
+                  onChanged: _remind
+                      ? (day) => setState(() => _day = day ?? 28)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _saving ? null : () => _start(addDebt: true),
+            child: Text(l10n.setupAddFirstDebt),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: _saving ? null : () => _start(addDebt: false),
+            child: Text(l10n.setupLater),
+          ),
+        ],
       ),
     );
   }
@@ -209,5 +289,47 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     // The app-level messenger outlives this screen.
     if (refused) messenger.showSnackBar(SnackBar(content: Text(denied)));
     if (mounted) setState(() => _saving = false);
+  }
+}
+
+/// One welcome page: a picture on a hi-vis panel, a headline and a line.
+class _WelcomePage extends StatelessWidget {
+  const _WelcomePage({
+    required this.painter,
+    required this.title,
+    required this.body,
+  });
+
+  final CustomPainter painter;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: c.hiVis,
+            border: Border.all(color: c.onHiVis, width: 2),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            // Never so tall on a wide screen that it pushes the words away.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: Center(child: Illustration(painter: painter)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(title, style: displayStyle(42, color: c.ink)),
+        const SizedBox(height: 14),
+        Text(body, style: TextStyle(fontSize: 17, height: 1.4, color: c.ink2)),
+      ],
+    );
   }
 }

@@ -149,4 +149,40 @@ void main() {
     final note = tester.getRect(find.text('£1,000.00'));
     expect(card.right - note.right, lessThan(20)); // 14px padding + border
   });
+
+  testWidgets('plots points, squares, a today line and restart ticks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(
+        const BalanceLineChart(
+          semanticLabel: 'Progress',
+          todayX: 2.5,
+          markers: [(x: 2, label: 'Switched to Snowball')],
+          lines: [
+            ChartLine(
+              points: [(0, 1000), (1, 900), (2, 800)],
+              color: Colors.blue,
+              squares: true,
+            ),
+            ChartLine(
+              points: [(2, 800), (4, 0)],
+              color: Colors.black,
+              style: LineStyle.dashed,
+            ),
+          ],
+        ),
+      ),
+    );
+    final data = tester.widget<LineChart>(find.byType(LineChart)).data;
+    expect(data.maxX, 4);
+    // The first line is painted last, on top.
+    expect(data.lineBarsData.last.spots.map((s) => s.x), [0, 1, 2]);
+    expect(data.lineBarsData.last.dotData.show, isTrue);
+    expect(data.lineBarsData.first.dotData.show, isFalse);
+    expect(
+      data.extraLinesData.verticalLines.map((l) => l.x),
+      containsAll([2.5, 2.0]),
+    );
+  });
 }

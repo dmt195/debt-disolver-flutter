@@ -2,9 +2,9 @@ import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
-import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
+import 'package:debt_destroyer/features/debts/presentation/debt_type_tiles.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/progress/presentation/progress_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -238,23 +238,10 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           field(_Field.name, l10n.fieldName),
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: DropdownButtonFormField<DebtType>(
-              key: const ValueKey('type'),
-              isExpanded: true,
-              initialValue: _type,
-              decoration: InputDecoration(
-                labelText: l10n.fieldType,
-                border: const OutlineInputBorder(),
-              ),
-              items: [
-                for (final t in DebtType.values)
-                  DropdownMenuItem(
-                    value: t,
-                    child: Text(debtTypeLabel(l10n, t)),
-                  ),
-              ],
+            child: DebtTypeTiles(
+              selected: _type,
               onChanged: (t) => setState(() {
-                _type = t!;
+                _type = t;
                 // Suggest the usual choice for new debts only, never
                 // overriding a saved one.
                 if (widget.existing == null) {

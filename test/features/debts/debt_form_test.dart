@@ -53,10 +53,20 @@ void main() {
   }
 
   Future<void> chooseType(WidgetTester tester, String label) async {
-    await tester.tap(find.byKey(const ValueKey('type')));
+    final tile = find.ancestor(
+      of: find.text(label),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey<String> &&
+            (w.key! as ValueKey<String>).value.startsWith('type-'),
+      ),
+    );
+    await tester.ensureVisible(tile);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(label).last);
+    await tester.tap(tile);
     await tester.pumpAndSettle();
+    // Back to the top, where the other fields start.
+    await tester.scrollUntilVisible(field('Name'), -100, scrollable: formList);
   }
 
   testWidgets('adds a debt with exactly the amounts typed', (tester) async {
@@ -124,8 +134,6 @@ void main() {
 
   testWidgets('offers every kind of debt', (tester) async {
     await pumpApp(tester, location: Routes.newDebt);
-    await tester.tap(find.byKey(const ValueKey('type')));
-    await tester.pumpAndSettle();
     for (final label in [
       'Credit card',
       'Store card or buy now, pay later',
@@ -244,6 +252,12 @@ void main() {
   });
 
   Future<void> turnOnPromo(WidgetTester tester, String rate) async {
+    // The form is longer than the screen: build the switch before tapping.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('promo')),
+      100,
+      scrollable: formList,
+    );
     await tester.ensureVisible(find.byKey(const ValueKey('promo')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('promo')));
@@ -428,6 +442,12 @@ void main() {
       ..physicalSize = const Size(390 * 3, 844 * 3);
     addTearDown(tester.view.reset);
     await pumpApp(tester, location: Routes.newDebt);
+    // The form is longer than the screen: build the switch before tapping.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('promo')),
+      100,
+      scrollable: formList,
+    );
     await tester.ensureVisible(find.byKey(const ValueKey('promo')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('promo')));
@@ -457,5 +477,59 @@ void main() {
   testWidgets('a new debt has nothing to mark as paid off', (tester) async {
     await pumpApp(tester, location: Routes.newDebt);
     expect(find.text('Mark as paid off'), findsNothing);
+  });
+
+  group('kind-of-debt tiles', () {
+    testWidgets('one tile per kind, the chosen one selected', (tester) async {
+      final handle = tester.ensureSemantics();
+      await pumpApp(tester, location: Routes.newDebt);
+      for (final t in DebtType.values) {
+        expect(find.byKey(ValueKey('type-${t.name}')), findsOneWidget);
+      }
+      Object node(DebtType t) =>
+          tester.getSemantics(find.byKey(ValueKey('type-${t.name}')));
+      expect(node(DebtType.creditCard), isSemantics(isSelected: true));
+      expect(node(DebtType.loan), isSemantics(isSelected: false));
+      await chooseType(tester, 'Loan');
+      expect(node(DebtType.loan), isSemantics(isSelected: true));
+      expect(node(DebtType.creditCard), isSemantics(isSelected: false));
+      handle.dispose();
+    });
+
+    testWidgets('four across on a phone, at least 48 tall', (tester) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = const Size(390 * 3, 844 * 3);
+      addTearDown(tester.view.reset);
+      await pumpApp(tester, location: Routes.newDebt);
+      Offset at(DebtType t) =>
+          tester.getTopLeft(find.byKey(ValueKey('type-${t.name}')));
+      expect(at(DebtType.overdraft).dy, at(DebtType.creditCard).dy);
+      expect(
+        at(DebtType.studentLoan).dy,
+        greaterThan(at(DebtType.creditCard).dy),
+      );
+      for (final t in DebtType.values) {
+        expect(
+          tester.getSize(find.byKey(ValueKey('type-${t.name}'))).height,
+          greaterThanOrEqualTo(48),
+        );
+      }
+    });
+
+    testWidgets('two across when narrow, and large text fits', (tester) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = const Size(340 * 3, 844 * 3);
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, location: Routes.newDebt);
+      expect(tester.takeException(), isNull);
+      Offset at(DebtType t) =>
+          tester.getTopLeft(find.byKey(ValueKey('type-${t.name}')));
+      expect(at(DebtType.storeCard).dy, at(DebtType.creditCard).dy);
+      expect(at(DebtType.loan).dy, greaterThan(at(DebtType.creditCard).dy));
+    });
   });
 }

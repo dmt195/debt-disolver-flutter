@@ -278,9 +278,7 @@ void main() {
       expect(tester.widget<BrickWall>(find.byType(BrickWall)).percent, 50);
     });
 
-    testWidgets('steps aside in a narrow hero', (
-      tester,
-    ) async {
+    testWidgets('steps aside in a narrow hero', (tester) async {
       await phone(tester, 340);
       await pumpApp(tester, location: Routes.home, debts: debts);
       expect(find.byType(BrickWall), findsNothing);

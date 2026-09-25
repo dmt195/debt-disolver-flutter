@@ -24,6 +24,7 @@
   "homeFollowing": "{name} ▾",
   "@homeFollowing": {"placeholders": {"name": {"type": "String"}}},
   "followSheetTitle": "Plan to follow",
+  "followThisPlan": "Follow this plan",
   "followConfirm": "Your history stays. We'll project from today with this plan.",
   "followConfirmButton": "Follow {name}",
   "@followConfirmButton": {"placeholders": {"name": {"type": "String"}}},

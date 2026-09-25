@@ -2,6 +2,7 @@ import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
+import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -584,5 +585,26 @@ void main() {
       chart.endLabel,
       DateFormat.yMMM('en_GB').format(DateTime(2026, 9 + lastMonth)),
     );
+  });
+
+  testWidgets('the followed plan is marked Following', (tester) async {
+    useTallScreen(tester);
+    final app = await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a')],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plans,
+    );
+    Finder followingOn(StrategyId id) => find.descendant(
+      of: find.byKey(ValueKey(id)),
+      matching: find.text('Following'),
+    );
+    expect(followingOn(StrategyId.avalanche), findsOneWidget);
+    await app.container
+        .read(settingsControllerProvider.notifier)
+        .followStrategy(StrategyId.snowball);
+    await tester.pumpAndSettle();
+    expect(followingOn(StrategyId.avalanche), findsNothing);
+    expect(followingOn(StrategyId.snowball), findsOneWidget);
   });
 }

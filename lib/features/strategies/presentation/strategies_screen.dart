@@ -64,7 +64,15 @@ class StrategiesScreen extends ConsumerWidget {
                 ),
               ),
               _SaveAsScenarioButton(active: scenario),
-              ..._strategySections(context, value, scenario.parameters),
+              ..._strategySections(
+                context,
+                value,
+                scenario.parameters,
+                followed: ref
+                    .watch(settingsControllerProvider)
+                    .value
+                    ?.followedStrategy,
+              ),
             ],
           ),
         (AsyncError(), _) => _Message(
@@ -105,10 +113,13 @@ class StrategiesScreen extends ConsumerWidget {
 List<Widget> _strategySections(
   BuildContext context,
   PlanSet plans,
-  StrategyParameters parameters,
-) {
+  StrategyParameters parameters, {
+  StrategyId? followed,
+}) {
   final l10n = context.l10n;
   final cheapest = bestPayOffMethod(plans.ranked)?.strategyId;
+  // Until the user chooses, Home follows the cheapest.
+  final following = followed ?? cheapest;
   final payOff = [
     for (final r in plans.ranked)
       if (!isBorrowingAlternative(r.strategyId)) r,
@@ -129,6 +140,7 @@ List<Widget> _strategySections(
       baseline: plans.baseline,
       parameters: parameters,
       cheapest: result.strategyId == cheapest,
+      following: result.strategyId == following,
       rank: rank,
       raceIndex: race.indexOf(result.strategyId),
       maxInterest: maxInterest,
@@ -415,6 +427,7 @@ class _StrategyCard extends ConsumerWidget {
     required this.parameters,
     required this.cheapest,
     required this.maxInterest,
+    this.following = false,
     this.rank,
     this.raceIndex = -1,
   });
@@ -423,6 +436,9 @@ class _StrategyCard extends ConsumerWidget {
   final PayoffResult baseline;
   final StrategyParameters parameters;
   final bool cheapest;
+
+  /// The plan Home follows.
+  final bool following;
 
   /// Position among the ways to pay off (1 first); null for alternatives.
   final int? rank;
@@ -506,12 +522,38 @@ class _StrategyCard extends ConsumerWidget {
                         ],
                       ),
                     ),
-                  if (cheapest) ...[
-                    const SizedBox(width: 8),
-                    const CheapestBadge(),
-                  ],
                 ],
               ),
+              if (cheapest || following)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 2),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      if (cheapest) const CheapestBadge(),
+                      if (following)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: c.ink,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            l10n.following,
+                            style: TextStyle(
+                              color: c.ground,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               if (strategyNickname(l10n, id) case final nickname?)
                 Text(
                   nickname,

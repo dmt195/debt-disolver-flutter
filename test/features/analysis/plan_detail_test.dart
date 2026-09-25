@@ -5,6 +5,7 @@ import 'package:debt_destroyer/core/charts/segment_bar.dart';
 import 'package:debt_destroyer/core/charts/stacked_balance_chart.dart';
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
 import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
+import 'package:debt_destroyer/features/progress/domain/progress.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
@@ -141,6 +142,7 @@ void main() {
   });
 
   testWidgets('a legend chip hides a debt from the chart', (tester) async {
+    useTallScreen(tester);
     await pumpApp(
       tester,
       debts: [store, amex],
@@ -349,5 +351,60 @@ void main() {
           .first,
     );
     expect(find.textContaining('Amex (moved from Store)'), findsWidgets);
+  });
+
+  group('follow this plan', () {
+    Future<AppHarness> openPlan(WidgetTester tester, StrategyId id) async {
+      useTallScreen(tester);
+      return await pumpApp(
+        tester,
+        debts: [testDebt(id: 'a', name: 'Visa')],
+        settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+        location: Routes.plan(id),
+      );
+    }
+
+    testWidgets('following another plan asks, then records the switch', (
+      tester,
+    ) async {
+      final app = await openPlan(tester, StrategyId.snowball);
+      await tester.tap(find.text('Follow this plan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Follow Smallest balance first'));
+      await tester.pumpAndSettle();
+      expect(find.text('Follow this plan'), findsNothing);
+      final history = await app.progress.load('GBP');
+      expect(history.starts.last.reason, StartReason.planSwitched);
+    });
+
+    testWidgets('not offered for the plan already followed', (tester) async {
+      await openPlan(tester, StrategyId.avalanche);
+      expect(find.text('Follow this plan'), findsNothing);
+    });
+
+    testWidgets('not offered for minimums only', (tester) async {
+      await openPlan(tester, StrategyId.minimumsOnly);
+      expect(find.text('Follow this plan'), findsNothing);
+    });
+
+    testWidgets('not offered while a saved scenario is chosen', (tester) async {
+      final app = await pumpApp(
+        tester,
+        debts: [testDebt(id: 'a', name: 'Visa')],
+        scenarios: [
+          Scenario(
+            id: 's1',
+            name: 'Bonus',
+            monthlyBudget: const Money(50000, 'GBP'),
+            parameters: const StrategyParameters(),
+            createdAt: DateTime(2026, 9),
+          ),
+        ],
+        location: Routes.plan(StrategyId.snowball),
+      );
+      app.container.read(selectedScenarioIdProvider.notifier).select('s1');
+      await tester.pumpAndSettle();
+      expect(find.text('Follow this plan'), findsNothing);
+    });
   });
 }

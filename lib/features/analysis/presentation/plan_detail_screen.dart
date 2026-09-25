@@ -17,9 +17,12 @@ import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_change_lines.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_schedule_table.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
+import 'package:debt_destroyer/features/progress/presentation/follow_sheet.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
+import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/domain/extra_payment.dart';
 import 'package:debt_destroyer/features/strategies/domain/savings.dart';
+import 'package:debt_destroyer/features/strategies/domain/strategy_groups.dart';
 import 'package:debt_destroyer/features/strategies/presentation/current_plans.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
@@ -161,7 +164,15 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
-          _Hero(plan: plan, baseline: baseline, now: now, locale: locale),
+          _Hero(
+            plan: plan,
+            baseline: baseline,
+            now: now,
+            locale: locale,
+            onFollow: _canFollow(activeScenario)
+                ? () => showFollowConfirm(context, widget.strategyId)
+                : null,
+          ),
           const SizedBox(height: 14),
           _chartCard(context, plan, debts, now, locale),
           const SizedBox(height: 14),
@@ -208,6 +219,19 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
         ],
       ),
     );
+  }
+
+  /// Follow this plan is offered for a way to pay off that isn't already
+  /// followed, on Current settings (spec §4.6).
+  bool _canFollow(ActiveScenario? active) {
+    if (widget.strategyId == StrategyId.minimumsOnly) return false;
+    if (!widget.current && active?.id != null) return false;
+    final settings = ref.watch(settingsControllerProvider).value;
+    final plans = ref.watch(currentPlansProvider).value;
+    final followed =
+        settings?.followedStrategy ??
+        (plans == null ? null : bestPayOffMethod(plans.ranked)?.strategyId);
+    return followed != null && followed != widget.strategyId;
   }
 
   Widget _shareMenu(BuildContext context, ScheduleTable table) {
@@ -325,12 +349,16 @@ class _Hero extends StatelessWidget {
     required this.baseline,
     required this.now,
     required this.locale,
+    this.onFollow,
   });
 
   final PayoffPlan plan;
   final PayoffResult? baseline;
   final DateTime now;
   final String locale;
+
+  /// Follow this plan, when it can be followed.
+  final VoidCallback? onFollow;
 
   @override
   Widget build(BuildContext context) {
@@ -383,6 +411,17 @@ class _Hero extends StatelessWidget {
               ],
             ],
           ),
+          if (onFollow != null) ...[
+            const SizedBox(height: 10),
+            FilledButton(
+              onPressed: onFollow,
+              style: FilledButton.styleFrom(
+                backgroundColor: c.onHiVis,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(l10n.followThisPlan),
+            ),
+          ],
         ],
       ),
     );

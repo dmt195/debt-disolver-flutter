@@ -252,7 +252,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('baseline')));
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.plan(StrategyId.minimumsOnly));
-    expect(find.text('Debt-free in 5 years 2 months'), findsOneWidget);
+    // 5 years 2 months from 24 Sep 2026.
+    expect(find.text('November 2031'), findsOneWidget);
+    expect(find.text('62'), findsOneWidget);
   });
 
   testWidgets('the slider pays more each month', (tester) async {

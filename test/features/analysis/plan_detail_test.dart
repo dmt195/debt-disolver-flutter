@@ -1,13 +1,14 @@
 import 'dart:io';
 
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/charts/segment_bar.dart';
+import 'package:debt_destroyer/core/charts/stacked_balance_chart.dart';
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
 import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -91,32 +92,67 @@ void main() {
   );
 
   testWidgets('summarises when and how the debts are cleared', (tester) async {
+    useTallScreen(tester);
     await open(tester);
     // The fixed test clock is 24 Sep 2026; four payments later is January.
-    expect(find.text('Debt-free by January 2027'), findsOneWidget);
-    expect(find.text('Debt-free in 4 months'), findsOneWidget);
-    expect(find.text('£1,000.00'), findsOneWidget); // total paid
+    expect(find.text('Debt-free by'), findsOneWidget);
+    expect(find.text('January 2027'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget); // months
     expect(find.text('£0.00'), findsOneWidget); // total interest
-    expect(find.text('£250.00'), findsOneWidget); // this month
-    expect(find.text('Payoff order'), findsOneWidget);
+    expect(find.text('Where your £1,000.00 goes'), findsOneWidget);
+    expect(find.text('Milestones'), findsOneWidget);
+    expect(find.text('Visa cleared'), findsOneWidget);
+    expect(find.text('Debt free'), findsOneWidget);
     expect(find.text('The avalanche method'), findsOneWidget);
+    expect(find.byType(TabBar), findsNothing);
   });
 
   testWidgets('charts the balance over time', (tester) async {
     await open(tester);
-    await tester.tap(find.text('Chart'));
-    await tester.pumpAndSettle();
-    expect(find.byType(LineChart), findsOneWidget);
-    expect(find.text('Balance over time'), findsOneWidget);
+    expect(find.byType(StackedBalanceChart), findsOneWidget);
+    expect(find.text('What you owe, month by month'), findsOneWidget);
   });
 
   testWidgets('shows the month-by-month schedule', (tester) async {
+    useTallScreen(tester);
     await open(tester);
-    await tester.tap(find.text('Schedule'));
-    await tester.pumpAndSettle();
+    expect(find.text('Full schedule'), findsOneWidget);
     expect(find.text('Visa payment'), findsOneWidget);
+    await tester.tap(find.text('Show all 4 months'));
+    await tester.pumpAndSettle();
     expect(find.text('Total balance'), findsOneWidget);
     expect(find.text('£750.00'), findsNWidgets(2)); // month 1 balance + total
+    expect(find.text('Show all 4 months'), findsNothing);
+  });
+
+  testWidgets('says where the money goes, with interest hatched', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    await pumpApp(
+      tester,
+      debts: [testDebt(id: 'a', name: 'Visa')], // 1,000.00 at 19.9%
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plan(StrategyId.avalanche),
+    );
+    final bar = tester.widget<SegmentBar>(find.byType(SegmentBar));
+    expect(bar.segments.where((s) => s.hazard), hasLength(1));
+    expect(find.textContaining('Interest £'), findsOneWidget);
+  });
+
+  testWidgets('a legend chip hides a debt from the chart', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [store, amex],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plan(StrategyId.avalanche),
+    );
+    await tester.tap(find.widgetWithText(FilterChip, 'Store'));
+    await tester.pumpAndSettle();
+    final chart = tester.widget<StackedBalanceChart>(
+      find.byType(StackedBalanceChart),
+    );
+    expect(chart.hidden, isNotEmpty);
   });
 
   testWidgets('shares the schedule as CSV or XLSX', (tester) async {
@@ -163,7 +199,7 @@ void main() {
       find.text("This plan isn't available for your current debts and budget."),
       findsOneWidget,
     );
-    expect(find.byType(TabBar), findsNothing);
+    expect(find.byType(StackedBalanceChart), findsNothing);
   });
 
   testWidgets('explains what a balance transfer changes', (tester) async {
@@ -300,8 +336,18 @@ void main() {
           .first,
     );
     expect(find.text(move), findsOneWidget);
-    await tester.tap(find.text('Schedule'));
-    await tester.pumpAndSettle();
+    // The schedule's header names the moved portion (payment and balance).
+    // Its columns are off to the side, so scroll to the table itself.
+    await tester.scrollUntilVisible(
+      find.text('Full schedule'),
+      100,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(find.textContaining('Amex (moved from Store)'), findsWidgets);
   });
 }

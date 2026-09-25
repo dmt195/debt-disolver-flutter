@@ -3,6 +3,7 @@ import 'package:debt_destroyer/features/settings/presentation/settings_controlle
 import 'package:debt_destroyer/features/strategies/domain/rank_results.dart';
 import 'package:debt_destroyer/features/strategies/domain/strategy_groups.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -50,13 +51,41 @@ class HomeNeverClears extends HomePlan {
   const HomeNeverClears();
 }
 
-/// The plan Home follows: until the user can choose one (Plan 8), the
+/// The plan the user follows doesn't clear their debts right now (spec
+/// §6.2): Home says so rather than switching silently.
+class HomeFollowedUnavailable extends HomePlan {
+  const HomeFollowedUnavailable(this.strategyId, this.result);
+
+  final StrategyId strategyId;
+  final PayoffResult result;
+}
+
+/// Every debt is cleared.
+class HomeAllCleared extends HomePlan {
+  const HomeAllCleared();
+}
+
+/// The plan Home follows: the one the user chose, or until then the
 /// cheapest way to pay off.
 @riverpod
 Future<HomePlan> homePlan(Ref ref) async {
   final debts = await ref.watch(debtsProvider.future);
-  if (debts.isEmpty) return const HomeNoDebts();
+  if (debts.isEmpty) {
+    final cleared = await ref.watch(clearedDebtsProvider.future);
+    return cleared.isEmpty ? const HomeNoDebts() : const HomeAllCleared();
+  }
   final set = await ref.watch(currentPlansProvider.future);
+  final followed = ref.watch(
+    settingsControllerProvider.select((s) => s.value?.followedStrategy),
+  );
+  if (followed != null) {
+    final result = followed == StrategyId.minimumsOnly
+        ? set.baseline
+        : set.ranked.firstWhere((r) => r.strategyId == followed);
+    return result is Feasible
+        ? HomeFollowing(result, set.baseline)
+        : HomeFollowedUnavailable(followed, result);
+  }
   if (bestPayOffMethod(set.ranked) case final best?) {
     return HomeFollowing(best, set.baseline);
   }

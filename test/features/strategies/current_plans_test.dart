@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/app/dependencies.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -65,5 +66,40 @@ void main() {
         .read(settingsControllerProvider.notifier)
         .setMonthlyBudget(1000);
     expect(await settled(), isA<HomeShortfall>());
+  });
+
+  test('follows the chosen plan, not the cheapest', () async {
+    await container
+        .read(debtActionsProvider.notifier)
+        .add(testDebt(id: '', name: 'Big', aprBps: 2990, balance: 300000));
+    await container
+        .read(debtActionsProvider.notifier)
+        .add(testDebt(id: '', name: 'Small', aprBps: 990, balance: 50000));
+    await container
+        .read(settingsControllerProvider.notifier)
+        .followStrategy(StrategyId.snowball);
+    final home = await settled() as HomeFollowing;
+    expect(home.result.strategyId, StrategyId.snowball);
+  });
+
+  test('a chosen plan that no longer works is unavailable', () async {
+    await container.read(debtActionsProvider.notifier).add(interestFree());
+    await container
+        .read(settingsControllerProvider.notifier)
+        .followStrategy(StrategyId.balanceTransfer);
+    final home = await settled() as HomeFollowedUnavailable;
+    expect(home.strategyId, StrategyId.balanceTransfer);
+  });
+
+  test('with every debt cleared, Home says so', () async {
+    await container.read(debtActionsProvider.notifier).add(interestFree());
+    final id = (await container.read(debtsProvider.future)).single.id;
+    await container
+        .read(progressRepositoryProvider)
+        .saveCheckIn(
+          at: DateTime(2026, 9, 24),
+          balances: {id: const Money(0, 'GBP')},
+        );
+    expect(await settled(), isA<HomeAllCleared>());
   });
 }

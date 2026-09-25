@@ -14,6 +14,10 @@ abstract class AppSettings with _$AppSettings {
     required Money monthlyBudget,
     required StrategyParameters strategyParameters,
     required bool onboardingComplete,
+
+    /// The plan the user follows; null until the first starting point picks
+    /// the cheapest (spec §6.2).
+    StrategyId? followedStrategy,
   }) = _AppSettings;
 
   factory AppSettings.defaults(String currencyCode) => AppSettings(

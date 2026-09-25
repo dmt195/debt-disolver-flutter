@@ -169,4 +169,15 @@ void main() {
     expect((await settings()).onboardingComplete, isTrue);
     expect((await reloaded()).onboardingComplete, isTrue);
   });
+
+  test('followStrategy saves the plan to follow', () async {
+    await container
+        .read(settingsControllerProvider.notifier)
+        .followStrategy(StrategyId.snowball);
+    expect(
+      (await container.read(settingsControllerProvider.future))
+          .followedStrategy,
+      StrategyId.snowball,
+    );
+  });
 }

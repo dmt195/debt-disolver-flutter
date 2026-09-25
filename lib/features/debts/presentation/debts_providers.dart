@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/dependencies.dart';
+import 'package:debt_destroyer/features/debts/domain/cleared_debt.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -20,6 +21,16 @@ Stream<List<Debt>> debts(Ref ref) {
   if (error != null) return Stream.error(error);
   if (currencyCode == null) return const Stream.empty();
   return ref.watch(debtRepositoryProvider).watchAll(currencyCode);
+}
+
+/// Debts paid off, most recently cleared first (spec §6.6).
+@Riverpod(keepAlive: true)
+Stream<List<ClearedDebt>> clearedDebts(Ref ref) {
+  final loaded = ref.watch(
+    settingsControllerProvider.select((s) => s.hasValue),
+  );
+  if (!loaded) return const Stream.empty();
+  return ref.watch(debtRepositoryProvider).watchCleared();
 }
 
 @freezed

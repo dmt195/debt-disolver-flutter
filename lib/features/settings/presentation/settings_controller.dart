@@ -86,6 +86,11 @@ class SettingsController extends _$SettingsController {
     });
   }
 
+  /// Follows [id]: Home, check-ins and reminders use its plan.
+  Future<void> followStrategy(StrategyId id) => _serialised(() async {
+    await _save((await future).copyWith(followedStrategy: id));
+  });
+
   Future<void> completeOnboarding() => _serialised(() async {
     await _save((await future).copyWith(onboardingComplete: true));
   });

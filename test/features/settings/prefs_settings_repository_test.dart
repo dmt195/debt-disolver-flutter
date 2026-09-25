@@ -119,4 +119,17 @@ void main() {
       expect(s.strategyParameters.transferCreditLimit, isNull);
     });
   });
+
+  test('remembers the followed plan; an unknown one reads as none', () async {
+    final repo = repositoryWith({});
+    await repo.save(
+      AppSettings.defaults('GBP')
+          .copyWith(followedStrategy: StrategyId.snowball),
+    );
+    expect((await repo.load()).followedStrategy, StrategyId.snowball);
+    final odd = repositoryWith(
+      storedSettings({SettingsKeys.followedStrategy: 'nonsense'}),
+    );
+    expect((await odd.load()).followedStrategy, isNull);
+  });
 }

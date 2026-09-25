@@ -22,6 +22,7 @@ abstract final class SettingsKeys {
   static const revertAprBps = 'revertAprBps';
   static const transferCreditLimitMinor = 'transferCreditLimitMinor';
   static const onboardingComplete = 'onboardingComplete';
+  static const followedStrategy = 'followedStrategy';
 }
 
 class PrefsSettingsRepository implements SettingsRepository {
@@ -79,6 +80,8 @@ class PrefsSettingsRepository implements SettingsRepository {
           ? parameters
           : defaults.strategyParameters,
       onboardingComplete: field<bool>(SettingsKeys.onboardingComplete) ?? false,
+      followedStrategy: StrategyId.values
+          .asNameMap()[field<String>(SettingsKeys.followedStrategy)],
     );
   }
 
@@ -98,6 +101,7 @@ class PrefsSettingsRepository implements SettingsRepository {
         SettingsKeys.revertAprBps: p.revertAprBps,
         SettingsKeys.transferCreditLimitMinor: p.transferCreditLimit?.minor,
         SettingsKeys.onboardingComplete: settings.onboardingComplete,
+        SettingsKeys.followedStrategy: settings.followedStrategy?.name,
       }),
     );
   }

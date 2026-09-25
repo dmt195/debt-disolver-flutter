@@ -119,14 +119,19 @@ class PaymentsRollOn extends CustomPainter {
 }
 
 /// Setup: a hard hat beside a small wall, ready to start.
-class SetupArt extends CustomPainter {
-  const SetupArt();
+/// It stands on the page's ground, so it draws in the theme's [ink].
+class SetupArt extends InkPainter {
+  const SetupArt({super.ink});
 
   static const design = Size(200, 80);
 
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, design) == 0) return;
+    withInk(ink, () => _paint(canvas, size));
+  }
+
+  void _paint(Canvas canvas, Size size) {
     fitDesign(canvas, size, design);
     const ground = 72.0;
     drawGround(canvas, design.width, ground);
@@ -168,5 +173,5 @@ class SetupArt extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(SetupArt oldDelegate) => false;
+  bool shouldRepaint(SetupArt oldDelegate) => oldDelegate.ink != ink;
 }

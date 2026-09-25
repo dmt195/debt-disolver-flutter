@@ -38,6 +38,7 @@ class DebtFreeScene extends StatelessWidget {
     raise: Curves.easeOutBack.transform(progress.clamp(0, 1)).clamp(0, 1.05),
     maxHeight: 190,
     flag: kWhite,
+    ink: kInk,
   );
 }
 

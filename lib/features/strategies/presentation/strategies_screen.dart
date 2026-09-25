@@ -44,9 +44,20 @@ class StrategiesScreen extends ConsumerWidget {
       body = _Message(l10n.strategiesEmpty, art: const EmptyLot());
     } else {
       body = switch ((plans, active)) {
+        (AsyncError(), _) => _Message(
+          l10n.plansError,
+          // Plans depend on settings, which may be what failed.
+          onRetry: () => ref
+            ..invalidate(settingsControllerProvider)
+            ..invalidate(activeScenarioProvider)
+            ..invalidate(plansProvider),
+        ),
+        // While recalculating (the slider, a scenario switch) keep showing
+        // the last plans rather than a spinner, so charts and the slider
+        // stay put.
         (
-          AsyncData(:final value),
-          AsyncData(value: final ActiveScenario scenario),
+          AsyncValue(value: final value?),
+          AsyncValue(value: final ActiveScenario scenario),
         ) =>
           ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -76,14 +87,6 @@ class StrategiesScreen extends ConsumerWidget {
               ),
             ],
           ),
-        (AsyncError(), _) => _Message(
-          l10n.plansError,
-          // Plans depend on settings, which may be what failed.
-          onRetry: () => ref
-            ..invalidate(settingsControllerProvider)
-            ..invalidate(activeScenarioProvider)
-            ..invalidate(plansProvider),
-        ),
         _ => const Center(child: CircularProgressIndicator()),
       };
     }

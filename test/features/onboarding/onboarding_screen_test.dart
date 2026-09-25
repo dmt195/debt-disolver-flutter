@@ -1,4 +1,6 @@
+import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/illustrations/illustration.dart';
+import 'package:debt_destroyer/core/illustrations/welcome_art.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
@@ -56,10 +58,6 @@ void main() {
   group('welcome pages', () {
     testWidgets('open on the first, with its picture and dots', (tester) async {
       await welcome(tester);
-      debugPrint(
-        [for (final t in tester.widgetList<Text>(find.byType(Text))) t.data]
-            .join(' | '),
-      );
       expect(find.text('Knock down your debt, brick by brick'), findsOneWidget);
       expect(find.textContaining('compares ways'), findsOneWidget);
       expect(find.byType(Illustration), findsOneWidget);
@@ -116,6 +114,16 @@ void main() {
       expect(find.text('GBP (£)'), findsOneWidget);
       expect(find.text('300'), findsOneWidget);
       expect(find.byType(Illustration), findsOneWidget);
+    });
+
+    testWidgets('the setup art draws in the dark ink in dark mode', (
+      tester,
+    ) async {
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await open(tester);
+      final art = tester.widget<Illustration>(find.byType(Illustration));
+      expect((art.painter as SetupArt).ink, DestroyerColors.dark.ink);
     });
 
     testWidgets('with reduced motion, Skip lands at once', (tester) async {

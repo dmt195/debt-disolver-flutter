@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/illustrations/brick_wall.dart';
 import 'package:debt_destroyer/core/illustrations/illustration.dart';
 import 'package:debt_destroyer/core/illustrations/kit.dart';
@@ -23,15 +24,20 @@ class EmptyLot extends StatelessWidget {
   const EmptyLot({super.key});
 
   @override
-  Widget build(BuildContext context) => _scene(const _EmptyLotPainter());
+  Widget build(BuildContext context) =>
+      _scene(_EmptyLotPainter(ink: context.colors.ink));
 }
 
-class _EmptyLotPainter extends CustomPainter {
-  const _EmptyLotPainter();
+class _EmptyLotPainter extends InkPainter {
+  const _EmptyLotPainter({super.ink});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
+    withInk(ink, () => _paint(canvas, size));
+  }
+
+  void _paint(Canvas canvas, Size size) {
     fitDesign(canvas, size, _design);
     drawGround(canvas, _design.width, _ground);
     drawBrick(canvas, const Rect.fromLTWH(40, _ground - 12, 22, 11));
@@ -41,7 +47,7 @@ class _EmptyLotPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_EmptyLotPainter oldDelegate) => false;
+  bool shouldRepaint(_EmptyLotPainter oldDelegate) => oldDelegate.ink != ink;
 }
 
 /// A traffic cone [height] tall standing at [base].
@@ -86,15 +92,20 @@ class Signpost extends StatelessWidget {
   const Signpost({super.key});
 
   @override
-  Widget build(BuildContext context) => _scene(const _SignpostPainter());
+  Widget build(BuildContext context) =>
+      _scene(_SignpostPainter(ink: context.colors.ink));
 }
 
-class _SignpostPainter extends CustomPainter {
-  const _SignpostPainter();
+class _SignpostPainter extends InkPainter {
+  const _SignpostPainter({super.ink});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
+    withInk(ink, () => _paint(canvas, size));
+  }
+
+  void _paint(Canvas canvas, Size size) {
     fitDesign(canvas, size, _design);
     drawGround(canvas, _design.width, _ground);
     canvas.drawLine(
@@ -121,7 +132,7 @@ class _SignpostPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SignpostPainter oldDelegate) => false;
+  bool shouldRepaint(_SignpostPainter oldDelegate) => oldDelegate.ink != ink;
 }
 
 /// The check-in result: the wall losing its paid-off bricks as [progress]
@@ -137,15 +148,15 @@ class ClimbWall extends StatelessWidget {
     constraints: const BoxConstraints(maxHeight: 120),
     child: Center(
       child: Illustration(
-        painter: _ClimbWallPainter(percent, progress),
+        painter: _ClimbWallPainter(percent, progress, ink: context.colors.ink),
         aspectRatio: 1.7,
       ),
     ),
   );
 }
 
-class _ClimbWallPainter extends CustomPainter {
-  const _ClimbWallPainter(this.percent, this.progress);
+class _ClimbWallPainter extends InkPainter {
+  const _ClimbWallPainter(this.percent, this.progress, {super.ink});
 
   final int percent;
   final double progress;
@@ -155,20 +166,32 @@ class _ClimbWallPainter extends CustomPainter {
     const design = Size(170, 100);
     if (designScale(size, design) == 0) return;
     final t = progress.clamp(0.0, 1.0);
+    final now = (percent.clamp(0, 100) * t).round();
     canvas.save();
-    BrickWallPainter(
-      percent: (percent.clamp(0, 100) * t).round(),
-      progress: t,
-    ).paint(canvas, size);
+    BrickWallPainter(percent: now, progress: t, ink: ink).paint(canvas, size);
     canvas.restore();
     fitDesign(canvas, size, design);
-    // The wall's top row sits at y = 31.
-    drawFlag(canvas, const Offset(14, 31), 28, raise: t);
+    withInk(ink, () => drawFlag(canvas, climbFlagBase(now), 28, raise: t));
   }
 
   @override
   bool shouldRepaint(_ClimbWallPainter oldDelegate) =>
-      oldDelegate.percent != percent || oldDelegate.progress != progress;
+      oldDelegate.percent != percent ||
+      oldDelegate.progress != progress ||
+      oldDelegate.ink != ink;
+}
+
+/// Where the check-in flag stands with [percent] paid: on the highest brick
+/// left at the wall's left end, or on the ground once that column is gone.
+Offset climbFlagBase(int percent) {
+  final gone = knockedOut(percent).toSet();
+  for (var row = 0; row < 5; row++) {
+    if (!gone.contains((row, 0))) {
+      final brick = wallBrickRect(row, 0);
+      return Offset(brick.center.dx, brick.top);
+    }
+  }
+  return Offset(wallBrickRect(0, 0).center.dx, wallGround);
 }
 
 /// Debt-free: a cleared plot, the bricks stacked neatly, a flag [raise]d
@@ -178,6 +201,7 @@ class ClearedPlot extends StatelessWidget {
     this.raise = 1,
     this.maxHeight = 140,
     this.flag = kHiVis,
+    this.ink,
     super.key,
   });
 
@@ -187,13 +211,18 @@ class ClearedPlot extends StatelessWidget {
   /// The flag's colour: white where the ground is hi-vis.
   final Color flag;
 
+  /// The outlines: the theme's ink unless given (navy on hi-vis).
+  final Color? ink;
+
   @override
-  Widget build(BuildContext context) =>
-      _scene(_ClearedPlotPainter(raise, flag), maxHeight: maxHeight);
+  Widget build(BuildContext context) => _scene(
+    _ClearedPlotPainter(raise, flag, ink: ink ?? context.colors.ink),
+    maxHeight: maxHeight,
+  );
 }
 
-class _ClearedPlotPainter extends CustomPainter {
-  const _ClearedPlotPainter(this.raise, this.flag);
+class _ClearedPlotPainter extends InkPainter {
+  const _ClearedPlotPainter(this.raise, this.flag, {super.ink});
 
   final double raise;
   final Color flag;
@@ -201,6 +230,10 @@ class _ClearedPlotPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
+    withInk(ink, () => _paint(canvas, size));
+  }
+
+  void _paint(Canvas canvas, Size size) {
     fitDesign(canvas, size, _design);
     drawGround(canvas, _design.width, _ground);
     for (var row = 0; row < 3; row++) {
@@ -221,5 +254,7 @@ class _ClearedPlotPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ClearedPlotPainter oldDelegate) =>
-      oldDelegate.raise != raise || oldDelegate.flag != flag;
+      oldDelegate.raise != raise ||
+      oldDelegate.flag != flag ||
+      oldDelegate.ink != ink;
 }

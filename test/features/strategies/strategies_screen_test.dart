@@ -1,8 +1,10 @@
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
+import 'package:debt_destroyer/core/charts/draw_in.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
+import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
@@ -606,5 +608,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(followingOn(StrategyId.avalanche), findsNothing);
     expect(followingOn(StrategyId.snowball), findsOneWidget);
+  });
+
+  testWidgets('paying more keeps the list and its charts in place', (
+    tester,
+  ) async {
+    final app = await pumpApp(
+      tester,
+      location: Routes.plans,
+      debts: [
+        testDebt(id: 'a'),
+        testDebt(id: 'b', aprBps: 990),
+      ],
+    );
+    expect(find.byType(DrawIn), findsWidgets);
+    app.container.read(extraPaymentProvider.notifier).set(5000);
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    for (final clip in tester.widgetList<ClipRect>(
+      find.descendant(of: find.byType(DrawIn), matching: find.byType(ClipRect)),
+    )) {
+      expect((clip.clipper! as RevealClipper).factor, 1);
+    }
+    await tester.pumpAndSettle();
   });
 }

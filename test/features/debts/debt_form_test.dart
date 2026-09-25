@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -531,5 +532,37 @@ void main() {
       expect(at(DebtType.storeCard).dy, at(DebtType.creditCard).dy);
       expect(at(DebtType.loan).dy, greaterThan(at(DebtType.creditCard).dy));
     });
+  });
+
+  testWidgets('screen readers can pick a tile', (tester) async {
+    final handle = tester.ensureSemantics();
+    final app = await pumpApp(tester, location: Routes.newDebt);
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('type-loan'))),
+      isSemantics(hasTapAction: true),
+    );
+    tester.semantics.tap(find.semantics.byLabel('Loan'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('type-loan'))),
+      isSemantics(isSelected: true),
+    );
+    expect(app.repository.stored, isEmpty);
+    handle.dispose();
+  });
+
+  testWidgets('unselected tile glyphs use the ink colour in dark mode', (
+    tester,
+  ) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await pumpApp(tester, location: Routes.newDebt);
+    final icon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const ValueKey('type-loan')),
+        matching: find.byType(Icon),
+      ),
+    );
+    expect(icon.color, DestroyerColors.dark.ink);
   });
 }

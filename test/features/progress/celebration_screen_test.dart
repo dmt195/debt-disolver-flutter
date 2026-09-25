@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/illustrations/wrecking_ball.dart';
 import 'package:debt_destroyer/core/text_sharer.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
@@ -178,7 +179,7 @@ void main() {
         for (final t in [0.0, 0.25, 0.5, 0.75, 1.0]) {
           await tester.pumpWidget(
             MaterialApp(
-              theme: ThemeData(brightness: brightness),
+              theme: buildTheme(brightness),
               home: Column(
                 children: [
                   SizedBox(width: 300, child: WreckingBallScene(progress: t)),

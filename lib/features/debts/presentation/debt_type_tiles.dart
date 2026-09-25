@@ -83,6 +83,9 @@ class _Tile extends StatelessWidget {
       button: true,
       selected: selected,
       label: label,
+      // The InkWell's own action goes with its excluded semantics, so the
+      // tile carries the tap itself.
+      onTap: onTap,
       excludeSemantics: true,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 48),
@@ -104,7 +107,12 @@ class _Tile extends StatelessWidget {
                       color: selected ? c.hiVis : c.track,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(debtTypeIcon(type), size: 20, color: c.onHiVis),
+                    // Navy on hi-vis; otherwise the ink (light in dark mode).
+                    child: Icon(
+                      debtTypeIcon(type),
+                      size: 20,
+                      color: selected ? c.onHiVis : c.ink,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(

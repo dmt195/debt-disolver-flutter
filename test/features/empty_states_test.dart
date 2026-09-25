@@ -1,4 +1,7 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/illustrations/illustration.dart';
+import 'package:debt_destroyer/core/illustrations/kit.dart';
 import 'package:debt_destroyer/core/illustrations/scenes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,7 +55,7 @@ void main() {
       ) async {
         await tester.pumpWidget(
           MaterialApp(
-            theme: ThemeData(brightness: brightness),
+            theme: buildTheme(brightness),
             home: ListView(
               children: [
                 const EmptyLot(),
@@ -67,4 +70,49 @@ void main() {
       });
     }
   }
+
+  for (final (brightness, ink) in [
+    (Brightness.light, DestroyerColors.light.ink),
+    (Brightness.dark, DestroyerColors.dark.ink),
+  ]) {
+    testWidgets('scenes on the ground draw in ${brightness.name} ink', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildTheme(brightness),
+          home: ListView(
+            children: const [
+              EmptyLot(),
+              Signpost(),
+              ClimbWall(percent: 40),
+              ClearedPlot(),
+            ],
+          ),
+        ),
+      );
+      final painters = tester
+          .widgetList<CustomPaint>(
+            find.descendant(
+              of: find.byType(Illustration),
+              matching: find.byType(CustomPaint),
+            ),
+          )
+          .map((p) => p.painter);
+      expect(painters, hasLength(4));
+      for (final p in painters) {
+        expect((p! as InkPainter).ink, ink);
+      }
+    });
+  }
+
+  group('the check-in flag', () {
+    test('stands on the top brick at the left, or on the ground', () {
+      // The wall's top row is at y 31; each row is 13 lower.
+      expect(climbFlagBase(0), const Offset(13, 31));
+      expect(climbFlagBase(18).dy, 31); // 5 bricks gone: (0,0) still there
+      expect(climbFlagBase(20).dy, 44); // 6 gone: the top row is empty
+      expect(climbFlagBase(100).dy, 96); // no wall left: the ground
+    });
+  });
 }

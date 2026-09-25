@@ -29,6 +29,18 @@ class BrickWall extends StatelessWidget {
   );
 }
 
+/// Where brick ([row], [col]) of the wall sits, in its 170 × 100 design box.
+Rect wallBrickRect(int row, int col) => Rect.fromLTWH(
+  4 + col * (_brick.width + _gap) + (row.isOdd ? _brick.width / 2 : 0),
+  wallTop + row * (_brick.height + _gap),
+  _brick.width,
+  _brick.height,
+);
+
+/// The wall's top edge and the ground, in its design box.
+const double wallTop = _groundY - _rows * 13; // brick 11 + gap 2
+const double wallGround = _groundY;
+
 const _design = Size(170, 100);
 const _rows = 5;
 const _cols = 6;
@@ -36,8 +48,12 @@ const _brick = Size(18, 11);
 const _gap = 2.0;
 const _groundY = 96.0;
 
-class BrickWallPainter extends CustomPainter {
-  const BrickWallPainter({required this.percent, required this.progress});
+class BrickWallPainter extends InkPainter {
+  const BrickWallPainter({
+    required this.percent,
+    required this.progress,
+    super.ink,
+  });
 
   final int percent;
   final double progress;
@@ -45,15 +61,13 @@ class BrickWallPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (designScale(size, _design) == 0) return;
+    withInk(ink, () => _paint(canvas, size));
+  }
+
+  void _paint(Canvas canvas, Size size) {
     fitDesign(canvas, size, _design);
     final gone = knockedOut(percent).toSet();
-    final top = _groundY - _rows * (_brick.height + _gap);
-    Rect brickAt(int row, int col) => Rect.fromLTWH(
-      4 + col * (_brick.width + _gap) + (row.isOdd ? _brick.width / 2 : 0),
-      top + row * (_brick.height + _gap),
-      _brick.width,
-      _brick.height,
-    );
+    const brickAt = wallBrickRect;
     for (var row = 0; row < _rows; row++) {
       for (var col = 0; col < _cols; col++) {
         if (!gone.contains((row, col))) drawBrick(canvas, brickAt(row, col));
@@ -77,7 +91,7 @@ class BrickWallPainter extends CustomPainter {
           width: _brick.width,
           height: _brick.height,
         ),
-        fill: kInk,
+        fill: currentInk,
         turn: spin * t * 3,
       );
     }
@@ -85,5 +99,7 @@ class BrickWallPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(BrickWallPainter oldDelegate) =>
-      oldDelegate.percent != percent || oldDelegate.progress != progress;
+      oldDelegate.percent != percent ||
+      oldDelegate.progress != progress ||
+      oldDelegate.ink != ink;
 }

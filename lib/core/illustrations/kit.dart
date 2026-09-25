@@ -1,17 +1,42 @@
 import 'dart:math' as math;
 
-import 'package:flutter/painting.dart';
+import 'package:flutter/rendering.dart';
 
-/// Direction A's fixed inks (spec §5.2): navy outlines, hi-vis as the only
-/// highlight, flat fills. Illustrations use these in light and dark alike.
+/// Direction A's inks (spec §5.2): navy outlines, hi-vis as the only
+/// highlight, flat fills. Art on a hi-vis panel is always navy; art on the
+/// page's ground draws in the theme's ink (light in dark mode) through
+/// [withInk].
 const kInk = Color(0xFF14213D);
 const kHiVis = Color(0xFFFFC400);
 const kBrickFill = Color(0xFFE3E6EB);
 const kWhite = Color(0xFFFFFFFF);
 
-/// The navy outline, 2 design px.
+/// A painter that draws in a given ink.
+abstract class InkPainter extends CustomPainter {
+  const InkPainter({this.ink = kInk});
+
+  final Color ink;
+}
+
+Color _ink = kInk;
+
+/// The ink outlines and the ball are drawn in, set by [withInk].
+Color get currentInk => _ink;
+
+/// Runs [draw] with outlines in [ink].
+void withInk(Color ink, void Function() draw) {
+  final previous = _ink;
+  _ink = ink;
+  try {
+    draw();
+  } finally {
+    _ink = previous;
+  }
+}
+
+/// The outline, 2 design px.
 Paint inkStroke([double width = 2]) => Paint()
-  ..color = kInk
+  ..color = _ink
   ..style = PaintingStyle.stroke
   ..strokeWidth = width
   ..strokeJoin = StrokeJoin.round
@@ -71,7 +96,7 @@ void drawGround(Canvas canvas, double width, double y) =>
 void drawBall(Canvas canvas, Offset centre, double radius, {Offset? anchor}) {
   if (anchor != null) canvas.drawLine(anchor, centre, inkStroke(2.5));
   canvas
-    ..drawCircle(centre, radius, fillOf(kInk))
+    ..drawCircle(centre, radius, fillOf(_ink))
     // A highlight so the ball reads as round on navy grounds too.
     ..drawCircle(
       centre.translate(-radius * 0.35, -radius * 0.35),

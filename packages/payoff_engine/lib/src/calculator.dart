@@ -82,6 +82,7 @@ PayoffResult _simulateBest({
   required Money budget,
   required Money fees,
   required PlanChange? change,
+  List<List<int>>? groups,
 }) {
   PayoffResult run({int? horizon}) => simulate(
     strategyId: strategy.id,
@@ -91,6 +92,7 @@ PayoffResult _simulateBest({
     change: change,
     order: allocationOrder(strategy, debts, horizon: horizon),
     allowExtra: strategy is! MinimumsOnly,
+    groups: groups,
   );
 
   var best = run();

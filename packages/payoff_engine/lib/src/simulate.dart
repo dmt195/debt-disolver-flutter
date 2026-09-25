@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:payoff_engine/src/allocation_order.dart';
 import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/minimum_payment.dart';
@@ -19,6 +20,14 @@ const int kBalanceCeilingMinor = 10000000000000;
 /// [debts] is assumed already validated, non-empty and in a single
 /// currency; callers normally reach this through `calculate` rather than
 /// calling it directly.
+///
+/// [groups] lists the portions of each card as indexes into [debts], the
+/// card's own debt first. A card's minimum is worked out once on its total
+/// with its own debt's rule and paid to its portions lowest current rate
+/// first; money above the minimum goes to its portions highest current rate
+/// first (the UK rule). Cards are ranked for extra money by their
+/// best-ranked portion in [order]. Without [groups] every debt is a card of
+/// its own.
 PayoffResult simulate({
   required StrategyId strategyId,
   required List<Debt> debts,
@@ -27,12 +36,40 @@ PayoffResult simulate({
   required AllocationOrder order,
   bool allowExtra = true,
   PlanChange? change,
+  List<List<int>>? groups,
 }) {
   final currency = budget.currency;
   final n = debts.length;
   final balances = [for (final d in debts) d.balance.minor];
   final clearedAt = List<(int, int)?>.filled(n, null);
   final rows = <_Month>[];
+  final cards =
+      groups ??
+      [
+        for (var i = 0; i < n; i++) [i],
+      ];
+  final cardOf = List.filled(n, 0);
+  for (final (c, members) in cards.indexed) {
+    for (final i in members) {
+      cardOf[i] = c;
+    }
+  }
+  // A card's portions by the rate charged in [month]; ties keep list order.
+  List<int> byRate(List<int> members, int month, {required bool highestFirst}) {
+    final sorted = [...members];
+    mergeSort<int>(
+      sorted,
+      compare: (a, b) {
+        final byApr = aprInMonth(
+          debts[a],
+          month,
+        ).compareTo(aprInMonth(debts[b], month));
+        return highestFirst ? -byApr : byApr;
+      },
+    );
+    return sorted;
+  }
+
   var month = 0;
   while (balances.any((b) => b > 0)) {
     if (month == kMaxMonths) {
@@ -53,10 +90,20 @@ PayoffResult simulate({
       }
     }
 
-    final payments = [
-      for (var i = 0; i < n; i++) minimumPaymentMinor(debts[i], balances[i]),
-    ];
-    final minimumsTotal = payments.fold(0, (a, b) => a + b);
+    final payments = List.filled(n, 0);
+    var minimumsTotal = 0;
+    for (final members in cards) {
+      final total = members.fold(0, (s, i) => s + balances[i]);
+      if (total <= 0) continue;
+      var due = minimumPaymentMinor(debts[members.first], total);
+      minimumsTotal += due;
+      for (final i in byRate(members, month, highestFirst: false)) {
+        if (due == 0) break;
+        final pay = due < balances[i] ? due : balances[i];
+        payments[i] += pay;
+        due -= pay;
+      }
+    }
     if (minimumsTotal > budget.minor) {
       return PayoffResult.infeasible(
         strategyId: strategyId,
@@ -68,19 +115,27 @@ PayoffResult simulate({
     for (var i = 0; i < n; i++) {
       balances[i] -= payments[i];
     }
-    final priority = order(month);
+    // Cards in the order their best-ranked portion appears; within a card,
+    // highest current rate first.
+    final seen = <int>{};
+    final sequence = [
+      for (final i in order(month))
+        if (seen.add(cardOf[i]))
+          ...byRate(cards[cardOf[i]], month, highestFirst: true),
+    ];
     if (allowExtra) {
       var remaining = budget.minor - minimumsTotal;
-      for (final i in priority) {
+      for (final i in sequence) {
         if (remaining == 0) break;
-        if (!debts[i].allowsOverpayment || balances[i] == 0) continue;
+        final overpayable = debts[cards[cardOf[i]].first].allowsOverpayment;
+        if (!overpayable || balances[i] == 0) continue;
         final extra = remaining < balances[i] ? remaining : balances[i];
         payments[i] += extra;
         balances[i] -= extra;
         remaining -= extra;
       }
     }
-    for (final (position, i) in priority.indexed) {
+    for (final (position, i) in sequence.indexed) {
       if (balances[i] == 0 && clearedAt[i] == null) {
         clearedAt[i] = (month, position);
       }

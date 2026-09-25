@@ -25,6 +25,7 @@ Future<AppHarness> pumpApp(
   List<Scenario> scenarios = const [],
   Map<String, Object?> settings = const {},
   List<Override> overrides = const [],
+  DateTime Function()? clock,
 }) async {
   final repository = InMemoryDebtRepository(debts);
   final progress = InMemoryProgressRepository(repository);
@@ -35,6 +36,7 @@ Future<AppHarness> pumpApp(
       retry: (_, _) => null,
       overrides: [
         ...testOverrides(
+          clock: clock,
           prefs: storedSettings({
             SettingsKeys.onboardingComplete: true,
             ...settings,

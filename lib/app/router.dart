@@ -4,6 +4,8 @@ import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:debt_destroyer/features/progress/presentation/celebration_screen.dart';
+import 'package:debt_destroyer/features/progress/presentation/check_in_result_screen.dart';
 import 'package:debt_destroyer/features/progress/presentation/check_in_screen.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenario_form_screen.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_screen.dart';
@@ -27,6 +29,10 @@ abstract final class Routes {
   static const settings = '/settings';
   static const onboarding = '/onboarding';
   static const checkIn = '/check-in';
+  static const checkInResult = '/check-in/result';
+
+  /// The celebration for a cleared debt.
+  static String cleared(String debtId) => '/cleared/$debtId';
 
   static String editDebt(String id) => '/debts/$id';
 
@@ -141,6 +147,19 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.checkIn,
         builder: (context, state) => const CheckInScreen(),
+        routes: [
+          GoRoute(
+            path: 'result',
+            builder: (context, state) => const CheckInResultScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/cleared/:debtId',
+        pageBuilder: (context, state) => MaterialPage(
+          fullscreenDialog: true,
+          child: CelebrationScreen(debtId: state.pathParameters['debtId']!),
+        ),
       ),
       GoRoute(
         path: Routes.onboarding,

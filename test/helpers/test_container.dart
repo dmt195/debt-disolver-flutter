@@ -13,9 +13,13 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 
 /// Test doubles for the app's platform dependencies: in-memory preferences
 /// seeded with [prefs], an in-memory database, GBP as the device currency,
-/// `en_GB` number formatting and a fixed clock (24 Sep 2026). Pass the
+/// `en_GB` number formatting and a fixed clock (24 Sep 2026, unless [clock]
+/// is given). Pass the
 /// result to a [ProviderContainer] or [ProviderScope].
-List<Override> testOverrides({Map<String, Object> prefs = const {}}) {
+List<Override> testOverrides({
+  Map<String, Object> prefs = const {},
+  DateTime Function()? clock,
+}) {
   SharedPreferencesAsyncPlatform.instance =
       InMemorySharedPreferencesAsync.withData(prefs);
   final db = AppDatabase(NativeDatabase.memory());
@@ -24,7 +28,7 @@ List<Override> testOverrides({Map<String, Object> prefs = const {}}) {
     appDatabaseProvider.overrideWithValue(db),
     defaultCurrencyCodeProvider.overrideWithValue('GBP'),
     formatLocaleProvider.overrideWithValue('en_GB'),
-    clockProvider.overrideWithValue(() => DateTime(2026, 9, 24)),
+    clockProvider.overrideWithValue(clock ?? () => DateTime(2026, 9, 24)),
   ];
 }
 

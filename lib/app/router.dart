@@ -4,6 +4,7 @@ import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:debt_destroyer/features/progress/presentation/check_in_screen.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenario_form_screen.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_screen.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -25,6 +26,7 @@ abstract final class Routes {
   static const scenarios = '/plans/scenarios';
   static const settings = '/settings';
   static const onboarding = '/onboarding';
+  static const checkIn = '/check-in';
 
   static String editDebt(String id) => '/debts/$id';
 
@@ -135,6 +137,10 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: Routes.settings,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.checkIn,
+        builder: (context, state) => const CheckInScreen(),
       ),
       GoRoute(
         path: Routes.onboarding,

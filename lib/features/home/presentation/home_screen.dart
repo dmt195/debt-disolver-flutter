@@ -11,6 +11,9 @@ import 'package:debt_destroyer/core/widgets/hi_vis_block.dart';
 import 'package:debt_destroyer/core/widgets/outlined_card.dart';
 import 'package:debt_destroyer/features/analysis/domain/plan_series.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
+import 'package:debt_destroyer/features/home/presentation/home_progress.dart';
+import 'package:debt_destroyer/features/progress/presentation/follow_sheet.dart';
+import 'package:debt_destroyer/features/progress/presentation/progress_providers.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:debt_destroyer/features/strategies/presentation/current_plans.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +49,12 @@ class HomeScreen extends ConsumerWidget {
         action: l10n.changeBudget,
         onAction: () => context.push(Routes.settings),
       ),
+      AsyncData(value: HomeAllCleared()) => const _AllCleared(),
+      AsyncData(value: HomeFollowedUnavailable(:final strategyId)) => _Message(
+        text: l10n.homeFollowedUnavailable(strategyName(l10n, strategyId)),
+        action: l10n.homeChooseAnotherPlan,
+        onAction: () => showFollowSheet(context),
+      ),
       AsyncData(value: HomeNeverClears()) => _Message(
         text: l10n.homeNeverClears,
         action: l10n.changeBudget,
@@ -75,11 +84,19 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _Message extends StatelessWidget {
-  const _Message({required this.text, this.action, this.onAction});
+  const _Message({
+    required this.text,
+    this.action,
+    this.onAction,
+    this.outlined = false,
+  });
 
   final String text;
   final String? action;
   final VoidCallback? onAction;
+
+  /// Use an outlined button (the hero already says the most).
+  final bool outlined;
 
   @override
   Widget build(BuildContext context) => ListView(
@@ -90,7 +107,10 @@ class _Message extends StatelessWidget {
       ),
       if (action != null) ...[
         const SizedBox(height: 12),
-        FilledButton(onPressed: onAction, child: Text(action!)),
+        if (outlined)
+          OutlinedButton(onPressed: onAction, child: Text(action!))
+        else
+          FilledButton(onPressed: onAction, child: Text(action!)),
       ],
     ],
   );
@@ -117,6 +137,7 @@ class _Following extends ConsumerWidget {
     final debtFree = monthsAhead(plan.monthsToClear);
     final totals = totalOwedSeries(plan);
     final strategy = strategyName(l10n, result.strategyId);
+    final summary = ref.watch(progressSummaryProvider).value;
 
     final lines = [
       ChartLine(values: totals, color: c.ink, width: 3),
@@ -148,89 +169,153 @@ class _Following extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       children: [
         HiVisBlock(
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(l10n.homeDebtFreeBy, style: const TextStyle(fontSize: 14)),
-              const SizedBox(height: 4),
-              Text(
-                '${DateFormat.MMM(locale).format(debtFree)}\n${debtFree.year}',
-                style: displayStyle(
-                  50,
-                  color: c.onHiVis,
-                ).copyWith(height: 0.92),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.homeInDuration(
-                  formatDuration(l10n, plan.monthsToClear),
-                  strategy,
+              if (summary != null) ...[
+                ProgressRing(percent: summary.paid.percent),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.homeDebtFreeBy,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        DateFormat.MMM(locale).format(debtFree),
+                        debtFree.year,
+                      ].join('\n'),
+                      style: displayStyle(
+                        50,
+                        color: c.onHiVis,
+                      ).copyWith(height: 0.92),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.homeInDurationOnly(
+                        formatDuration(l10n, plan.monthsToClear),
+                      ),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    if (summary != null && summary.paid.since != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        summary.paid.amount.isNegative
+                            ? l10n.homeOwesMore(
+                                formatMoney(
+                                  Money(
+                                    -summary.paid.amount.minor,
+                                    summary.paid.amount.currency,
+                                  ),
+                                  locale,
+                                ),
+                              )
+                            : l10n.homePaidOff(
+                                formatMoney(summary.paid.amount, locale),
+                                DateFormat.MMMM(locale)
+                                    .format(summary.paid.since!),
+                              ),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      StandingChip(standing: summary.standing),
+                    ],
+                    TextButton(
+                      onPressed: () => showFollowSheet(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: c.onHiVis,
+                        padding: EdgeInsets.zero,
+                        alignment: Alignment.centerLeft,
+                      ),
+                      child: Text(l10n.homeFollowing(strategy)),
+                    ),
+                  ],
                 ),
-                style: const TextStyle(fontSize: 13),
               ),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        InkWell(
-          onTap: () =>
-              context.go(Routes.plan(result.strategyId, current: true)),
-          borderRadius: BorderRadius.circular(6),
-          child: OutlinedCard(
-            title: l10n.homeProjectionTitle,
+        if (summary?.chart case final chart?)
+          ProgressChartCard(
+            chart: chart,
+            debtFree: debtFree,
             trailing: strategy,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                BalanceLineChart(
-                  lines: lines,
-                  semanticLabel: l10n.homeProjectionLabel(
-                    formatMoney(
-                      plan.debts.fold(
-                        Money.zero(plan.totalPaid.currency),
-                        (s, d) => s + d.startingBalance,
+            onTap: () =>
+                context.go(Routes.plan(result.strategyId, current: true)),
+          )
+        else
+          InkWell(
+            onTap: () =>
+                context.go(Routes.plan(result.strategyId, current: true)),
+            borderRadius: BorderRadius.circular(6),
+            child: OutlinedCard(
+              title: l10n.homeProjectionTitle,
+              trailing: strategy,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BalanceLineChart(
+                    lines: lines,
+                    semanticLabel: l10n.homeProjectionLabel(
+                      formatMoney(
+                        plan.debts.fold(
+                          Money.zero(plan.totalPaid.currency),
+                          (s, d) => s + d.startingBalance,
+                        ),
+                        locale,
                       ),
-                      locale,
+                      DateFormat.yMMMM(locale).format(debtFree),
                     ),
-                    DateFormat.yMMMM(locale).format(debtFree),
+                    startLabel: DateFormat.yMMM(locale).format(now),
+                    // The minimums line runs on past debt-free.
+                    endLabel: DateFormat.yMMM(locale).format(
+                      monthsAhead(
+                        lines
+                            .map((l) => l.values.length - 1)
+                            .reduce((a, b) => a > b ? a : b),
+                      ),
+                    ),
                   ),
-                  startLabel: DateFormat.yMMM(locale).format(now),
-                  // The minimums line runs on past debt-free.
-                  endLabel: DateFormat.yMMM(locale).format(
-                    monthsAhead(
-                      lines
-                          .map((l) => l.values.length - 1)
-                          .reduce((a, b) => a > b ? a : b),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 14,
-                  runSpacing: 4,
-                  children: [
-                    key(
-                      Container(width: 16, height: 3, color: c.ink),
-                      strategy,
-                    ),
-                    if (lines.length > 1)
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 14,
+                    runSpacing: 4,
+                    children: [
                       key(
-                        Container(
-                          width: 16,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              top: BorderSide(color: c.faint, width: 2),
+                        Container(width: 16, height: 3, color: c.ink),
+                        strategy,
+                      ),
+                      if (lines.length > 1)
+                        key(
+                          Container(
+                            width: 16,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                top: BorderSide(color: c.faint, width: 2),
+                              ),
                             ),
                           ),
+                          l10n.homeMinimumsLine,
                         ),
-                        l10n.homeMinimumsLine,
-                      ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        if (summary != null) ...[
+          const SizedBox(height: 12),
+          CheckInCard(lastCheckIn: summary.lastCheckIn),
+        ],
         if (next != null) ...[
           const SizedBox(height: 12),
           OutlinedCard(
@@ -254,7 +339,7 @@ class _Following extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Progress comes with check-ins (Plan 8); until then, a sliver.
+                // Paid off that debt since the latest starting point.
                 Container(
                   height: 12,
                   decoration: BoxDecoration(
@@ -262,10 +347,10 @@ class _Following extends ConsumerWidget {
                     border: Border.all(color: c.outline, width: 2),
                     borderRadius: BorderRadius.circular(3),
                   ),
-                  child: const FractionallySizedBox(
+                  child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
-                    widthFactor: 0.04,
-                    child: CustomPaint(painter: HazardPainter()),
+                    widthFactor: _progressOn(next.debt.id, ref),
+                    child: const CustomPaint(painter: HazardPainter()),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -324,6 +409,38 @@ class _Following extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// How much of [debtId] is paid since the latest starting point, as the
+/// hazard bar's fill (never less than a sliver).
+double _progressOn(String debtId, WidgetRef ref) {
+  final history = ref.watch(progressHistoryProvider).value;
+  final start = history?.latestStart;
+  final debts = ref.watch(debtsProvider).value ?? const <Debt>[];
+  if (history == null || start == null) return 0.04;
+  final from = history.checkInFor(start).balances[debtId]?.balance.minor;
+  final now = debts.where((d) => d.id == debtId).firstOrNull?.balance.minor;
+  if (from == null || now == null || from <= 0) return 0.04;
+  return ((from - now) / from).clamp(0.04, 1.0);
+}
+
+class _AllCleared extends ConsumerWidget {
+  const _AllCleared();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final summary = ref.watch(progressSummaryProvider).value;
+    final amount = summary == null
+        ? ''
+        : formatMoney(summary.paid.amount, ref.watch(formatLocaleProvider));
+    return _Message(
+      text: l10n.homeAllCleared(amount),
+      action: l10n.homeAddADebt,
+      onAction: () => context.push(Routes.newDebt),
+      outlined: true,
     );
   }
 }

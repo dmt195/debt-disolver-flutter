@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
+import 'package:debt_destroyer/core/charts/line_swatch.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -199,13 +200,8 @@ class _RaceCard extends ConsumerWidget {
       for (final r in raced)
         '${strategyName(l10n, r.strategyId)}: ${month(r.plan.monthsToClear)}',
     ].join('; ');
-    Widget swatch(ChartLine line) => SizedBox(
-      width: 18,
-      child: CustomPaint(
-        size: const Size(18, 3),
-        painter: _LineSwatch(line.color, line.style),
-      ),
-    );
+    Widget swatch(ChartLine line) =>
+        LineSwatch(color: line.color, style: line.style);
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: OutlinedCard(
@@ -250,38 +246,6 @@ class _RaceCard extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// A short sample of a chart line, for legends.
-class _LineSwatch extends CustomPainter {
-  const _LineSwatch(this.color, this.style);
-
-  final Color color;
-  final LineStyle style;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 2.5;
-    final y = size.height / 2;
-    final (dash, gap) = switch (style) {
-      LineStyle.solid => (size.width, 0.0),
-      LineStyle.dashed => (5.0, 3.0),
-      LineStyle.dotted => (2.0, 3.0),
-    };
-    for (var x = 0.0; x < size.width; x += dash + gap) {
-      canvas.drawLine(
-        Offset(x, y),
-        Offset((x + dash).clamp(0, size.width), y),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_LineSwatch oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.style != style;
 }
 
 /// Borrowing alternatives: collapsed until asked for, with their caveat.

@@ -102,11 +102,7 @@ class BalanceLineChart extends StatelessWidget {
         extraLinesData: ExtraLinesData(
           verticalLines: [
             for (final m in markers)
-              VerticalLine(
-                x: m.x,
-                color: c.ink2,
-                dashArray: const [3, 3],
-              ),
+              VerticalLine(x: m.x, color: c.ink2, dashArray: const [3, 3]),
             if (todayX case final today?)
               VerticalLine(x: today, color: c.today, strokeWidth: 1.5),
           ],
@@ -152,15 +148,21 @@ class BalanceLineChart extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    startLabel ?? '',
-                    style: TextStyle(fontSize: 11, color: c.ink2),
+                  Flexible(
+                    child: Text(
+                      startLabel ?? '',
+                      style: TextStyle(fontSize: 11, color: c.ink2),
+                    ),
                   ),
-                  const Spacer(),
-                  Text(
-                    endLabel ?? '',
-                    style: TextStyle(fontSize: 11, color: c.ink2),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      endLabel ?? '',
+                      textAlign: TextAlign.end,
+                      style: TextStyle(fontSize: 11, color: c.ink2),
+                    ),
                   ),
                 ],
               ),

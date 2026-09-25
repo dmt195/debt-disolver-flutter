@@ -55,7 +55,12 @@ class PlanSummaryTab extends ConsumerWidget {
           Card(
             child: Column(
               children: [
-                for (final line in planChangeLines(l10n, change, locale))
+                for (final line in planChangeLines(
+                  l10n,
+                  change,
+                  locale,
+                  now: now,
+                ))
                   ListTile(dense: true, title: Text(line)),
               ],
             ),

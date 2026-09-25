@@ -2,6 +2,7 @@ import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_change_lines.dart';
 import 'package:debt_destroyer/l10n/app_localizations_en.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 void main() {
@@ -143,6 +144,10 @@ void main() {
       "Check your card's terms: most won't take a balance from a card by "
           'the same bank. This plan assumes payments above the minimum clear '
           'the highest-rate balance first, as UK and US law requires.',
+      // Adjacent strings are intentional: one long line, split for width.
+      // ignore: no_adjacent_strings_in_list
+      'Offers and rates change: check this plan again when a promo ends or '
+          "a card's offer changes.",
     ]);
   });
 
@@ -168,6 +173,37 @@ void main() {
     expect(
       lines.first,
       'Move £100.00 from Store to Amex (fee £3.00, 0% for 1 month)',
+    );
+  });
+
+  test('suggests timing when the moved card is still on a promo', () async {
+    await initializeDateFormatting('en_GB');
+    final lines = planChangeLines(
+      l10n,
+      const PlanChange.cardTransfers(
+        moves: [
+          CardMove(
+            fromDebtId: 'v',
+            fromName: 'Visa red',
+            toDebtId: 'a',
+            toName: 'Amex Blue',
+            amount: Money(236500, 'GBP'),
+            fee: Money(7095, 'GBP'),
+            promo: Promo(aprBps: 0, months: 12),
+            sourcePromo: Promo(aprBps: 0, months: 3),
+          ),
+        ],
+        fee: Money(7095, 'GBP'),
+      ),
+      'en_GB',
+      now: DateTime(2026, 9, 24),
+    );
+    expect(
+      lines,
+      contains(
+        'Visa red is at 0% until the end of November 2026. Moving it then '
+        'may save more, if the offer is still available.',
+      ),
     );
   });
 }

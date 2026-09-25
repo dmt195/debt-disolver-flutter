@@ -107,6 +107,10 @@ abstract class CardMove with _$CardMove {
     required Money amount,
     required Money fee,
     Promo? promo,
+
+    /// The source's own promo when the move was planned, if it had one: a
+    /// hint that moving it when that promo ends might save more.
+    Promo? sourcePromo,
   }) = _CardMove;
 }
 

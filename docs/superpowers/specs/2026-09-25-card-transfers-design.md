@@ -72,7 +72,11 @@ The Debts list shows a "Transfer offer" label in the subtitle of a debt that has
 2. **Candidate move.** A candidate is a (source, target) pair where:
    - the source is transferable,
    - source ≠ target,
-   - the source's current APR in month 1 is greater than the rate moved money would pay on the target in month 1 (the offer's promo rate, else the target's APR).
+   - in some month, the source charges more than moved money would pay on the target (the offer's promo rate while it lasts, then the target's APR). Rates only change when a promo ends, so month 1 and the month after each promo are checked. A source still on its own 0% promo is worth moving now when its promo ends well before the offer's does; the full simulation decides.
+
+     *Revision (after Plan 6 shipped):* the first version compared month 1 only, so a Visa at 0% for 3 more months (then 15.5%) was never moved onto an Amex offer of 0% for 12 months, although the move saved £19.14 on the reported plan.
+   - When a chosen move's source is still on a promo, plan detail adds a tip: "<source> is at <rate> until the end of <month>. Moving it then may save more, if the offer is still available." Planning moves for a later month (timed moves) is deferred. Card-transfer plans also end with "Offers and rates change: check this plan again when a promo ends or a card's offer changes."
+   - The shortlist's cheap estimate is a year's saving, month by month: for each of the next 12 months, the rate cut (never negative, promos included) times the amount, less the fee.
 
    The amount is the largest `x ≤ source balance` with `x + fee(x) ≤` the target's remaining room, where `fee(x) = halfEven(x × feeBps / 10000)` (the same integer search as the new-card transfer). `x = 0` means the pair isn't a candidate.
 3. **Greedy search.**

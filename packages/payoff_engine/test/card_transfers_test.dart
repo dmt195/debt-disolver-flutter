@@ -279,6 +279,78 @@ void main() {
     expect(change.moves, hasLength(kMaxCardMoves));
   });
 
+  group('sources on a promo', () {
+    final visa = debt(
+      id: 'visa',
+      name: 'Visa red',
+      balance: 236500,
+      aprBps: 1550,
+      minPaymentPercentBps: 350,
+      minPaymentFloor: 5000,
+      promo: const Promo(aprBps: 0, months: 3),
+    );
+    final amexWithOffer = debt(
+      id: 'amex',
+      name: 'Amex Blue',
+      balance: 457700,
+      aprBps: 1270,
+      minPaymentPercentBps: 400,
+      minPaymentFloor: 10000,
+      transferOffer: TransferOffer(
+        feeBps: 300,
+        promo: zeroForAYear,
+        availableCredit: gbp(300000),
+      ),
+    );
+
+    test('are tried when their promo ends before the offer does', () {
+      final candidates = cardMoveCandidates([visa, amexWithOffer], const []);
+      expect(candidates.map((m) => m.fromDebtId), ['visa']);
+      expect(candidates.single.sourcePromo, const Promo(aprBps: 0, months: 3));
+    });
+
+    test('are still skipped when moving never pays a lower rate', () {
+      // 0% for 24 months then 10%, onto a card charging 12% with no promo.
+      final cheap = visa.copyWith(
+        aprBps: 1000,
+        promo: const Promo(aprBps: 0, months: 24),
+      );
+      final plainOffer = amexWithOffer.copyWith(
+        aprBps: 1200,
+        transferOffer: TransferOffer(feeBps: 0, availableCredit: gbp(300000)),
+      );
+      expect(cardMoveCandidates([cheap, plainOffer], const []), isEmpty);
+    });
+
+    test('reported case: moving the Visa onto the Amex offer is cheaper', () {
+      // Visa at 0% for 3 more months then 15.5%; Amex offers 0% for 12
+      // months on moved money for a 3% fee; a car loan takes a fixed 576.00.
+      final car = debt(
+        id: 'car',
+        name: 'Car loan',
+        type: DebtType.loan,
+        balance: 650000,
+        aprBps: 580,
+        minPaymentFloor: 57600,
+        allowsOverpayment: false,
+      );
+      final debts = [visa, amexWithOffer, car];
+      final plan = planOf(run(debts, 100000));
+      final change = plan.change! as CardTransferChange;
+      expect(change.moves.map((m) => (m.fromDebtId, m.toDebtId)), [
+        ('visa', 'amex'),
+      ]);
+      final avalanche = planOf(
+        calculate(
+          debts: debts,
+          monthlyBudget: gbp(100000),
+          strategy: const Strategy.avalanche(),
+        ),
+      );
+      expect(plan.totalPaid < avalanche.totalPaid, isTrue);
+    });
+  });
+
   group('shortlistCardMoves', () {
     // aprBps 1000 throughout; a candidate's estimate is
     // (1000 - to.aprBps) * amount / 10000 - fee.
@@ -325,6 +397,24 @@ void main() {
       final first = move(to: 'x', amount: 10000);
       final second = move(to: 'x', amount: 10000);
       expect(shortlistCardMoves(debts, [first, second]), [first, second]);
+    });
+
+    test("counts a source's promo in the estimate", () {
+      // p: 0% for 3 months then 12%, so a year saves 9 months at 12%:
+      // 1200 * 9 * 12000 / 120000 = 1080. a (10% all year) onto x saves
+      // 1000 * 12000 / 10000 = 1200, so it ranks first.
+      final p = debt(
+        id: 'p',
+        balance: 100000,
+        aprBps: 1200,
+        promo: const Promo(aprBps: 0, months: 3),
+      );
+      final fromPromo = move(from: 'p', to: 'x', amount: 12000);
+      final fromPlain = move(to: 'x', amount: 12000);
+      expect(shortlistCardMoves([...debts, p], [fromPromo, fromPlain]), [
+        fromPlain,
+        fromPromo,
+      ]);
     });
 
     test('returns at most kCardMoveShortlist candidates, highest first', () {

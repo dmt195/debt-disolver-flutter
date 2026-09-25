@@ -203,6 +203,9 @@
   "changeCardMovePromo": "Move {amount} from {from} to {to} (fee {fee}, {apr} for {months, plural, =1{1 month} other{{months} months}})",
   "@changeCardMovePromo": {"placeholders": {"amount": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "fee": {"type": "String"}, "apr": {"type": "String"}, "months": {"type": "int"}}},
   "changeCardMoveReminder": "Check your card's terms: most won't take a balance from a card by the same bank. This plan assumes payments above the minimum clear the highest-rate balance first, as UK and US law requires.",
+  "changeCardMoveTiming": "{name} is at {rate} until the end of {month}. Moving it then may save more, if the offer is still available.",
+  "@changeCardMoveTiming": {"placeholders": {"name": {"type": "String"}, "rate": {"type": "String"}, "month": {"type": "String"}}},
+  "changeCardMoveReassess": "Offers and rates change: check this plan again when a promo ends or a card's offer changes.",
   "cardMovesSummary": "{count, plural, =1{1 move} other{{count} moves}} · {fee} in fees",
   "@cardMovesSummary": {"placeholders": {"count": {"type": "int"}, "fee": {"type": "String"}}},
 

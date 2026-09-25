@@ -78,7 +78,12 @@ class _PlanTabs extends ConsumerWidget {
         l10n.planScenario(scenarioName ?? l10n.scenarioCurrent),
         ?extraLine,
         if (plan.change case final change?)
-          ...planChangeLines(l10n, change, locale),
+          ...planChangeLines(
+            l10n,
+            change,
+            locale,
+            now: ref.watch(clockProvider)(),
+          ),
       ],
     );
     return DefaultTabController(

@@ -1,14 +1,17 @@
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:intl/intl.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 /// What a strategy moved or replaced, as lines of text for the Summary tab
-/// and for exports.
+/// and for exports. With [now], a card move whose source is still on a
+/// promo also gets a tip naming the month that promo ends.
 List<String> planChangeLines(
   AppLocalizations l10n,
   PlanChange change,
-  String locale,
-) {
+  String locale, {
+  DateTime? now,
+}) {
   String money(Money m) => formatMoney(m, locale);
   return switch (change) {
     TransferChange(
@@ -62,7 +65,16 @@ List<String> planChangeLines(
             m.toName,
             money(m.fee),
           ),
+      for (final m in moves)
+        if ((m.sourcePromo, now) case (final promo?, final today?))
+          l10n.changeCardMoveTiming(
+            m.fromName,
+            formatPercent(promo.aprBps, locale),
+            DateFormat.yMMMM(locale)
+                .format(DateTime(today.year, today.month + promo.months - 1)),
+          ),
       l10n.changeCardMoveReminder,
+      l10n.changeCardMoveReassess,
     ],
   };
 }

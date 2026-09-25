@@ -56,8 +56,10 @@ const int kCardMoveShortlist = 8;
 
 /// The moves worth simulating next, on top of [moves]: from a transferable
 /// debt that hasn't received money onto another debt with an offer that
-/// hasn't given any, where money moved would pay a lower rate in month 1,
-/// each for the most that fits the target's remaining room with its fee.
+/// hasn't given any, where money moved would pay a lower rate than the
+/// source in some month (not only this one: a source on a promo that ends
+/// before the offer's may be worth moving now), each for the most that fits
+/// the target's remaining room with its fee.
 /// Ordered by source name, then target name (then ids).
 List<CardMove> cardMoveCandidates(List<Debt> debts, List<CardMove> moves) {
   final gave = {for (final m in moves) m.fromDebtId};
@@ -83,8 +85,10 @@ List<CardMove> cardMoveCandidates(List<Debt> debts, List<CardMove> moves) {
 }
 
 /// The best [kCardMoveShortlist] of [candidates] to actually simulate this
-/// round, ranked by a cheap estimate of a year's saving: the rate cut
-/// (month 1) times the amount moved, less the fee. Highest estimate first;
+/// round, ranked by a cheap estimate of a year's saving: for each of the
+/// next 12 months, how much lower the moved money's rate is than the
+/// source's (promos included; never negative), times the amount moved,
+/// less the fee. Highest estimate first;
 /// ties keep [candidates]' order (source name, then target name, as
 /// [cardMoveCandidates] returns them).
 List<CardMove> shortlistCardMoves(List<Debt> debts, List<CardMove> candidates) {
@@ -92,11 +96,12 @@ List<CardMove> shortlistCardMoves(List<Debt> debts, List<CardMove> candidates) {
   int estimate(CardMove move) {
     final from = byId[move.fromDebtId]!;
     final to = byId[move.toDebtId]!;
-    final movedRate = move.promo?.aprBps ?? to.aprBps;
-    final yearSaved = divideHalfEven(
-      (aprInMonth(from, 1) - movedRate) * move.amount.minor,
-      10000,
-    );
+    var rateMonths = 0;
+    for (var m = 1; m <= 12; m++) {
+      final cut = aprInMonth(from, m) - _movedRate(to, move.promo, m);
+      if (cut > 0) rateMonths += cut;
+    }
+    final yearSaved = divideHalfEven(rateMonths * move.amount.minor, 120000);
     return yearSaved - move.fee.minor;
   }
 
@@ -116,8 +121,7 @@ CardMove? _candidate(
   TransferOffer offer,
   List<CardMove> moves,
 ) {
-  final movedRate = offer.promo?.aprBps ?? to.aprBps;
-  if (aprInMonth(from, 1) <= movedRate) return null;
+  if (!_couldSave(from, to, offer)) return null;
   int fee(int amount) => divideHalfEven(amount * offer.feeBps, 10000);
   final left =
       from.balance.minor -
@@ -140,5 +144,27 @@ CardMove? _candidate(
     amount: Money(amount, currency),
     fee: Money(fee(amount), currency),
     promo: offer.promo,
+    sourcePromo: from.promo,
+  );
+}
+
+/// The rate money moved onto [to] pays in [month]: the offer's promo while
+/// it lasts ([promo]), then the card's own rate.
+int _movedRate(Debt to, Promo? promo, int month) => switch (promo) {
+  Promo(:final aprBps, :final months) when month <= months => aprBps,
+  _ => to.aprBps,
+};
+
+/// Whether money moved from [from] onto [to]'s [offer] would pay a lower
+/// rate than it does now in any month. Rates only change when a promo ends,
+/// so month 1 and the month after each promo are enough to check.
+bool _couldSave(Debt from, Debt to, TransferOffer offer) {
+  final months = {
+    1,
+    if (from.promo case final p?) p.months + 1,
+    if (offer.promo case final p?) p.months + 1,
+  };
+  return months.any(
+    (m) => aprInMonth(from, m) > _movedRate(to, offer.promo, m),
   );
 }

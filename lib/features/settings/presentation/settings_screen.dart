@@ -6,6 +6,7 @@ import 'package:debt_destroyer/features/ads/presentation/ads_providers.dart';
 import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
 import 'package:debt_destroyer/features/settings/presentation/currency_picker.dart';
 import 'package:debt_destroyer/features/settings/presentation/parameter_fields.dart';
+import 'package:debt_destroyer/features/settings/presentation/reminders_section.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -136,6 +137,8 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           ),
           const SizedBox(height: 8),
           FilledButton(onPressed: _save, child: Text(l10n.save)),
+          const SizedBox(height: 16),
+          RemindersSection(settings: widget.settings),
           if (ref.watch(privacyOptionsRequiredProvider).value ?? false)
             ListTile(
               contentPadding: EdgeInsets.zero,

@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/charts/draw_in.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -55,72 +56,74 @@ class StackedBalanceChart extends StatelessWidget {
       excludeSemantics: true,
       child: SizedBox(
         height: height,
-        child: LineChart(
-          LineChartData(
-            minY: 0,
-            lineBarsData: [
-              // Tallest first, so each lower band paints over it.
-              for (var i = n - 1; i >= 0; i--)
-                LineChartBarData(
-                  spots: [
-                    for (final (m, r) in rows.indexed)
-                      FlSpot(m.toDouble(), r[i]),
-                  ],
-                  color: c.surface,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(show: true, color: colors[i]),
-                ),
-            ],
-            borderData: FlBorderData(
-              show: true,
-              border: Border(bottom: BorderSide(color: c.ink, width: 1.5)),
-            ),
-            gridData: FlGridData(
-              drawVerticalLine: false,
-              getDrawingHorizontalLine: (_) =>
-                  FlLine(color: c.track, strokeWidth: 1),
-            ),
-            titlesData: const FlTitlesData(show: false),
-            lineTouchData: LineTouchData(
-              getTouchedSpotIndicator: (bar, indexes) => [
-                for (final _ in indexes)
-                  TouchedSpotIndicatorData(
-                    FlLine(color: c.ink, strokeWidth: 1.5),
-                    const FlDotData(show: false),
+        child: DrawIn(
+          child: LineChart(
+            LineChartData(
+              minY: 0,
+              lineBarsData: [
+                // Tallest first, so each lower band paints over it.
+                for (var i = n - 1; i >= 0; i--)
+                  LineChartBarData(
+                    spots: [
+                      for (final (m, r) in rows.indexed)
+                        FlSpot(m.toDouble(), r[i]),
+                    ],
+                    color: c.surface,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(show: true, color: colors[i]),
                   ),
               ],
-              touchTooltipData: LineTouchTooltipData(
-                getTooltipColor: (_) => c.surface,
-                tooltipBorder: BorderSide(color: c.outline, width: 2),
-                fitInsideHorizontally: true,
-                fitInsideVertically: true,
-                maxContentWidth: 180,
-                getTooltipItems: (spots) {
-                  if (spots.isEmpty) return const [];
-                  final m = spots.first.x.toInt();
-                  final row = rows[m];
-                  final text = tooltip(m, [
-                    for (var i = 0; i < n; i++) own(row, i),
-                  ], row.isEmpty ? 0 : row.last);
-                  return [
-                    LineTooltipItem(
-                      text,
-                      TextStyle(
-                        color: c.ink,
-                        fontSize: 12,
-                        fontFamily: kBodyFont,
-                      ),
-                      textAlign: TextAlign.start,
+              borderData: FlBorderData(
+                show: true,
+                border: Border(bottom: BorderSide(color: c.ink, width: 1.5)),
+              ),
+              gridData: FlGridData(
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (_) =>
+                    FlLine(color: c.track, strokeWidth: 1),
+              ),
+              titlesData: const FlTitlesData(show: false),
+              lineTouchData: LineTouchData(
+                getTouchedSpotIndicator: (bar, indexes) => [
+                  for (final _ in indexes)
+                    TouchedSpotIndicatorData(
+                      FlLine(color: c.ink, strokeWidth: 1.5),
+                      const FlDotData(show: false),
                     ),
-                    for (var k = 1; k < spots.length; k++) null,
-                  ];
-                },
+                ],
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipColor: (_) => c.surface,
+                  tooltipBorder: BorderSide(color: c.outline, width: 2),
+                  fitInsideHorizontally: true,
+                  fitInsideVertically: true,
+                  maxContentWidth: 180,
+                  getTooltipItems: (spots) {
+                    if (spots.isEmpty) return const [];
+                    final m = spots.first.x.toInt();
+                    final row = rows[m];
+                    final text = tooltip(m, [
+                      for (var i = 0; i < n; i++) own(row, i),
+                    ], row.isEmpty ? 0 : row.last);
+                    return [
+                      LineTooltipItem(
+                        text,
+                        TextStyle(
+                          color: c.ink,
+                          fontSize: 12,
+                          fontFamily: kBodyFont,
+                        ),
+                        textAlign: TextAlign.start,
+                      ),
+                      for (var k = 1; k < spots.length; k++) null,
+                    ];
+                  },
+                ),
               ),
             ),
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 400),
           ),
-          duration: MediaQuery.disableAnimationsOf(context)
-              ? Duration.zero
-              : const Duration(milliseconds: 400),
         ),
       ),
     );

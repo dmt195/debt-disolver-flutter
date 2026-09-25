@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
 import 'package:debt_destroyer/core/charts/comparison_bars.dart';
+import 'package:debt_destroyer/core/charts/draw_in.dart';
 import 'package:debt_destroyer/core/charts/segment_bar.dart';
 import 'package:debt_destroyer/core/charts/share_donut.dart';
 import 'package:debt_destroyer/core/charts/stacked_balance_chart.dart';
@@ -184,5 +185,76 @@ void main() {
       data.extraLinesData.verticalLines.map((l) => l.x),
       containsAll([2.5, 2.0]),
     );
+  });
+
+  group('draw in', () {
+    double factor(WidgetTester tester) =>
+        (tester
+                    .widget<ClipRect>(
+                      find.descendant(
+                        of: find.byType(DrawIn),
+                        matching: find.byType(ClipRect),
+                      ),
+                    )
+                    .clipper!
+                as RevealClipper)
+            .factor;
+
+    Widget line(List<double> values) => host(
+      BalanceLineChart(
+        semanticLabel: 'x',
+        lines: [ChartLine(values: values, color: Colors.blue)],
+      ),
+    );
+
+    testWidgets('the line chart draws in left to right, once', (tester) async {
+      await tester.pumpWidget(line(const [10, 5, 0]));
+      expect(factor(tester), 0);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(factor(tester), inExclusiveRange(0, 1));
+      await tester.pumpAndSettle();
+      expect(factor(tester), 1);
+      // New data animates in fl_chart's own way; the reveal stays done.
+      await tester.pumpWidget(line(const [12, 6, 1, 0]));
+      expect(factor(tester), 1);
+    });
+
+    testWidgets('the stacked chart draws in too', (tester) async {
+      await tester.pumpWidget(
+        host(
+          StackedBalanceChart(
+            semanticLabel: 'x',
+            names: const ['A', 'B'],
+            colors: const [Colors.blue, Colors.orange],
+            stacks: const [
+              [10, 5],
+              [6, 3],
+              [0, 0],
+            ],
+            tooltip: (m, balances, total) => '$m',
+          ),
+        ),
+      );
+      expect(factor(tester), 0);
+      await tester.pumpAndSettle();
+      expect(factor(tester), 1);
+    });
+
+    testWidgets('with reduced motion, whole at once', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await tester.pumpWidget(line(const [10, 5, 0]));
+      expect(factor(tester), 1);
+    });
+
+    test('the clip grows from the left', () {
+      expect(
+        const RevealClipper(0.25).getClip(const Size(200, 100)),
+        const Rect.fromLTWH(0, 0, 50, 100),
+      );
+    });
   });
 }

@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/charts/draw_in.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -143,7 +144,10 @@ class BalanceLineChart extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(height: height, child: chart),
+          SizedBox(
+            height: height,
+            child: DrawIn(child: chart),
+          ),
           if (!compact && (startLabel != null || endLabel != null))
             Padding(
               padding: const EdgeInsets.only(top: 4),

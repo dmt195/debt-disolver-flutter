@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:debt_destroyer/core/currency.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/debts/domain/cleared_debt.dart';
 import 'package:debt_destroyer/features/debts/domain/debt_repository.dart';
 import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
+import 'package:debt_destroyer/features/progress/data/drift_progress_repository.dart';
 import 'package:drift/drift.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
@@ -179,6 +182,45 @@ class DriftDebtRepository implements DebtRepository {
                       final limit? => rescale(limit, min: 1),
                       null => null,
                     },
+                  ),
+                ),
+              );
+            }
+            // So does progress history (spec §8.2).
+            final checkIns = await _db.select(_db.checkInRows).get();
+            for (final row in checkIns) {
+              await (_db.update(
+                _db.checkInRows,
+              )..where((t) => t.id.equals(row.id))).write(
+                CheckInRowsCompanion(
+                  totalMinor: Value(rescale(row.totalMinor, min: 0)),
+                ),
+              );
+            }
+            final balances = await _db.select(_db.checkInBalanceRows).get();
+            for (final row in balances) {
+              await (_db.update(_db.checkInBalanceRows)..where(
+                    (t) =>
+                        t.checkInId.equals(row.checkInId) &
+                        t.debtId.equals(row.debtId),
+                  ))
+                  .write(
+                    CheckInBalanceRowsCompanion(
+                      balanceMinor: Value(rescale(row.balanceMinor, min: 0)),
+                    ),
+                  );
+            }
+            final starts = await _db.select(_db.startingPointRows).get();
+            for (final row in starts) {
+              await (_db.update(
+                _db.startingPointRows,
+              )..where((t) => t.id.equals(row.id))).write(
+                StartingPointRowsCompanion(
+                  projectedTotalsJson: Value(
+                    jsonEncode([
+                      for (final t in decodeTotals(row.projectedTotalsJson))
+                        rescale(t, min: 0),
+                    ]),
                   ),
                 ),
               );

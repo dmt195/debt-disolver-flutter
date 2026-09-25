@@ -5,6 +5,8 @@ import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/debts/data/drift_debt_repository.dart';
 import 'package:debt_destroyer/features/debts/domain/debt_repository.dart';
+import 'package:debt_destroyer/features/progress/data/drift_progress_repository.dart';
+import 'package:debt_destroyer/features/progress/domain/progress_repository.dart';
 import 'package:debt_destroyer/features/scenarios/data/drift_scenario_repository.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario_repository.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
@@ -42,3 +44,8 @@ DebtRepository debtRepository(Ref ref) => DriftDebtRepository(
 @Riverpod(keepAlive: true)
 ScenarioRepository scenarioRepository(Ref ref) =>
     DriftScenarioRepository(ref.watch(appDatabaseProvider));
+
+/// Check-ins and starting points, in the same database as the debts.
+@Riverpod(keepAlive: true)
+ProgressRepository progressRepository(Ref ref) =>
+    DriftProgressRepository(ref.watch(appDatabaseProvider));

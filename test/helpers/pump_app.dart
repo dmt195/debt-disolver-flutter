@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 import 'in_memory_debt_repository.dart';
+import 'in_memory_progress_repository.dart';
 import 'in_memory_scenario_repository.dart';
 import 'test_container.dart';
 
@@ -26,6 +27,7 @@ Future<AppHarness> pumpApp(
   List<Override> overrides = const [],
 }) async {
   final repository = InMemoryDebtRepository(debts);
+  final progress = InMemoryProgressRepository(repository);
   final scenarioRepository = InMemoryScenarioRepository(scenarios);
   await tester.pumpWidget(
     ProviderScope(
@@ -39,6 +41,7 @@ Future<AppHarness> pumpApp(
           }),
         ),
         debtRepositoryProvider.overrideWithValue(repository),
+        progressRepositoryProvider.overrideWithValue(progress),
         scenarioRepositoryProvider.overrideWithValue(scenarioRepository),
         planCalculatorProvider.overrideWithValue(
           (debts, budget, parameters) async =>
@@ -57,15 +60,16 @@ Future<AppHarness> pumpApp(
     container.read(routerProvider).go(location);
     await tester.pumpAndSettle();
   }
-  return AppHarness(container, repository, scenarioRepository);
+  return AppHarness(container, repository, scenarioRepository, progress);
 }
 
 class AppHarness {
-  AppHarness(this.container, this.repository, this.scenarios);
+  AppHarness(this.container, this.repository, this.scenarios, this.progress);
 
   final ProviderContainer container;
   final InMemoryDebtRepository repository;
   final InMemoryScenarioRepository scenarios;
+  final InMemoryProgressRepository progress;
 
   GoRouterNavigator get router => GoRouterNavigator(container);
 }

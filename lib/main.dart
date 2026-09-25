@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:debt_destroyer/app/app.dart';
 import 'package:debt_destroyer/core/crash_reporter.dart';
 import 'package:debt_destroyer/features/ads/presentation/ads_providers.dart';
+import 'package:debt_destroyer/features/reminders/presentation/reminder_scheduler.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -31,9 +32,11 @@ Future<void> main() async {
   );
   // Ask for ads consent once the first screen is showing, so the consent
   // form appears over the app rather than a blank screen.
-  WidgetsBinding.instance.addPostFrameCallback(
-    (_) => unawaited(container.read(adsServiceProvider).initialize()),
-  );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(container.read(adsServiceProvider).initialize());
+    // A reminder tapped while the app was closed opens Check in.
+    unawaited(openLaunchReminder(container));
+  });
 }
 
 /// The bundled fonts are under the SIL Open Font License.

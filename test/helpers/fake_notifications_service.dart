@@ -13,6 +13,7 @@ class FakeNotificationsService implements NotificationsService {
   /// The last list passed to [replaceAll].
   List<Reminder> scheduled = const [];
   int replaceCount = 0;
+  bool initialized = false;
   int requests = 0;
   void Function(String? payload)? _onTap;
 
@@ -22,7 +23,10 @@ class FakeNotificationsService implements NotificationsService {
   @override
   Future<void> initialize({
     required void Function(String? payload) onTap,
-  }) async => _onTap = onTap;
+  }) async {
+    _onTap = onTap;
+    initialized = true;
+  }
 
   @override
   Future<bool> requestPermission() async {

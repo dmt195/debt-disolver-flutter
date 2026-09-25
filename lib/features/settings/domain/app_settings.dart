@@ -18,6 +18,15 @@ abstract class AppSettings with _$AppSettings {
     /// The plan the user follows; null until the first starting point picks
     /// the cheapest (spec §6.2).
     StrategyId? followedStrategy,
+
+    /// A monthly reminder of what to pay (spec §7).
+    @Default(false) bool payDayReminder,
+
+    /// Its day of the month: 1–28, or 0 for the last day.
+    @Default(28) int payDay,
+
+    /// Months after the last check-in to nudge; 0 is off.
+    @Default(2) int checkInNudgeMonths,
   }) = _AppSettings;
 
   factory AppSettings.defaults(String currencyCode) => AppSettings(

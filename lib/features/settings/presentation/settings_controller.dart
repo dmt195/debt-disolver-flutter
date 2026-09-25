@@ -91,6 +91,28 @@ class SettingsController extends _$SettingsController {
     await _save((await future).copyWith(followedStrategy: id));
   });
 
+  /// Turns the pay-day reminder on or off, and sets its [day] (1–28, or 0
+  /// for the last day of the month).
+  Future<void> setPayDayReminder({required bool on, int? day}) {
+    if (day != null && (day < 0 || day > 28)) {
+      throw ArgumentError.value(day, 'day');
+    }
+    return _serialised(() async {
+      final current = await future;
+      await _save(
+        current.copyWith(payDayReminder: on, payDay: day ?? current.payDay),
+      );
+    });
+  }
+
+  /// Nudges to check in [months] (1–3) after the last check-in; 0 is off.
+  Future<void> setCheckInNudgeMonths(int months) {
+    if (months < 0 || months > 3) throw ArgumentError.value(months, 'months');
+    return _serialised(() async {
+      await _save((await future).copyWith(checkInNudgeMonths: months));
+    });
+  }
+
   Future<void> completeOnboarding() => _serialised(() async {
     await _save((await future).copyWith(onboardingComplete: true));
   });

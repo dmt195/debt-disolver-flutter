@@ -23,6 +23,9 @@ abstract final class SettingsKeys {
   static const transferCreditLimitMinor = 'transferCreditLimitMinor';
   static const onboardingComplete = 'onboardingComplete';
   static const followedStrategy = 'followedStrategy';
+  static const payDayReminder = 'payDayReminder';
+  static const payDay = 'payDay';
+  static const checkInNudgeMonths = 'checkInNudgeMonths';
 }
 
 class PrefsSettingsRepository implements SettingsRepository {
@@ -82,6 +85,15 @@ class PrefsSettingsRepository implements SettingsRepository {
       onboardingComplete: field<bool>(SettingsKeys.onboardingComplete) ?? false,
       followedStrategy: StrategyId.values
           .asNameMap()[field<String>(SettingsKeys.followedStrategy)],
+      payDayReminder: field<bool>(SettingsKeys.payDayReminder) ?? false,
+      payDay: switch (field<int>(SettingsKeys.payDay)) {
+        final day? when day >= 0 && day <= 28 => day,
+        _ => 28,
+      },
+      checkInNudgeMonths: switch (field<int>(SettingsKeys.checkInNudgeMonths)) {
+        final months? when months >= 0 && months <= 3 => months,
+        _ => 2,
+      },
     );
   }
 
@@ -102,6 +114,9 @@ class PrefsSettingsRepository implements SettingsRepository {
         SettingsKeys.transferCreditLimitMinor: p.transferCreditLimit?.minor,
         SettingsKeys.onboardingComplete: settings.onboardingComplete,
         SettingsKeys.followedStrategy: settings.followedStrategy?.name,
+        SettingsKeys.payDayReminder: settings.payDayReminder,
+        SettingsKeys.payDay: settings.payDay,
+        SettingsKeys.checkInNudgeMonths: settings.checkInNudgeMonths,
       }),
     );
   }

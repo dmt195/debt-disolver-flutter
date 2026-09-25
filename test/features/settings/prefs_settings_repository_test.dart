@@ -132,4 +132,34 @@ void main() {
     );
     expect((await odd.load()).followedStrategy, isNull);
   });
+
+  test(
+    'reminder settings: saved, read back, and defaults for bad values',
+    () async {
+      final defaults = await repositoryWith({}).load();
+      expect(defaults.payDayReminder, isFalse);
+      expect(defaults.payDay, 28);
+      expect(defaults.checkInNudgeMonths, 2);
+      final repo = repositoryWith({});
+      await repo.save(
+        defaults.copyWith(
+          payDayReminder: true,
+          payDay: 0,
+          checkInNudgeMonths: 3,
+        ),
+      );
+      final loaded = await repo.load();
+      expect(
+        (loaded.payDayReminder, loaded.payDay, loaded.checkInNudgeMonths),
+        (true, 0, 3),
+      );
+      final odd = await repositoryWith(
+        storedSettings({
+          SettingsKeys.payDay: 31,
+          SettingsKeys.checkInNudgeMonths: 9,
+        }),
+      ).load();
+      expect((odd.payDay, odd.checkInNudgeMonths), (28, 2));
+    },
+  );
 }

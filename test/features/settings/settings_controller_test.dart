@@ -180,4 +180,17 @@ void main() {
       StrategyId.snowball,
     );
   });
+
+  test('reminder setters save valid values and refuse others', () async {
+    final controller = container.read(settingsControllerProvider.notifier);
+    await controller.setPayDayReminder(on: true, day: 15);
+    await controller.setCheckInNudgeMonths(1);
+    final s = await container.read(settingsControllerProvider.future);
+    expect((s.payDayReminder, s.payDay, s.checkInNudgeMonths), (true, 15, 1));
+    expect(
+      () => controller.setPayDayReminder(on: true, day: 29),
+      throwsArgumentError,
+    );
+    expect(() => controller.setCheckInNudgeMonths(4), throwsArgumentError);
+  });
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/charts/segment_bar.dart';
 import 'package:debt_destroyer/core/charts/stacked_balance_chart.dart';
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
@@ -11,6 +12,7 @@ import 'package:debt_destroyer/features/scenarios/presentation/scenarios_provide
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
@@ -413,4 +415,45 @@ void main() {
       expect(find.text('Follow this plan'), findsNothing);
     });
   });
+
+  for (final brightness in Brightness.values) {
+    testWidgets('legend names are readable in ${brightness.name} mode', (
+      tester,
+    ) async {
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      useTallScreen(tester);
+      await pumpApp(
+        tester,
+        debts: [
+          visa,
+          testDebt(id: 'car', name: 'Car loan', aprBps: 790),
+        ],
+        location: Routes.plan(StrategyId.avalanche),
+      );
+      final c = brightness == Brightness.dark
+          ? DestroyerColors.dark
+          : DestroyerColors.light;
+      Color? labelColour(String name) => tester
+          .renderObject<RenderParagraph>(
+            find.descendant(
+              of: find.byType(FilterChip),
+              matching: find.text(name),
+            ),
+          )
+          .text
+          .style
+          ?.color;
+      // Shown debts read in the ink; a hidden one in the secondary ink.
+      expect(labelColour('Car loan'), c.ink);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(FilterChip),
+          matching: find.text('Car loan'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(labelColour('Car loan'), c.ink2);
+    });
+  }
 }

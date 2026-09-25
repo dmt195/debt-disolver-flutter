@@ -209,6 +209,13 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       selectedColor: c.surface,
       backgroundColor: c.track,
+      // Material's default for a selected chip is navy in dark mode: set the
+      // text from Direction A's inks (shown = ink, hidden = secondary ink).
+      labelStyle: TextStyle(
+        color: WidgetStateColor.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? c.ink : c.ink2,
+        ),
+      ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: c.navBar,

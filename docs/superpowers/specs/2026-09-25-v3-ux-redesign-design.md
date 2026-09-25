@@ -27,7 +27,7 @@ The app works, but it reads like a form and a spreadsheet. The one chart is hidd
 - Changes to `payoff_engine` (v3 is app-only; §9 lists what the engine already provides).
 - New strategies, lump sums, budgets that change over time.
 - Any ad format other than the existing banner. There are no interstitial, native or rewarded ads.
-- Dark theme polish beyond what Material 3 gives (tracked for the hi-fi pass, §11).
+- Themes other than Direction A's light and dark (§5).
 
 **Unchanged constraints:** local-only data, integer money (minor units, basis points, half-even), a pure-Dart engine, TDD, the `AdsService` and consent flow, and borrowing alternatives that are never marked cheapest.
 
@@ -43,7 +43,7 @@ The app works, but it reads like a form and a spreadsheet. The one chart is hidd
 |---|---|
 | Navigation | Bottom nav: Home · Debts · Plans. Settings behind a gear icon in every tab's app bar. |
 | Naming | "Plans" replaces "Strategies" in the UI. Code names (`StrategyId`, `strategies/` feature folder) stay. |
-| Imagery | Flat vector illustrations (SVG), plus a few Lottie animations for celebrations. No photos. |
+| Imagery | Direction A ("Demolition crew"): geometric flat illustrations drawn in-house as animated `CustomPainter`s. No photos, no Lottie (§5). |
 | Ads | Bottom-anchored banner on **Debts and Plans only**. No ads on Home, detail screens, check-in, onboarding, celebrations or Scenarios. Never between list items. |
 | Progress | A "Check in now" action whenever the user likes, plus an optional monthly pay-day reminder and a check-in nudge. |
 | Ahead / behind | Measured against the followed plan as it stood at the **latest starting point** (§6.3). |
@@ -184,7 +184,7 @@ Export (CSV and XLSX) stays in the app bar's share menu. No ads.
 
 ### 4.10 Celebration (new)
 A full-screen dialog:
-- A Lottie animation over an illustration.
+- The animated wrecking-ball illustration (§5.2), on a `hiVis` ground.
 - "{Debt} destroyed!" and "That's £X gone. Its £Y a month now rolls onto {next debt}" (from the followed plan).
 - "{k} of {n} debts cleared".
 - **Share** (a plain-text message through `share_plus`; no image in v3) and **Keep going**.
@@ -199,28 +199,54 @@ Settings gains a **Reminders** section:
 
 The rest is unchanged.
 
-## 5. Visual language
+## 5. Visual language: Direction A, "Demolition crew"
 
-The hi-fi pass (§11) sets exact colours, type and spacing. This spec fixes the structure the hi-fi pass must respect.
+Chosen in the hi-fi pass (canvas page "A · Demolition crew"). The debt is a brick wall, and every payment knocks bricks out of it. The look is loud where it celebrates and calm everywhere else.
 
-### 5.1 Theme
-- Material 3, with a custom `ColorScheme` built from one brand seed and a warm neutral.
-- Chart colours come from a fixed categorical palette of 7, checked for contrast in light and dark, and no longer from `chartColors(scheme)`.
-- A debt keeps the same colour on every chart: its index in the user's list order, modulo 7.
-- A display typeface for big numbers and headlines, over a readable body face. Both are bundled (no runtime font fetching).
+### 5.1 Theme tokens
+Material 3 with a hand-built `ColorScheme`, plus a `ThemeExtension` (`DestroyerColors`) for what M3 has no slot for.
 
-### 5.2 Illustrations
-One consistent flat vector set, stored as SVG under `assets/illustrations/` and drawn with `flutter_svg`:
-- Onboarding × 3 and setup.
-- Home hero and Home empty state.
-- The eight debt-type avatars.
-- Empty states for Debts, Plans and Scenarios.
-- Check-in result (ahead, on track and behind variants).
-- Debt cleared and debt free.
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `ink` | `#14213D` | `#EEF1F6` | Text, 2px outlines, the navy CTA (light) |
+| `ink2` | `#4A5568` | `#A9B4C7` | Secondary text, neutral bars |
+| `ground` | `#F3F4F6` | `#0E1628` | Scaffold background |
+| `surface` | `#FFFFFF` | `#17223A` | Cards and sheets |
+| `outline` | `#14213D` | `#3A4B6E` | Card borders (2px) |
+| `track` | `#E6E8EC` | `#24314D` | Empty bar tracks, the ad slot |
+| `hiVis` | `#FFC400` | `#FFC400` | One hero block per screen, the slider block, the Cheapest badge, the celebration ground. Always with `#14213D` text; never used as a text colour |
+| `navBar` | `#14213D` | `#0A1120` | Bottom nav (active item is `hiVis`) |
+| `primary` button | `#14213D` on white text | `#FFC400` with `#14213D` text | Main action |
 
-Two Lottie animations (`lottie` package, JSON under `assets/animations/`): confetti for a debt cleared, and a bigger one for debt free. Animations respect the system's reduced-motion setting (`MediaQuery.disableAnimations`), which falls back to the static illustration.
+- **Shape:** 2px outlines, 6px corners on cards and buttons, 4px on chips. No shadows or elevation tints.
+- **Hazard stripes** (a −45° repeating `hiVis`/navy pattern) mean only "still to knock down": milestone progress, and the interest share of "where your money goes".
+- **Type:** Bricolage Grotesque ExtraBold (800) for headings and big numbers, with tight negative tracking at display sizes. Atkinson Hyperlegible (400/700) for everything else, with tabular figures for amounts. Both are bundled under `assets/fonts/` (OFL); there's no runtime font fetching.
+- **Debt colours:** a fixed categorical palette of 6. A debt keeps one colour everywhere, taken from its index in the user's list order, modulo 6. Both sets pass the colour-blindness check (lightness band, chroma, adjacent-pair separation for colour-blind and normal vision, and 3:1 contrast against the surface):
+  - Light: `#1F4FD1 #D9590B #0F9D7A #7A5AF8 #C23B8A #A87A00`
+  - Dark: `#4F83F5 #E0661A #16A080 #8E78F5 #DE559F #B08A00`
+- **Chart chrome:**
+  - The actual line is `series[0]`-blue at 3px, with square markers.
+  - The plan line is `ink`, dashed 6/5.
+  - The original projection is a faint dotted grey (`#9AA3B2` light, `#5E6C88` dark).
+  - The "today" line is `#D9590B` (light) or `#E0661A` (dark).
+  - Grid lines are `track`, with a single baseline in `ink`.
+  - Series are also told apart by line style (solid, dashed, dotted), never by colour alone.
 
-The source of the illustrations (commissioned, or a commercially licensed set) is decided in the hi-fi pass. The licence must allow use in an app funded by ads.
+### 5.2 Illustrations and motion
+- **Drawing:** illustrations are drawn **in-house** in the same geometric style (2px navy outlines, flat fills, `hiVis` as the only highlight): bricks, walls, a wrecking ball, a cleared plot for "debt free". That settles the question of where they come from: nothing is commissioned or licensed.
+- **Code:** they are `CustomPainter`s under `lib/core/illustrations/`, not SVG assets, so they can be animated and themed. There's no `flutter_svg`.
+- **The set:**
+  - Welcome × 3 and setup.
+  - The Home hero wall (its knocked-out bricks track the percentage paid off).
+  - Empty states for Home, Debts, Plans and Scenarios.
+  - Check-in result.
+  - Debt cleared and debt free.
+  - The eight debt-type glyphs (drawn as icons on a square filled with the debt's colour).
+- **Motion** uses Flutter animations, not Lottie (no `lottie` dependency):
+  - **Debt cleared:** the ball swings, bricks scatter, then the headline slams in.
+  - **Check-in result:** bricks drop out one at a time while the amount counts up.
+  - **Charts:** each draws left to right once, on first view.
+  - With `MediaQuery.disableAnimations` on, only the final frame is shown.
 
 ### 5.3 Charts
 All charts use `fl_chart`, with one shared widget per kind under `lib/core/charts/`:
@@ -403,7 +429,7 @@ TDD as always.
 
 ## 11. Order of work
 
-1. **Hi-fi design pass** (before any screen code):
+1. **Hi-fi design pass** (done 2026-09-25: Direction A, §5):
    - Palette, type, the chart palette, illustration style and source.
    - Hi-fi comps of Home, Debts, Plans, Plan detail, Check in and Celebration, in light and dark.
    - The result updates §5 with exact tokens.
@@ -417,6 +443,6 @@ TDD as always.
    - Cleared debts and the celebration.
    - Home's progress hero and plan vs actual chart.
 4. **Plan 9: Reminders.** `NotificationsService`, scheduling, the reminder step in setup, and the Settings section.
-5. **Plan 10: Imagery.** Illustrated onboarding and setup, debt-type tiles and avatars, empty states, and the Lottie animations. Placeholders ship until then; the assets can land in parallel once the hi-fi pass has chosen them.
+5. **Plan 10: Imagery.** The illustration painters and their animations (§5.2): welcome and setup, the Home wall, empty states, check-in result, cleared and debt free. Plans 7–9 ship simple static placeholders until then.
 
 `docs/release.md` gains a step to block the sensitive ad categories in AdMob (gambling, and payday or high-interest lending).

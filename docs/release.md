@@ -44,7 +44,7 @@ flutter build ipa --release \
   --dart-define=ADMOB_BANNER_IOS=ca-app-pub-XXXXXXXX/NNNNNNNNNN
 ```
 
-Android has two flavors: `dev` (`com.dmt195.debt_destroyer.dev`, "Debt Destroyer Dev", always Google's test AdMob app id) and `prod`. iOS has no flavors yet: both builds use `com.dmt195.debt_destroyer`, and dev/prod differ only in the `--dart-define`s. Separate iOS schemes can be added later in Xcode (see https://docs.flutter.dev/deployment/flavors-ios).
+Android has two flavors: `dev` (`dev.countersunk.debt_destroyer.dev`, "Debt Destroyer Dev", always Google's test AdMob app id) and `prod`. iOS has no flavors yet: both builds use `dev.countersunk.debtDestroyer`, and dev/prod differ only in the `--dart-define`s. Separate iOS schemes can be added later in Xcode (see https://docs.flutter.dev/deployment/flavors-ios).
 
 ## 4. Store listings
 

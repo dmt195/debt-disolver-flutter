@@ -23,7 +23,7 @@ val admobProperties = Properties().apply {
 val testAdmobAppId = "ca-app-pub-3940256099942544~3347511713"
 
 android {
-    namespace = "com.dmt195.debt_destroyer"
+    namespace = "dev.countersunk.debt_destroyer"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -35,7 +35,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.dmt195.debt_destroyer"
+        applicationId = "dev.countersunk.debt_destroyer"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

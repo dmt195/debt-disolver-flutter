@@ -138,7 +138,10 @@
   "onboardingIntro2": "Pay the minimum on every debt, then put everything else towards the one with the highest interest rate.",
   "onboardingIntro3": "When a debt is cleared, its payment rolls on to the next one: the quickest route to being debt-free.",
   "onboardingBudgetQuestion": "How much can you pay towards your debts each month?",
-  "onboardingStart": "Get started",
+  "setupRemindMe": "Remind me to pay each month",
+  "setupRemindMeHint": "We'll list what to pay on each debt. Your phone asks permission first.",
+  "setupAddFirstDebt": "Add my first debt",
+  "setupLater": "I'll do it later",
 
   "debtsTitle": "Your debts",
   "debtsEmpty": "No debts yet. Add your first one to get started.",

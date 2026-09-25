@@ -1,7 +1,12 @@
+import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
+import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/core/notifications.dart';
+import 'package:debt_destroyer/core/widgets/outlined_card.dart';
+import 'package:debt_destroyer/features/reminders/domain/reminder_schedule.dart';
 import 'package:debt_destroyer/features/settings/presentation/currency_picker.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +28,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String? _currency;
   bool _prefilled = false;
   bool _saving = false;
+
+  /// The pay-day reminder: on by default (spec §4.1).
+  bool _remind = true;
+  int _day = 28;
 
   @override
   void dispose() {
@@ -91,10 +100,49 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ),
                 validator: (v) => _budgetProblem(v ?? '', currency, locale),
               ),
+              const SizedBox(height: 16),
+              OutlinedCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.setupRemindMe),
+                      subtitle: Text(l10n.setupRemindMeHint),
+                      value: _remind,
+                      onChanged: (on) => setState(() => _remind = on),
+                    ),
+                    DropdownButtonFormField<int>(
+                      isExpanded: true,
+                      initialValue: _day,
+                      decoration: InputDecoration(labelText: l10n.remindersDay),
+                      items: [
+                        for (var day = 1; day <= 28; day++)
+                          DropdownMenuItem(
+                            value: day,
+                            child: Text(ordinal(day)),
+                          ),
+                        DropdownMenuItem(
+                          value: kLastDay,
+                          child: Text(l10n.remindersLastDay),
+                        ),
+                      ],
+                      onChanged: _remind
+                          ? (day) => setState(() => _day = day ?? 28)
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: _saving ? null : _start,
-                child: Text(l10n.onboardingStart),
+                onPressed: _saving ? null : () => _start(addDebt: true),
+                child: Text(l10n.setupAddFirstDebt),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                onPressed: _saving ? null : () => _start(addDebt: false),
+                child: Text(l10n.setupLater),
               ),
             ],
           ),
@@ -125,7 +173,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return null;
   }
 
-  Future<void> _start() async {
+  /// Saves the choices and finishes onboarding, then opens the debt form
+  /// ([addDebt]) or Home. A refused notification permission saves the
+  /// reminder off and carries on.
+  Future<void> _start({required bool addDebt}) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final locale = ref.read(formatLocaleProvider);
     final currency = _currency!;
@@ -136,11 +187,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     )!;
     setState(() => _saving = true);
     final controller = ref.read(settingsControllerProvider.notifier);
-    await runGuarded(context, () async {
+    final router = ref.read(routerProvider);
+    final done = await runGuarded(context, () async {
       await controller.setCurrency(currency);
       await controller.setMonthlyBudget(minor);
+      final on =
+          _remind &&
+          await ref.read(notificationsServiceProvider).requestPermission();
+      await controller.setPayDayReminder(on: on, day: _day);
       await controller.completeOnboarding();
+      return true;
     });
+    if (done ?? false) router.go(addDebt ? Routes.newDebt : Routes.home);
     if (mounted) setState(() => _saving = false);
   }
 }

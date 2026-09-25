@@ -174,20 +174,29 @@ class _ClimbWallPainter extends CustomPainter {
 /// Debt-free: a cleared plot, the bricks stacked neatly, a flag [raise]d
 /// (0–1) in the middle.
 class ClearedPlot extends StatelessWidget {
-  const ClearedPlot({this.raise = 1, this.maxHeight = 140, super.key});
+  const ClearedPlot({
+    this.raise = 1,
+    this.maxHeight = 140,
+    this.flag = kHiVis,
+    super.key,
+  });
 
   final double raise;
   final double maxHeight;
 
+  /// The flag's colour: white where the ground is hi-vis.
+  final Color flag;
+
   @override
   Widget build(BuildContext context) =>
-      _scene(_ClearedPlotPainter(raise), maxHeight: maxHeight);
+      _scene(_ClearedPlotPainter(raise, flag), maxHeight: maxHeight);
 }
 
 class _ClearedPlotPainter extends CustomPainter {
-  const _ClearedPlotPainter(this.raise);
+  const _ClearedPlotPainter(this.raise, this.flag);
 
   final double raise;
+  final Color flag;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -207,10 +216,10 @@ class _ClearedPlotPainter extends CustomPainter {
         );
       }
     }
-    drawFlag(canvas, const Offset(130, _ground), 70, raise: raise);
+    drawFlag(canvas, const Offset(130, _ground), 70, raise: raise, fill: flag);
   }
 
   @override
   bool shouldRepaint(_ClearedPlotPainter oldDelegate) =>
-      oldDelegate.raise != raise;
+      oldDelegate.raise != raise || oldDelegate.flag != flag;
 }

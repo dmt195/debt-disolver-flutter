@@ -1,7 +1,9 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/illustrations/wrecking_ball.dart';
 import 'package:debt_destroyer/core/text_sharer.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/progress/presentation/progress_providers.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
@@ -91,5 +93,103 @@ void main() {
     final app = await pumpApp(tester, location: Routes.cleared('nope'));
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.home);
+  });
+
+  group('motion', () {
+    // Opens the celebration without letting its animation finish.
+    Future<AppHarness> openRaw(WidgetTester tester) async {
+      useTallScreen(tester);
+      final app = await pumpApp(
+        tester,
+        location: Routes.home,
+        debts: [visa, store],
+      );
+      await app.container.read(progressControllerProvider.notifier).saveCheckIn(
+        {'visa': visa.balance, 'store': zero},
+      );
+      app.container.read(routerProvider).go(Routes.cleared('store'));
+      await tester.pump();
+      await tester.pump();
+      return app;
+    }
+
+    double scene(WidgetTester tester) => tester
+        .widget<WreckingBallScene>(find.byType(WreckingBallScene))
+        .progress;
+    double headline(WidgetTester tester) =>
+        tester.widget<Opacity>(find.byKey(const ValueKey('headline'))).opacity;
+
+    void reduceMotion(WidgetTester tester) {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+    }
+
+    testWidgets('the ball swings once, then the headline slams in', (
+      tester,
+    ) async {
+      await openRaw(tester);
+      expect(scene(tester), lessThan(0.2));
+      expect(headline(tester), 0);
+      expect(find.text('Keep going'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(scene(tester), 1);
+      expect(headline(tester), 1);
+    });
+
+    testWidgets('with reduced motion, the last frame at once', (tester) async {
+      reduceMotion(tester);
+      await openRaw(tester);
+      expect(scene(tester), 1);
+      expect(headline(tester), 1);
+    });
+
+    testWidgets('a rebuild does not replay it', (tester) async {
+      await openRaw(tester);
+      await tester.pumpAndSettle();
+      tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(scene(tester), 1);
+      expect(headline(tester), 1);
+    });
+
+    testWidgets('debt free raises the flag', (tester) async {
+      final app = await clear(tester, [store], {'store': zero});
+      app.container.read(routerProvider).go(Routes.debtFree);
+      await tester.pump();
+      await tester.pump();
+      expect(
+        tester.widget<DebtFreeScene>(find.byType(DebtFreeScene)).progress,
+        lessThan(0.2),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<DebtFreeScene>(find.byType(DebtFreeScene)).progress,
+        1,
+      );
+    });
+
+    testWidgets('paints every frame', (tester) async {
+      for (final brightness in Brightness.values) {
+        for (final t in [0.0, 0.25, 0.5, 0.75, 1.0]) {
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: ThemeData(brightness: brightness),
+              home: Column(
+                children: [
+                  SizedBox(width: 300, child: WreckingBallScene(progress: t)),
+                  SizedBox(width: 300, child: DebtFreeScene(progress: t)),
+                ],
+              ),
+            ),
+          );
+          expect(tester.takeException(), isNull);
+        }
+      }
+    });
   });
 }

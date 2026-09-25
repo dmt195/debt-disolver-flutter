@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/illustrations/wrecking_ball.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -44,6 +45,8 @@ class CelebrationScreen extends ConsumerWidget {
     }
 
     return _HiVisPage(
+      art: (t) => WreckingBallScene(progress: t),
+      duration: const Duration(milliseconds: 1100),
       onClose: () => context.go(Routes.home),
       title: l10n.celebrationTitle(debt.name),
       lines: [l10n.celebrationGone(gone)],
@@ -110,6 +113,8 @@ class DebtFreeScreen extends ConsumerWidget {
       formatDuration(l10n, months < 1 ? 1 : months),
     );
     return _HiVisPage(
+      art: (t) => DebtFreeScene(progress: t),
+      duration: const Duration(milliseconds: 900),
       onClose: () => context.go(Routes.home),
       title: l10n.debtFreeTitle,
       lines: [body],
@@ -121,9 +126,12 @@ class DebtFreeScreen extends ConsumerWidget {
 }
 
 /// A full hi-vis screen: art, a slammed-in headline, a white card and
-/// Share beside the main action (canvas "A · Debt cleared").
-class _HiVisPage extends StatelessWidget {
+/// Share beside the main action (canvas "A · Debt cleared"). One timeline
+/// drives the art and the headline, once per screen (spec §5.2).
+class _HiVisPage extends StatefulWidget {
   const _HiVisPage({
+    required this.art,
+    required this.duration,
     required this.onClose,
     required this.title,
     required this.lines,
@@ -133,6 +141,9 @@ class _HiVisPage extends StatelessWidget {
     this.card,
   });
 
+  /// The picture at a point (0–1) of the timeline.
+  final Widget Function(double t) art;
+  final Duration duration;
   final VoidCallback onClose;
   final String title;
   final List<String> lines;
@@ -140,6 +151,35 @@ class _HiVisPage extends StatelessWidget {
   final Future<void> Function() share;
   final String primary;
   final VoidCallback onPrimary;
+
+  @override
+  State<_HiVisPage> createState() => _HiVisPageState();
+}
+
+class _HiVisPageState extends State<_HiVisPage>
+    with SingleTickerProviderStateMixin {
+  late final _timeline = AnimationController(
+    vsync: this,
+    duration: widget.duration,
+  );
+  var _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _timeline.value = 1;
+    } else if (!_started) {
+      _timeline.forward();
+    }
+    _started = true;
+  }
+
+  @override
+  void dispose() {
+    _timeline.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,20 +198,41 @@ class _HiVisPage extends StatelessWidget {
                 child: IconButton(
                   icon: Icon(Icons.close, color: c.onHiVis),
                   tooltip: l10n.close,
-                  onPressed: onClose,
+                  onPressed: widget.onClose,
                 ),
               ),
-              // Placeholder art: the drawn wrecking ball comes with Plan 10.
-              const SizedBox(
-                height: 180,
-                child: CustomPaint(painter: _BricksPainter()),
+              AnimatedBuilder(
+                animation: _timeline,
+                builder: (context, _) {
+                  final t = _timeline.value;
+                  // The headline slams in over the last 30%.
+                  final slam = ((t - 0.7) / 0.3).clamp(0.0, 1.0);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      widget.art(t),
+                      const SizedBox(height: 12),
+                      Opacity(
+                        key: const ValueKey('headline'),
+                        opacity: slam,
+                        alwaysIncludeSemantics: true,
+                        child: Transform.scale(
+                          scale: 1.3 - 0.3 * Curves.easeOutBack.transform(slam),
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            widget.title,
+                            style: displayStyle(54, color: c.onHiVis),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 12),
-              Text(title, style: displayStyle(54, color: c.onHiVis)),
-              const SizedBox(height: 12),
-              for (final line in lines)
+              for (final line in widget.lines)
                 Text(line, style: const TextStyle(fontSize: 17, height: 1.4)),
-              if (card case final card?) ...[
+              if (widget.card case final card?) ...[
                 const SizedBox(height: 14),
                 DecoratedBox(
                   decoration: BoxDecoration(
@@ -190,7 +251,7 @@ class _HiVisPage extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => unawaited(share()),
+                      onPressed: () => unawaited(widget.share()),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: c.onHiVis,
                         side: BorderSide(color: c.onHiVis, width: 2),
@@ -202,12 +263,12 @@ class _HiVisPage extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: FilledButton(
-                      onPressed: onPrimary,
+                      onPressed: widget.onPrimary,
                       style: FilledButton.styleFrom(
                         backgroundColor: c.onHiVis,
                         foregroundColor: Colors.white,
                       ),
-                      child: Text(primary),
+                      child: Text(widget.primary),
                     ),
                   ),
                 ],
@@ -218,40 +279,4 @@ class _HiVisPage extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A few loose bricks: a stand-in until the illustrations land.
-class _BricksPainter extends CustomPainter {
-  const _BricksPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const navy = Color(0xFF14213D);
-    final fill = Paint()..color = Colors.white;
-    final line = Paint()
-      ..color = navy
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    final centre = Offset(size.width / 2, size.height / 2);
-    canvas.drawCircle(centre.translate(-60, 0), 34, Paint()..color = navy);
-    for (final (dx, dy, turn) in [
-      (10.0, -40.0, -0.4),
-      (40.0, 10.0, 0.3),
-      (70.0, -20.0, 0.8),
-    ]) {
-      canvas
-        ..save()
-        ..translate(centre.dx + dx, centre.dy + dy)
-        ..rotate(turn);
-      const brick = Rect.fromLTWH(-16, -10, 32, 20);
-      final rounded = RRect.fromRectAndRadius(brick, const Radius.circular(2));
-      canvas
-        ..drawRRect(rounded, fill)
-        ..drawRRect(rounded, line)
-        ..restore();
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BricksPainter oldDelegate) => false;
 }

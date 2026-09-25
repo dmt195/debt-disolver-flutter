@@ -80,9 +80,15 @@ void drawBall(Canvas canvas, Offset centre, double radius, {Offset? anchor}) {
     );
 }
 
-/// A flag pole [height] tall standing at [base], its hi-vis flag [raise]
-/// (0–1) of the way up.
-void drawFlag(Canvas canvas, Offset base, double height, {double raise = 1}) {
+/// A flag pole [height] tall standing at [base], its flag ([fill], hi-vis
+/// by default) [raise]d (0–1) of the way up.
+void drawFlag(
+  Canvas canvas,
+  Offset base,
+  double height, {
+  double raise = 1,
+  Color fill = kHiVis,
+}) {
   final top = base.translate(0, -height);
   canvas.drawLine(base, top, inkStroke(3));
   final flagHeight = height * 0.28;
@@ -93,6 +99,6 @@ void drawFlag(Canvas canvas, Offset base, double height, {double raise = 1}) {
     ..lineTo(base.dx, y + flagHeight)
     ..close();
   canvas
-    ..drawPath(flag, fillOf(kHiVis))
+    ..drawPath(flag, fillOf(fill))
     ..drawPath(flag, inkStroke());
 }

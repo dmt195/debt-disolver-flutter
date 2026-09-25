@@ -56,16 +56,65 @@ PayoffResult calculate({
       strategyId: strategy.id,
       reason: reason,
     ),
-    Restructured(debts: final paid, :final fees, :final change) => simulate(
-      strategyId: strategy.id,
-      debts: paid,
-      budget: monthlyBudget,
-      fees: fees,
-      change: change,
-      order: allocationOrder(strategy, paid),
-      allowExtra: strategy is! MinimumsOnly,
-    ),
+    Restructured(debts: final paid, :final fees, :final change) =>
+      _simulateBest(
+        strategy: strategy,
+        debts: paid,
+        budget: monthlyBudget,
+        fees: fees,
+        change: change,
+      ),
   };
+}
+
+/// Most passes spent looking for the plan's end month (see [_simulateBest]).
+const int _maxHorizonPasses = 4;
+
+/// Simulates [strategy]. For avalanche-style strategies the best order
+/// depends on when the plan ends, which depends on the order, so this starts
+/// from ranking by each month's rate, then re-ranks by interest saved up to
+/// the end month just found, until that month stops changing. It returns
+/// the cheapest plan seen (then the quickest), so looking ahead never does
+/// worse than ranking by each month's rate.
+PayoffResult _simulateBest({
+  required Strategy strategy,
+  required List<Debt> debts,
+  required Money budget,
+  required Money fees,
+  required PlanChange? change,
+}) {
+  PayoffResult run({int? horizon}) => simulate(
+    strategyId: strategy.id,
+    debts: debts,
+    budget: budget,
+    fees: fees,
+    change: change,
+    order: allocationOrder(strategy, debts, horizon: horizon),
+    allowExtra: strategy is! MinimumsOnly,
+  );
+
+  var best = run();
+  final looksAhead = switch (strategy) {
+    Avalanche() || Consolidation() || BalanceTransfer() => true,
+    Snowball() || CustomOrder() || MinimumsOnly() => false,
+  };
+  if (!looksAhead || best is! Feasible) return best;
+
+  final tried = <int>{};
+  var horizon = best.plan.monthsToClear;
+  for (var pass = 0; pass < _maxHorizonPasses; pass++) {
+    if (!tried.add(horizon)) break;
+    final next = run(horizon: horizon);
+    if (next is! Feasible) break;
+    if (_cheaper(next.plan, (best as Feasible).plan)) best = next;
+    horizon = next.plan.monthsToClear;
+  }
+  return best;
+}
+
+bool _cheaper(PayoffPlan a, PayoffPlan b) {
+  final byPaid = a.totalPaid.compareTo(b.totalPaid);
+  return byPaid != 0 ? byPaid < 0 : a.monthsToClear < b.monthsToClear;
 }
 
 /// Runs every strategy in [standardStrategies], in that order.

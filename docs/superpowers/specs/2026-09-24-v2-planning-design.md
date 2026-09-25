@@ -80,11 +80,11 @@ enum StrategyId { avalanche, snowball, customOrder, consolidation, balanceTransf
 
 | Id | Restructure (§4) | Who receives extra money |
 |---|---|---|
-| `avalanche` | none | highest **current** APR, re-ranked every month |
+| `avalanche` | none | most interest saved **by the end of the plan**, re-ranked every month (§3.2) |
 | `snowball` | none | smallest **starting** balance (fixed order) |
 | `customOrder` | none | the Debts screen order (`sortIndex`) |
-| `consolidation` | eligible debts become one loan | highest current APR, monthly |
-| `balanceTransfer` | eligible card balances move to a promo card | highest current APR, monthly |
+| `consolidation` | eligible debts become one loan | as avalanche |
+| `balanceTransfer` | eligible card balances move to a promo card | as avalanche |
 | `minimumsOnly` | none | nobody: minimums only, the leftover budget goes unspent |
 
 `lowestAprFirst` and `boosted` are removed. Strategy ids are not stored anywhere; they appear only in labels and in the `/strategies/:strategyId` route, which already redirects an unknown id to the Strategies screen. So no data migration is needed.
@@ -95,9 +95,13 @@ enum StrategyId { avalanche, snowball, customOrder, consolidation, balanceTransf
 
 - **Current APR** of a debt in month `m` is the rate §2.4 charges in that month.
 - Ties are broken by name, then id, as in v1.
-- Avalanche, consolidation and transfer re-rank at the start of each month's allocation, so a debt on a 0% promo receives only its minimum until the promo ends.
+- Avalanche, consolidation and transfer re-rank at the start of each month's allocation by **interest saved to the end of the plan**: for the month `h` the plan clears in, a debt's score in month `m` is the sum of its current APR over months `m..h` (`aprMonthsUntil`). A pound paid off a debt keeps saving until the plan ends, so this is what it is worth. Ties go to the higher current APR, then name, then id.
+  - A promo that ends well before the plan does counts at its full rate afterwards, so that debt can be paid first even while it is at 0%.
+  - A promo that outlasts the plan never charges interest, so that debt gets only its minimum.
+- The end month depends on the order, so the calculator first ranks by current APR alone, then re-ranks using the end month found, repeating (at most 4 passes) until the end month stops changing. It keeps the cheapest plan seen (then the quickest), so looking ahead is never worse than ranking by the current APR.
+- *Revision (after v2 shipped):* the first version ranked by the current APR alone. That is myopic: with a Visa at 0% for 3 more months then 15.5% and an Amex at 12.7%, it paid the Amex first and cost £2.73 more than paying the Visa first.
 - Snowball sorts once by starting balance, ascending. Custom order uses the input list order, and the app passes debts in `sortIndex` order.
-- With no promos and no restructure, the monthly re-ranking gives the same order every month, so v1 avalanche figures are unchanged.
+- With no promos and no restructure, every rule gives the same order every month, so v1 avalanche figures are unchanged.
 
 ### 3.3 Payoff order
 
@@ -279,7 +283,7 @@ TDD as in v1 §9. The new or changed tests are:
   - the payment search returns the minimal payment, with an exact expected figure: the loan clears in the term, and a payment 1 minor unit lower does not
   - 0% APR gives `ceil(P / term)`
 - **order:**
-  - avalanche re-ranks when a promo ends
+  - avalanche pays a promo debt first when its promo ends well before the plan does, and last when the promo outlasts the plan
   - snowball uses starting balances
   - custom order keeps the input order
 - **simulate:** the promo rate applies for `months`, then the normal APR; `allowExtra = false` pays only the minimums.

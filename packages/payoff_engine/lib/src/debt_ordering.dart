@@ -7,6 +7,32 @@ int compareHighestAprInMonth(Debt a, Debt b, int month) {
   return byApr != 0 ? byApr : _byNameThenId(a, b);
 }
 
+/// The rate-months [debt] charges from [month] to [horizon] inclusive: in
+/// basis-point-months, what one pound paid off it in [month] saves by the
+/// end of a plan that clears in [horizon]. Zero past the horizon.
+int aprMonthsUntil(Debt debt, int month, int horizon) {
+  if (month > horizon) return 0;
+  final months = horizon - month + 1;
+  final promo = debt.promo;
+  // Months still at the promo rate within [month, horizon].
+  final atPromo = promo == null
+      ? 0
+      : (promo.months - month + 1).clamp(0, months);
+  final promoRate = promo?.aprBps ?? 0;
+  return atPromo * promoRate + (months - atPromo) * debt.aprBps;
+}
+
+/// Most interest saved per pound between [month] and [horizon] first; ties
+/// broken by the rate charged in [month], then name, then id.
+int compareMostInterestSaved(Debt a, Debt b, int month, int horizon) {
+  final bySaving = aprMonthsUntil(
+    b,
+    month,
+    horizon,
+  ).compareTo(aprMonthsUntil(a, month, horizon));
+  return bySaving != 0 ? bySaving : compareHighestAprInMonth(a, b, month);
+}
+
 /// Smallest balance first; ties broken by name, then id.
 int compareSmallestBalanceFirst(Debt a, Debt b) {
   final byBalance = a.balance.compareTo(b.balance);

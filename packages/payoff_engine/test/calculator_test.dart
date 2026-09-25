@@ -132,24 +132,71 @@ void main() {
   group('calculate — strategies', () {
     int col(PayoffPlan p, String id) => p.debts.indexWhere((d) => d.id == id);
 
-    test('avalanche gives a 0% promo debt only its minimum until it ends', () {
+    test('avalanche pays a promo debt first if it costs most by the end', () {
+      // a: 0% for 2 months, then 30%. b: 10%. The plan runs about 21
+      // months, so a pound off a saves far more than a pound off b.
+      final debts = [
+        debt(
+          id: 'a',
+          balance: 100000,
+          aprBps: 3000,
+          promo: const Promo(aprBps: 0, months: 2),
+        ),
+        debt(id: 'b', balance: 100000, aprBps: 1000),
+      ];
+      final plan = planOf(run(debts, 10000));
+      expect(plan.months.first.payments[col(plan, 'a')], gbp(10000));
+      final bFirst = planOf(
+        run(debts.reversed.toList(), 10000, const Strategy.customOrder()),
+      );
+      expect(plan.totalPaid <= bFirst.totalPaid, isTrue);
+    });
+
+    test('avalanche leaves a promo that outlasts the plan until last', () {
+      // a is at 0% for 24 months; the plan clears in under a year, so a
+      // never charges interest and the 10% debt should get the extra.
       final plan = planOf(
         run([
           debt(
             id: 'a',
             balance: 100000,
             aprBps: 3000,
-            promo: const Promo(aprBps: 0, months: 2),
+            promo: const Promo(aprBps: 0, months: 24),
           ),
           debt(id: 'b', balance: 100000, aprBps: 1000),
-        ], 10000),
+        ], 20000),
       );
-      final a = col(plan, 'a');
-      expect(
-        [for (final r in plan.months.take(3)) r.payments[a]],
-        [gbp(0), gbp(0), gbp(10000)],
-      );
-      expect(plan.months[2].interest[a], gbp(2500)); // 30% / 12 of 1,000.00
+      expect(plan.months.first.payments[col(plan, 'b')], gbp(20000));
+      expect(plan.payoffOrder, ['b', 'a']);
+    });
+
+    test('avalanche beats smallest-balance-first on a short promo', () {
+      // Reported case: Visa 0% for 3 more months then 15.5%; Amex 12.7%.
+      final debts = [
+        debt(
+          id: 'visa',
+          name: 'Visa red',
+          balance: 236500,
+          aprBps: 1550,
+          minPaymentPercentBps: 350,
+          minPaymentFloor: 5000,
+          promo: const Promo(aprBps: 0, months: 3),
+        ),
+        debt(
+          id: 'amex',
+          name: 'Amex Blue',
+          balance: 457700,
+          aprBps: 1270,
+          minPaymentPercentBps: 400,
+          minPaymentFloor: 10000,
+        ),
+      ];
+      final avalanche = planOf(run(debts, 30000));
+      final snowball = planOf(run(debts, 30000, const Strategy.snowball()));
+      expect(avalanche.totalPaid <= snowball.totalPaid, isTrue);
+      // Paying Visa from month 1 costs 1,016.06 in interest; paying the
+      // Amex while Visa is at 0% costs 1,018.79.
+      expect(avalanche.totalInterest, gbp(101606));
     });
 
     test('snowball pays the smallest starting balance first', () {

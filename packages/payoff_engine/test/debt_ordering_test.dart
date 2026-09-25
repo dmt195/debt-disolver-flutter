@@ -45,4 +45,36 @@ void main() {
     ]);
     expect([b, a1, a0]..sort(compareSmallestBalanceFirst), [a0, a1, b]);
   });
+
+  test('rate-months until the horizon count the promo, then the APR', () {
+    final promo = debt(
+      id: 'p',
+      balance: 100,
+      aprBps: 3000,
+      promo: const Promo(aprBps: 0, months: 2),
+    );
+    // Months 1-2 at 0%, months 3-5 at 30%.
+    expect(aprMonthsUntil(promo, 1, 5), 9000);
+    // From month 4: months 4-5 at 30%.
+    expect(aprMonthsUntil(promo, 4, 5), 6000);
+    // Past the horizon nothing is saved.
+    expect(aprMonthsUntil(promo, 6, 5), 0);
+  });
+
+  test('most interest saved first; ties by the rate charged that month', () {
+    final soon = debt(
+      id: 's',
+      balance: 100,
+      aprBps: 1200,
+      promo: const Promo(aprBps: 0, months: 1),
+    );
+    final flat = debt(id: 'f', balance: 100, aprBps: 1000);
+    int Function(Debt, Debt) until(int h) =>
+        (a, b) => compareMostInterestSaved(a, b, 1, h);
+    // To month 6: soon saves 12% x 5 = 60, flat 10% x 6 = 60 — a tie,
+    // broken by this month's rate (flat 10% > soon 0%).
+    expect([soon, flat]..sort(until(6)), [flat, soon]);
+    // To month 12: soon 12% x 11 = 132 beats flat 10% x 12 = 120.
+    expect([flat, soon]..sort(until(12)), [soon, flat]);
+  });
 }

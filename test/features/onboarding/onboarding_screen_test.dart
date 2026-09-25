@@ -86,6 +86,7 @@ void main() {
     final settings = app.container.read(settingsControllerProvider).value!;
     expect(settings.onboardingComplete, isTrue);
     expect(settings.payDayReminder, isTrue);
+    expect(settings.checkInNudgeMonths, 2);
     expect(fake.requests, 1);
   });
 
@@ -100,7 +101,9 @@ void main() {
     final settings = app.container.read(settingsControllerProvider).value!;
     expect(settings.onboardingComplete, isTrue);
     expect(settings.payDayReminder, isFalse);
+    expect(settings.checkInNudgeMonths, 0);
     expect(find.byType(HomeScreen), findsOneWidget);
+    expect(find.textContaining("phone's settings"), findsOneWidget);
   });
 
   testWidgets('with the reminder switched off, nothing is asked', (
@@ -114,5 +117,6 @@ void main() {
     expect(fake.requests, 0);
     final settings = app.container.read(settingsControllerProvider).value!;
     expect(settings.payDayReminder, isFalse);
+    expect(settings.checkInNudgeMonths, 0);
   });
 }

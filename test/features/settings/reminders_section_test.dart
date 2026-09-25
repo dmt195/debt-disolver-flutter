@@ -99,4 +99,28 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('a refused nudge shows Off again, and saves nothing', (
+    tester,
+  ) async {
+    final fake = FakeNotificationsService(granted: false);
+    final app = await open(tester, fake);
+    await tester.ensureVisible(find.byKey(const ValueKey('nudge')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('nudge')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Every month').last);
+    await tester.pumpAndSettle();
+    final settings = await app.container.read(
+      settingsControllerProvider.future,
+    );
+    expect(settings.checkInNudgeMonths, 0);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('nudge')),
+        matching: find.text('Off'),
+      ),
+      findsOneWidget,
+    );
+  });
 }

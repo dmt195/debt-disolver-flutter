@@ -75,19 +75,14 @@ class _RemindersSectionState extends ConsumerState<RemindersSection> {
             onChanged: (on) => _setPayDay(on: on),
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<int>(
+          _Picker(
             key: const ValueKey('payDay'),
-            isExpanded: true,
-            initialValue: s.payDay,
-            decoration: InputDecoration(labelText: l10n.remindersDay),
-            items: [
-              for (var day = 1; day <= 28; day++)
-                DropdownMenuItem(value: day, child: Text(ordinal(day))),
-              DropdownMenuItem(
-                value: kLastDay,
-                child: Text(l10n.remindersLastDay),
-              ),
-            ],
+            label: l10n.remindersDay,
+            value: s.payDay,
+            items: {
+              for (var day = 1; day <= 28; day++) day: ordinal(day),
+              kLastDay: l10n.remindersLastDay,
+            },
             onChanged: s.payDayReminder
                 ? (day) => runGuarded(
                     context,
@@ -98,26 +93,25 @@ class _RemindersSectionState extends ConsumerState<RemindersSection> {
                 : null,
           ),
           const SizedBox(height: 12),
-          DropdownButtonFormField<int>(
+          _Picker(
             key: const ValueKey('nudge'),
-            isExpanded: true,
-            initialValue: s.checkInNudgeMonths,
-            decoration: InputDecoration(labelText: l10n.remindersNudge),
-            items: [
-              DropdownMenuItem(value: 0, child: Text(l10n.remindersNudgeOff)),
+            label: l10n.remindersNudge,
+            value: s.checkInNudgeMonths,
+            items: {
+              0: l10n.remindersNudgeOff,
               for (final months in [1, 2, 3])
-                DropdownMenuItem(
-                  value: months,
-                  child: Text(l10n.remindersNudgeEvery(months)),
-                ),
-            ],
-            onChanged: (months) => _setNudge(months ?? 0),
+                months: l10n.remindersNudgeEvery(months),
+            },
+            onChanged: _setNudge,
           ),
           if (_denied) ...[
             const SizedBox(height: 10),
-            Text(
-              l10n.remindersDenied,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                l10n.remindersDenied,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           ],
           const SizedBox(height: 10),
@@ -129,4 +123,38 @@ class _RemindersSectionState extends ConsumerState<RemindersSection> {
       ),
     );
   }
+}
+
+/// A dropdown that always shows the saved [value]: a choice that isn't
+/// saved (a refused permission, a failed write) springs back.
+class _Picker extends StatelessWidget {
+  const _Picker({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    super.key,
+  });
+
+  final String label;
+  final int value;
+  final Map<int, String> items;
+  final ValueChanged<int>? onChanged;
+
+  @override
+  Widget build(BuildContext context) => InputDecorator(
+    decoration: InputDecoration(labelText: label, enabled: onChanged != null),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<int>(
+        value: value,
+        isExpanded: true,
+        isDense: true,
+        items: [
+          for (final MapEntry(key: v, value: text) in items.entries)
+            DropdownMenuItem(value: v, child: Text(text)),
+        ],
+        onChanged: onChanged == null ? null : (v) => onChanged!(v ?? value),
+      ),
+    ),
+  );
 }

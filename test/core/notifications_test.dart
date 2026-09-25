@@ -28,6 +28,19 @@ class _RecordingPlugin implements FlutterLocalNotificationsPlugin {
     scheduled.add((id, scheduledDate, title, payload, androidScheduleMode));
   }
 
+  InitializationSettings? initializedWith;
+
+  @override
+  Future<bool?> initialize({
+    required InitializationSettings settings,
+    DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
+    DidReceiveBackgroundNotificationResponseCallback?
+    onDidReceiveBackgroundNotificationResponse,
+  }) async {
+    initializedWith = settings;
+    return true;
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -57,5 +70,29 @@ void main() {
     final plugin = _RecordingPlugin();
     await LocalNotificationsService(plugin).replaceAll(const []);
     expect(plugin.calls, ['cancelAll']);
+  });
+
+  test('a reminder already due is skipped, not fatal to the rest', () async {
+    final plugin = _RecordingPlugin();
+    final now = tz.TZDateTime.now(tz.local);
+    await LocalNotificationsService(plugin).replaceAll([
+      (
+        id: 1,
+        at: now.subtract(const Duration(hours: 1)),
+        title: 'Past',
+        body: '',
+      ),
+      (id: 2, at: now.add(const Duration(days: 30)), title: 'Next', body: ''),
+    ]);
+    expect(plugin.calls, ['cancelAll', 'schedule 2']);
+  });
+
+  test('Android uses a one-colour status-bar icon', () async {
+    final plugin = _RecordingPlugin();
+    await LocalNotificationsService(plugin).initialize(onTap: (_) {});
+    expect(
+      plugin.initializedWith!.android!.defaultIcon,
+      '@drawable/ic_stat_reminder',
+    );
   });
 }

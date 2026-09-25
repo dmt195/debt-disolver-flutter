@@ -49,11 +49,20 @@ List<Reminder> wantedReminders({
       for (final p in payments)
         '${p.debt.name} ${formatMoney(p.amount, locale)}',
     ].join(' · ');
-    for (final (i, at) in nextPayDays(now, settings.payDay).indexed) {
+    // No more pay days than the plan has months left; only the first knows
+    // exactly what to pay.
+    final count = home.result.plan.monthsToClear.clamp(0, 3);
+    for (final (i, at) in nextPayDays(
+      now,
+      settings.payDay,
+      count: count,
+    ).indexed) {
       reminders.add((
         id: i + 1,
         at: at,
-        title: l10n.reminderPayDayTitle(formatMoney(total, locale)),
+        title: i == 0
+            ? l10n.reminderPayDayTitle(formatMoney(total, locale))
+            : l10n.reminderPayDayGenericTitle,
         body: i == 0 ? list : l10n.reminderPayDayGeneric,
       ));
     }

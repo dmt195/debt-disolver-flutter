@@ -48,6 +48,7 @@ void main() {
     () async {
       await addDebt('Visa');
       await settings().setPayDayReminder(on: true, day: 28);
+      await settings().setCheckInNudgeMonths(2);
       await settled();
       expect(ids(), [1, 2, 3, 10]);
       final first = fake.scheduled.first;
@@ -62,6 +63,7 @@ void main() {
 
   test('pay days only when switched on; nothing when all is off', () async {
     await addDebt('Visa');
+    await settings().setCheckInNudgeMonths(2);
     await settled();
     expect(ids(), [10]);
     await settings().setCheckInNudgeMonths(0);
@@ -116,4 +118,27 @@ void main() {
     await settled();
     expect(fake.initialized, isTrue);
   });
+
+  test(
+    'never more pay days than the plan has months, later ones generic',
+    () async {
+      // 500.00 at 0% with no minimum, paid at 300.00 a month: two months.
+      await container
+          .read(debtActionsProvider.notifier)
+          .add(
+            testDebt(
+              id: '',
+              name: 'Visa',
+              balance: 50000,
+              aprBps: 0,
+              minPaymentPercentBps: 0,
+              minPaymentFloor: 0,
+            ),
+          );
+      await settings().setPayDayReminder(on: true, day: 28);
+      await settled();
+      expect(ids(), [1, 2]);
+      expect(fake.scheduled[1].title, isNot(contains('£')));
+    },
+  );
 }

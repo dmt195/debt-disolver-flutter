@@ -57,7 +57,8 @@ class LocalNotificationsService implements NotificationsService {
     }
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // A one-colour icon: Android draws the status-bar icon as a mask.
+        android: AndroidInitializationSettings('@drawable/ic_stat_reminder'),
         // Permission is asked only when a reminder is switched on.
         iOS: DarwinInitializationSettings(
           requestAlertPermission: false,
@@ -88,19 +89,24 @@ class LocalNotificationsService implements NotificationsService {
   @override
   Future<void> replaceAll(List<Reminder> reminders) async {
     await _plugin.cancelAll();
+    final now = tz.TZDateTime.now(tz.local);
     for (final r in reminders) {
+      final at = tz.TZDateTime(
+        tz.local,
+        r.at.year,
+        r.at.month,
+        r.at.day,
+        r.at.hour,
+        r.at.minute,
+      );
+      // The plugin refuses a time already past, which would leave the rest
+      // unscheduled: skip it instead.
+      if (!at.isAfter(now)) continue;
       await _plugin.zonedSchedule(
         id: r.id,
-        // Reminder times are wall-clock times ("9 in the morning"), so build
-        // them in the notification time zone rather than converting.
-        scheduledDate: tz.TZDateTime(
-          tz.local,
-          r.at.year,
-          r.at.month,
-          r.at.day,
-          r.at.hour,
-          r.at.minute,
-        ),
+        // Reminder times are wall-clock times ("9 in the morning"), built
+        // in the notification time zone rather than converted.
+        scheduledDate: at,
         notificationDetails: _details,
         // Never exact alarms: a reminder a few minutes late is fine.
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

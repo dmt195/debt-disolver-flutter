@@ -139,7 +139,9 @@ void main() {
       final defaults = await repositoryWith({}).load();
       expect(defaults.payDayReminder, isFalse);
       expect(defaults.payDay, 28);
-      expect(defaults.checkInNudgeMonths, 2);
+      // Off until setup (or Settings) turns reminders on with permission, so
+      // an upgrade never schedules a nudge the phone won't show.
+      expect(defaults.checkInNudgeMonths, 0);
       final repo = repositoryWith({});
       await repo.save(
         defaults.copyWith(
@@ -159,7 +161,7 @@ void main() {
           SettingsKeys.checkInNudgeMonths: 9,
         }),
       ).load();
-      expect((odd.payDay, odd.checkInNudgeMonths), (28, 2));
+      expect((odd.payDay, odd.checkInNudgeMonths), (28, 0));
     },
   );
 }

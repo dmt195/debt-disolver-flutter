@@ -92,7 +92,7 @@ class PrefsSettingsRepository implements SettingsRepository {
       },
       checkInNudgeMonths: switch (field<int>(SettingsKeys.checkInNudgeMonths)) {
         final months? when months >= 0 && months <= 3 => months,
-        _ => 2,
+        _ => 0,
       },
     );
   }

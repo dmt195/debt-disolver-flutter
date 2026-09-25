@@ -188,17 +188,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _saving = true);
     final controller = ref.read(settingsControllerProvider.notifier);
     final router = ref.read(routerProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final denied = context.l10n.remindersDenied;
+    var refused = false;
     final done = await runGuarded(context, () async {
       await controller.setCurrency(currency);
       await controller.setMonthlyBudget(minor);
       final on =
           _remind &&
           await ref.read(notificationsServiceProvider).requestPermission();
+      refused = _remind && !on;
       await controller.setPayDayReminder(on: on, day: _day);
+      // The check-in nudge comes with the reminders, never without leave.
+      await controller.setCheckInNudgeMonths(on ? 2 : 0);
       await controller.completeOnboarding();
       return true;
     });
-    if (done ?? false) router.go(addDebt ? Routes.newDebt : Routes.home);
+    if (!(done ?? false)) return;
+    router.go(addDebt ? Routes.newDebt : Routes.home);
+    // The app-level messenger outlives this screen.
+    if (refused) messenger.showSnackBar(SnackBar(content: Text(denied)));
     if (mounted) setState(() => _saving = false);
   }
 }

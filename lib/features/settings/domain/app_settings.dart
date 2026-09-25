@@ -25,8 +25,10 @@ abstract class AppSettings with _$AppSettings {
     /// Its day of the month: 1–28, or 0 for the last day.
     @Default(28) int payDay,
 
-    /// Months after the last check-in to nudge; 0 is off.
-    @Default(2) int checkInNudgeMonths,
+    /// Months after the last check-in to nudge; 0 is off. Setup turns it
+    /// on (every 2 months) together with the pay-day reminder, once the
+    /// phone has allowed notifications.
+    @Default(0) int checkInNudgeMonths,
   }) = _AppSettings;
 
   factory AppSettings.defaults(String currencyCode) => AppSettings(

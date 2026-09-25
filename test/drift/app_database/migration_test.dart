@@ -7,6 +7,7 @@ import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
+import 'generated/schema_v4.dart' as v4;
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -102,4 +103,43 @@ void main() {
       },
     );
   });
+
+  test(
+    'v3 debts survive the upgrade to v4, uncleared, with no history',
+    () async {
+      await verifier.testWithDataIntegrity(
+        oldVersion: 3,
+        newVersion: 4,
+        createOld: v3.DatabaseAtV3.new,
+        createNew: v4.DatabaseAtV4.new,
+        openTestedDatabase: AppDatabase.new,
+        createItems: (batch, oldDb) {
+          batch.insert(
+            oldDb.debts,
+            v3.DebtsCompanion.insert(
+              id: 'a',
+              name: 'Visa',
+              type: 'creditCard',
+              balanceMinor: 123456,
+              aprBps: 1990,
+              minPaymentPercentBps: 300,
+              minPaymentFloorMinor: 2500,
+              allowsOverpayment: 1,
+              sortIndex: 0,
+              createdAt: 1790000000,
+              updatedAt: 1790000000,
+            ),
+          );
+        },
+        validateItems: (newDb) async {
+          final row = await newDb.select(newDb.debts).getSingle();
+          expect(row.balanceMinor, 123456);
+          expect(row.clearedAt, isNull);
+          expect(await newDb.select(newDb.checkIns).get(), isEmpty);
+          expect(await newDb.select(newDb.checkInBalances).get(), isEmpty);
+          expect(await newDb.select(newDb.startingPoints).get(), isEmpty);
+        },
+      );
+    },
+  );
 }

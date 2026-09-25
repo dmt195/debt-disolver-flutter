@@ -990,7 +990,7 @@ Add to `lib/l10n/app_en.arb`:
   "@changeCardMove": {"placeholders": {"amount": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "fee": {"type": "String"}}},
   "changeCardMovePromo": "Move {amount} from {from} to {to} (fee {fee}, {apr} for {months} months)",
   "@changeCardMovePromo": {"placeholders": {"amount": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "fee": {"type": "String"}, "apr": {"type": "String"}, "months": {"type": "int"}}},
-  "changeCardMoveReminder": "Check your card's terms: most won't take a balance from a card by the same bank.",
+  "changeCardMoveReminder": "Check your card's terms: most won't take a balance from a card by the same bank. This plan assumes payments above the minimum clear the highest-rate balance first, as UK and US law requires.",
 ```
 
 In `lib/core/labels.dart`, add `StrategyId.cardTransfers` arms:
@@ -1067,7 +1067,8 @@ In `test/features/strategies/plans_providers_test.dart`, change `hasLength(5)` t
       'Move £582.52 from Store to Amex (fee £17.48, 0% for 12 months)',
       'Move £100.00 from Visa to Amex (fee £3.00)',
       "Check your card's terms: most won't take a balance from a card by "
-          'the same bank.',
+          'the same bank. This plan assumes payments above the minimum clear '
+          'the highest-rate balance first, as UK and US law requires.',
     ]);
   });
 ```

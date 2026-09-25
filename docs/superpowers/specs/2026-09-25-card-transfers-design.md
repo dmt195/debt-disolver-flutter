@@ -111,7 +111,7 @@ The Debts list shows a "Transfer offer" label in the subtitle of a debt that has
   - **Not-applicable reasons:** "No card has a balance transfer offer yet. Add one on a card's details." and "No move between your cards would save money."
 - **Plan detail and exports:**
   - The "What changes" lines and export notes list each move: "Move £1,200.00 from Visa red to Amex Blue (fee £36.00, 0% for 12 months)", or "(fee £36.00)" without a promo.
-  - Then the reminder "Check your card's terms: most won't take a balance from a card by the same bank."
+  - Then the reminder "Check your card's terms: most won't take a balance from a card by the same bank. This plan assumes payments above the minimum clear the highest-rate balance first, as UK and US law requires." Outside the UK and US a provider may pay the cheapest balance first; a setting for that is deferred until users ask for it.
   - A portion's column is named "Amex Blue (moved from Visa red)", the engine's name for it.
 
 All new text goes in `app_en.arb`.

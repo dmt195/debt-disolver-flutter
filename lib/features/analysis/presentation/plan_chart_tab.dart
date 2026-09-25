@@ -1,6 +1,6 @@
-import 'package:debt_destroyer/core/currency.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
+import 'package:debt_destroyer/features/analysis/domain/plan_series.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -127,22 +127,3 @@ List<Color> chartColors(ColorScheme scheme) => [
   scheme.tertiaryFixedDim,
   scheme.secondaryFixedDim,
 ];
-
-/// For month 0 (starting balances) through the last month, the cumulative
-/// balance in major units: element `i` is the sum of debts `0..i`.
-List<List<double>> stackedBalances(PayoffPlan plan) {
-  final digits = currencyDecimalDigits(plan.totalPaid.currency);
-  var scale = 1;
-  for (var i = 0; i < digits; i++) {
-    scale *= 10;
-  }
-  List<double> cumulative(List<Money> balances) {
-    var running = 0;
-    return [for (final b in balances) (running += b.minor) / scale];
-  }
-
-  return [
-    cumulative([for (final d in plan.debts) d.startingBalance]),
-    for (final row in plan.months) cumulative(row.closingBalances),
-  ];
-}

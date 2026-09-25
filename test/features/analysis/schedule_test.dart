@@ -4,8 +4,8 @@ import 'dart:ui';
 
 import 'package:debt_destroyer/features/analysis/data/plan_exporter.dart';
 import 'package:debt_destroyer/features/analysis/data/schedule_export.dart';
+import 'package:debt_destroyer/features/analysis/domain/plan_series.dart';
 import 'package:debt_destroyer/features/analysis/domain/schedule_table.dart';
-import 'package:debt_destroyer/features/analysis/presentation/plan_chart_tab.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';

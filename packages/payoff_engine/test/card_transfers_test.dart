@@ -102,6 +102,13 @@ void main() {
     );
   });
 
+  test('an unaffordable budget is infeasible, not "no worthwhile moves"', () {
+    // 10.00 covers neither card's minimum, with or without a move.
+    final result = run([store, amex], 1000);
+    expect(result, isA<Infeasible>());
+    expect(result.strategyId, StrategyId.cardTransfers);
+  });
+
   test('never moves onto a card whose rate is not lower', () {
     final b = amex.copyWith(
       aprBps: 3500,

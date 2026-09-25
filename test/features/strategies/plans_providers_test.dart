@@ -48,10 +48,12 @@ void main() {
   test('recalculates when a debt is added, cheapest first', () async {
     await container.read(debtActionsProvider.notifier).add(testDebt(id: ''));
     final plans = await settledPlans();
-    // cardTransfers is not applicable: testDebt has no transfer offer.
+    // cardTransfers is not applicable: testDebt has no transfer offer. Every
+    // other strategy must still be feasible.
     final costs = [
       for (final r in plans.ranked)
-        if (r is Feasible) r.plan.totalPaid.minor,
+        if (r.strategyId != StrategyId.cardTransfers)
+          (r as Feasible).plan.totalPaid.minor,
     ];
     expect(costs.first, greaterThan(100000));
     expect(costs, [...costs]..sort());

@@ -172,6 +172,10 @@ PayoffResult _cardTransfers(List<Debt> debts, Money budget, Strategy strategy) {
     best = roundBest;
   }
   if (moves.isEmpty) {
+    // No move helped. If the no-move plan itself isn't feasible (e.g. the
+    // budget doesn't cover the minimums), report that, not "no worthwhile
+    // moves" — a move can't be blamed for a budget that was already short.
+    if (best is! Feasible) return best;
     return PayoffResult.notApplicable(
       strategyId: strategy.id,
       reason: NotApplicableReason.noWorthwhileMoves,

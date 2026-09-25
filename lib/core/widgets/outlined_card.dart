@@ -31,11 +31,15 @@ class OutlinedCard extends StatelessWidget {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Expanded(
+                    flex: 3,
                     child: Text(title!, style: displayStyle(17, color: c.ink)),
                   ),
                   if (trailing != null) ...[
                     const SizedBox(width: 8),
-                    Flexible(
+                    // At most two fifths of the row, right-aligned; long
+                    // notes wrap rather than push the heading off.
+                    Expanded(
+                      flex: 2,
                       child: Text(
                         trailing!,
                         textAlign: TextAlign.end,

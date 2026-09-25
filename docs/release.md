@@ -11,6 +11,7 @@ What has to be in place before a store release, and how to build one. Everything
    - `ios/Flutter/AdMob.xcconfig`: `ADMOB_APP_ID=ca-app-pub-XXXXXXXX~ZZZZZZZZ`
 4. Pass the banner unit ids at build time (below). Without them Google's test units are used and the ads say "Test Ad".
 5. Publish an `app-ads.txt` on the developer website listed in the stores.
+6. In **Blocking controls → Sensitive categories**, block *Gambling & betting* and anything covering payday loans, high-interest lending or get-out-of-debt schemes, for both apps. These ads appear next to people's own debts and would read as predatory. Review the blocked advertiser categories again after launch.
 
 ## 2. Android signing
 

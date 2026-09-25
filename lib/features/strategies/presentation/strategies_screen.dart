@@ -86,6 +86,11 @@ class StrategiesScreen extends ConsumerWidget {
             tooltip: l10n.scenariosTitle,
             onPressed: () => context.push(Routes.scenarios),
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: l10n.settingsTooltip,
+            onPressed: () => context.push(Routes.settings),
+          ),
         ],
       ),
       body: body,

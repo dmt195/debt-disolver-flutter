@@ -20,9 +20,7 @@ void main() {
     overrides: [adsServiceProvider.overrideWithValue(ads)],
   );
 
-  testWidgets('banners appear on debts and strategies once allowed', (
-    tester,
-  ) async {
+  testWidgets('banners appear on debts and plans once allowed', (tester) async {
     final ads = FakeAdsService();
     final app = await open(tester, ads);
     expect(find.text('Ad banner'), findsNothing);
@@ -42,11 +40,24 @@ void main() {
     final app = await open(tester, ads, location: Routes.newDebt);
     expect(find.text('Ad banner'), findsNothing);
     for (final location in [
+      Routes.home,
       Routes.plan(StrategyId.avalanche),
+      Routes.scenarios,
       Routes.settings,
     ]) {
       await app.router.go(tester, location);
       expect(find.text('Ad banner'), findsNothing, reason: location);
+    }
+  });
+
+  testWidgets('the banner sits above the bottom nav', (tester) async {
+    final ads = FakeAdsService(canShowAds: true);
+    final app = await open(tester, ads);
+    for (final location in [Routes.debts, Routes.plans]) {
+      await app.router.go(tester, location);
+      final banner = tester.getRect(find.text('Ad banner'));
+      final nav = tester.getRect(find.byType(NavigationBar));
+      expect(banner.bottom, lessThanOrEqualTo(nav.top), reason: location);
     }
   });
 

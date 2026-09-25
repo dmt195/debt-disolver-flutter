@@ -76,15 +76,14 @@ class BalanceLineChart extends StatelessWidget {
               FlLine(color: c.track, strokeWidth: 1),
         ),
         titlesData: const FlTitlesData(show: false),
+        // Painted last-first, so the first line sits on top.
         lineBarsData: [
-          for (final l in lines)
+          for (final l in lines.reversed)
             LineChartBarData(
               spots: _spots(l.values),
               color: l.color,
               barWidth: l.width,
-              isCurved: true,
-              curveSmoothness: 0.2,
-              preventCurveOverShooting: true,
+              // Monthly steps: straight segments, never smoothed.
               dotData: const FlDotData(show: false),
               dashArray: switch (l.style) {
                 LineStyle.solid => null,

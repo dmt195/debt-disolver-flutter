@@ -555,4 +555,11 @@ void main() {
     // 4 months at 250.00 becomes 3 at 375.00; no interest at 0%.
     expect(find.text('1 month sooner, £0.00 less interest'), findsOneWidget);
   });
+
+  testWidgets('settings are a tap away', (tester) async {
+    final app = await pumpApp(tester, location: Routes.plans);
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(app.router.location, Routes.settings);
+  });
 }

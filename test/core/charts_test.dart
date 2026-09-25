@@ -4,6 +4,7 @@ import 'package:debt_destroyer/core/charts/comparison_bars.dart';
 import 'package:debt_destroyer/core/charts/segment_bar.dart';
 import 'package:debt_destroyer/core/charts/share_donut.dart';
 import 'package:debt_destroyer/core/charts/stacked_balance_chart.dart';
+import 'package:debt_destroyer/core/widgets/outlined_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,8 +37,11 @@ void main() {
     );
     final chart = tester.widget<LineChart>(find.byType(LineChart));
     expect(chart.data.lineBarsData, hasLength(2));
-    expect(chart.data.lineBarsData[0].dashArray, isNull);
-    expect(chart.data.lineBarsData[1].dashArray, isNotNull);
+    // The first line is painted last, so it sits on top where lines overlap.
+    expect(chart.data.lineBarsData.last.dashArray, isNull);
+    expect(chart.data.lineBarsData.first.dashArray, isNotNull);
+    // Monthly steps are drawn straight: smoothing makes them wobble.
+    expect(chart.data.lineBarsData.every((l) => !l.isCurved), isTrue);
     expect(find.bySemanticsLabel('Two plans'), findsOneWidget);
   });
 
@@ -129,5 +133,20 @@ void main() {
     expect(find.bySemanticsLabel('Split'), findsOneWidget);
     expect(find.bySemanticsLabel('Compare'), findsOneWidget);
     expect(find.byType(CustomPaint), findsWidgets);
+  });
+
+  testWidgets('a card heading keeps its note at the far edge', (tester) async {
+    await tester.pumpWidget(
+      host(
+        const OutlinedCard(
+          title: 'Pay this month',
+          trailing: '£1,000.00',
+          child: SizedBox(height: 10),
+        ),
+      ),
+    );
+    final card = tester.getRect(find.byType(OutlinedCard));
+    final note = tester.getRect(find.text('£1,000.00'));
+    expect(card.right - note.right, lessThan(20)); // 14px padding + border
   });
 }

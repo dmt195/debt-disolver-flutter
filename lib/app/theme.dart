@@ -128,8 +128,9 @@ ThemeData buildTheme(Brightness brightness) {
     outline: c.outline,
     outlineVariant: c.track,
     surfaceContainerHighest: c.track,
-    primaryContainer: _hiVis,
-    onPrimaryContainer: _navy,
+    // Hi-vis is only for the one hero block per screen (spec §5.1).
+    primaryContainer: c.track,
+    onPrimaryContainer: c.ink,
   );
   const buttonText = TextStyle(
     fontFamily: kBodyFont,
@@ -150,6 +151,7 @@ ThemeData buildTheme(Brightness brightness) {
     appBarTheme: AppBarTheme(
       backgroundColor: c.ground,
       foregroundColor: c.ink,
+      centerTitle: false,
       elevation: 0,
       scrolledUnderElevation: 0,
       titleTextStyle: displayStyle(22, color: c.ink),
@@ -169,6 +171,10 @@ ThemeData buildTheme(Brightness brightness) {
         shape: corners,
         textStyle: buttonText,
       ),
+    ),
+    // Hi-vis is never a text colour (spec §5.1), even where it is primary.
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(foregroundColor: c.ink),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
@@ -192,6 +198,11 @@ ThemeData buildTheme(Brightness brightness) {
     chipTheme: ChipThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       side: BorderSide(color: c.outline, width: 1.5),
+      color: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? c.surface : c.track,
+      ),
+      selectedColor: c.surface,
+      backgroundColor: c.track,
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: c.navBar,

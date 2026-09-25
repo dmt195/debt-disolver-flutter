@@ -39,4 +39,21 @@ void main() {
     expect(s.fontVariations, contains(const FontVariation.weight(800)));
     expect(s.letterSpacing, closeTo(-1.2, 0.001));
   });
+
+  test('app bar titles sit at the start, as in the design', () {
+    expect(buildTheme(Brightness.light).appBarTheme.centerTitle, isFalse);
+  });
+
+  test('hi-vis is kept for the hero block, not Material containers', () {
+    final theme = buildTheme(Brightness.light);
+    const hiVis = Color(0xFFFFC400);
+    expect(theme.colorScheme.primaryContainer, isNot(hiVis));
+    expect(theme.chipTheme.selectedColor, DestroyerColors.light.surface);
+  });
+
+  test('text buttons use ink, never hi-vis text, in dark too', () {
+    final theme = buildTheme(Brightness.dark);
+    final fg = theme.textButtonTheme.style!.foregroundColor!.resolve({});
+    expect(fg, DestroyerColors.dark.ink);
+  });
 }

@@ -8,6 +8,7 @@ import 'package:debt_destroyer/core/debt_colors.dart';
 import 'package:debt_destroyer/core/debt_icons.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
+import 'package:debt_destroyer/core/illustrations/scenes.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -182,7 +183,13 @@ class _DebtsBodyState extends ConsumerState<_DebtsBody> {
           cleared,
           Padding(
             padding: const EdgeInsets.all(24),
-            child: Text(l10n.debtsEmpty, textAlign: TextAlign.center),
+            child: Column(
+              children: [
+                const EmptyLot(),
+                const SizedBox(height: 12),
+                Text(l10n.debtsEmpty, textAlign: TextAlign.center),
+              ],
+            ),
           ),
         ],
       );

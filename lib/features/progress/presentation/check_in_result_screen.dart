@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/illustrations/scenes.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/core/widgets/hi_vis_block.dart';
@@ -33,22 +34,37 @@ class CheckInResultScreen extends ConsumerWidget {
     String month(int months) =>
         DateFormat.yMMM(locale).format(DateTime(now.year, now.month + months));
 
-    final (String? big, String small) = switch (summary?.standing) {
+    // The headline amount counts up from zero (spec §5.2).
+    final (
+      String Function(double t)? big,
+      String small,
+    ) = switch (summary?.standing) {
       AheadMoney(:final amount) => (
-        formatMoney(amount, locale),
+        (t) => formatMoney(_part(amount, t), locale),
         l10n.resultAheadOfPlan,
       ),
       AheadMonths(:final months) => (
-        l10n.resultMonths(months),
+        (_) => l10n.resultMonths(months),
         l10n.resultAheadOfPlan,
       ),
       Behind(:final amount) => (
-        formatMoney(amount, locale),
+        (t) => formatMoney(_part(amount, t), locale),
         l10n.resultBehindPlan,
       ),
       OnTrack() => (null, l10n.resultOnTrack),
       NoProgressYet() || null => (null, l10n.resultCheckedIn),
     };
+    Widget headline(double t) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClimbWall(percent: summary?.paid.percent ?? 0, progress: t),
+        const SizedBox(height: 8),
+        if (big != null) ...[
+          Text(l10n.resultYoure, style: const TextStyle(fontSize: 15)),
+          Text(big(t), style: displayStyle(56, color: c.ink)),
+        ],
+      ],
+    );
     final cleared = outcome?.cleared ?? const [];
     final before = outcome?.monthsBefore;
 
@@ -66,10 +82,18 @@ class CheckInResultScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          if (big != null) ...[
-            Text(l10n.resultYoure, style: const TextStyle(fontSize: 15)),
-            Text(big, style: displayStyle(56, color: c.ink)),
-          ],
+          // Counting starts once there is something to count.
+          if (summary == null)
+            headline(0)
+          else if (MediaQuery.disableAnimationsOf(context))
+            headline(1)
+          else
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutCubic,
+              builder: (context, t, _) => headline(t),
+            ),
           Text(small, style: displayStyle(26, color: c.ink)),
           if (before != null && monthsNow != null && before != monthsNow) ...[
             const SizedBox(height: 12),
@@ -112,3 +136,7 @@ class CheckInResultScreen extends ConsumerWidget {
     );
   }
 }
+
+/// [amount] scaled by [t] (0–1), in whole minor units.
+Money _part(Money amount, double t) =>
+    Money((amount.minor * t).round(), amount.currency);

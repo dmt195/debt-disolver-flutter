@@ -4,6 +4,7 @@ import 'package:debt_destroyer/core/charts/comparison_bars.dart';
 import 'package:debt_destroyer/core/currency.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
+import 'package:debt_destroyer/core/illustrations/scenes.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -51,11 +52,13 @@ class _SavedTab extends ConsumerWidget {
     final l10n = context.l10n;
     final locale = ref.watch(formatLocaleProvider);
     return switch (ref.watch(scenariosProvider)) {
-      AsyncData(:final value) when value.isEmpty => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.scenariosEmpty, textAlign: TextAlign.center),
-        ),
+      AsyncData(:final value) when value.isEmpty => ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Signpost(),
+          const SizedBox(height: 12),
+          Text(l10n.scenariosEmpty, textAlign: TextAlign.center),
+        ],
       ),
       AsyncData(:final value) => ListView(
         children: [

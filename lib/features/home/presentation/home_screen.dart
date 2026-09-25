@@ -5,6 +5,7 @@ import 'package:debt_destroyer/core/charts/hazard.dart';
 import 'package:debt_destroyer/core/debt_colors.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/illustrations/brick_wall.dart';
+import 'package:debt_destroyer/core/illustrations/scenes.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -39,6 +40,7 @@ class HomeScreen extends ConsumerWidget {
         text: l10n.homeAlreadyDebtFree,
       ),
       AsyncData(value: HomeNoDebts()) => _Message(
+        art: const EmptyLot(),
         text: l10n.homeNoDebts,
         action: l10n.homeAddFirstDebt,
         onAction: () => context.push(Routes.newDebt),
@@ -90,7 +92,11 @@ class _Message extends StatelessWidget {
     this.action,
     this.onAction,
     this.outlined = false,
+    this.art,
   });
+
+  /// A picture above the message.
+  final Widget? art;
 
   final String text;
   final String? action;
@@ -103,6 +109,7 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(16),
     children: [
+      if (art case final art?) ...[art, const SizedBox(height: 12)],
       HiVisBlock(
         child: Text(text, style: const TextStyle(fontSize: 17, height: 1.35)),
       ),
@@ -449,6 +456,7 @@ class _AllCleared extends ConsumerWidget {
         ? ''
         : formatMoney(summary.paid.amount, ref.watch(formatLocaleProvider));
     return _Message(
+      art: const ClearedPlot(),
       text: l10n.homeAllCleared(amount),
       action: l10n.homeAddADebt,
       onAction: () => context.push(Routes.newDebt),

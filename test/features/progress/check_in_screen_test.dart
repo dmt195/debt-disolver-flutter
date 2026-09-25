@@ -1,7 +1,9 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/illustrations/scenes.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
 import 'package:debt_destroyer/features/progress/domain/progress_math.dart';
+import 'package:debt_destroyer/features/progress/presentation/check_in_result_screen.dart';
 import 'package:debt_destroyer/features/strategies/presentation/current_plans.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,5 +127,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(textOf(tester, 'visa'), '600');
     expect(textOf(tester, 'amex'), input(7000));
+  });
+
+  group('the result', () {
+    // £30 more than the plan expected: behind, by an amount.
+    Future<void> saveAndReachResult(WidgetTester tester) async {
+      await tester.enterText(field('visa'), '1,030');
+      await tester.tap(find.text('Save check-in'));
+      for (var i = 0; i < 100; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        if (tester.any(find.byType(CheckInResultScreen))) return;
+      }
+    }
+
+    testWidgets('counts the amount up, with the wall losing bricks', (
+      tester,
+    ) async {
+      await open(tester);
+      await saveAndReachResult(tester);
+      expect(find.byType(ClimbWall), findsOneWidget);
+      expect(find.text('£30.00'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.text('£30.00'), findsOneWidget);
+      expect(tester.widget<ClimbWall>(find.byType(ClimbWall)).progress, 1);
+    });
+
+    testWidgets('with reduced motion, shows the amount at once', (
+      tester,
+    ) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await open(tester);
+      await saveAndReachResult(tester);
+      // One frame for the new history to load, then no animation.
+      await tester.pump();
+      expect(find.text('£30.00'), findsOneWidget);
+      expect(tester.widget<ClimbWall>(find.byType(ClimbWall)).progress, 1);
+    });
   });
 }

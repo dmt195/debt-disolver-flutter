@@ -4,6 +4,7 @@ import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
 import 'package:debt_destroyer/core/charts/line_swatch.dart';
+import 'package:debt_destroyer/core/illustrations/scenes.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -40,7 +41,7 @@ class StrategiesScreen extends ConsumerWidget {
 
     final Widget body;
     if (debts != null && debts.isEmpty) {
-      body = _Message(l10n.strategiesEmpty);
+      body = _Message(l10n.strategiesEmpty, art: const EmptyLot());
     } else {
       body = switch ((plans, active)) {
         (
@@ -365,9 +366,10 @@ class _SectionHeading extends StatelessWidget {
 }
 
 class _Message extends StatelessWidget {
-  const _Message(this.text, {this.onRetry});
+  const _Message(this.text, {this.onRetry, this.art});
 
   final String text;
+  final Widget? art;
   final VoidCallback? onRetry;
 
   @override
@@ -377,6 +379,7 @@ class _Message extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (art case final art?) ...[art, const SizedBox(height: 12)],
           Text(text, textAlign: TextAlign.center),
           if (onRetry != null) ...[
             const SizedBox(height: 8),

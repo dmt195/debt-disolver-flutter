@@ -7,6 +7,7 @@ import 'package:debt_destroyer/features/onboarding/presentation/onboarding_scree
 import 'package:debt_destroyer/features/progress/presentation/celebration_screen.dart';
 import 'package:debt_destroyer/features/progress/presentation/check_in_result_screen.dart';
 import 'package:debt_destroyer/features/progress/presentation/check_in_screen.dart';
+import 'package:debt_destroyer/features/progress/presentation/progress_providers.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenario_form_screen.dart';
 import 'package:debt_destroyer/features/scenarios/presentation/scenarios_screen.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -33,6 +34,7 @@ abstract final class Routes {
 
   /// The celebration for a cleared debt.
   static String cleared(String debtId) => '/cleared/$debtId';
+  static const debtFree = '/debt-free';
 
   static String editDebt(String id) => '/debts/$id';
 
@@ -155,7 +157,19 @@ GoRouter router(Ref ref) {
         ],
       ),
       GoRoute(
+        path: Routes.debtFree,
+        pageBuilder: (context, state) =>
+            const MaterialPage(fullscreenDialog: true, child: DebtFreeScreen()),
+      ),
+      GoRoute(
         path: '/cleared/:debtId',
+        // Only straight after the check-in that cleared the debt.
+        redirect: (context, state) {
+          final id = state.pathParameters['debtId'];
+          final outcome = ref.read(progressControllerProvider);
+          final due = outcome?.cleared.any((c) => c.debtId == id) ?? false;
+          return due ? null : Routes.home;
+        },
         pageBuilder: (context, state) => MaterialPage(
           fullscreenDialog: true,
           child: CelebrationScreen(debtId: state.pathParameters['debtId']!),

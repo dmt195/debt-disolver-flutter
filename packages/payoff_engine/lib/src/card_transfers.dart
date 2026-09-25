@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/debt_kind.dart';
 import 'package:payoff_engine/src/fee_fit.dart';
@@ -7,6 +8,12 @@ import 'package:payoff_engine/src/rounding.dart';
 
 /// Most moves the card-transfers strategy makes.
 const int kMaxCardMoves = 10;
+
+/// Candidates actually simulated each round of the greedy search: running
+/// the plan's full simulation for every candidate is what makes the search
+/// slow with many debts and offers, so only the most promising few are
+/// simulated (see [shortlistCardMoves]).
+const int kCardMoveShortlist = 8;
 
 /// [debts] with [moves] applied: each source reduced by what left it (and
 /// dropped if emptied), each target followed by a portion per move onto it.
@@ -73,6 +80,34 @@ List<CardMove> cardMoveCandidates(List<Debt> debts, List<CardMove> moves) {
                 ))
               ?_candidate(from, to, offer, moves),
   ];
+}
+
+/// The best [kCardMoveShortlist] of [candidates] to actually simulate this
+/// round, ranked by a cheap estimate of a year's saving: the rate cut
+/// (month 1) times the amount moved, less the fee. Highest estimate first;
+/// ties keep [candidates]' order (source name, then target name, as
+/// [cardMoveCandidates] returns them).
+List<CardMove> shortlistCardMoves(List<Debt> debts, List<CardMove> candidates) {
+  final byId = {for (final d in debts) d.id: d};
+  int estimate(CardMove move) {
+    final from = byId[move.fromDebtId]!;
+    final to = byId[move.toDebtId]!;
+    final movedRate = move.promo?.aprBps ?? to.aprBps;
+    final yearSaved = divideHalfEven(
+      (aprInMonth(from, 1) - movedRate) * move.amount.minor,
+      10000,
+    );
+    return yearSaved - move.fee.minor;
+  }
+
+  final ranked = [...candidates];
+  mergeSort<CardMove>(
+    ranked,
+    compare: (a, b) => estimate(b).compareTo(estimate(a)),
+  );
+  return ranked.length <= kCardMoveShortlist
+      ? ranked
+      : ranked.sublist(0, kCardMoveShortlist);
 }
 
 CardMove? _candidate(

@@ -414,4 +414,53 @@ void main() {
     await tester.scrollUntilVisible(find.text(reason), 100);
     expect(find.text(reason), findsOneWidget);
   });
+
+  testWidgets('says when no move between your cards would save money', (
+    tester,
+  ) async {
+    // 13% onto 12% with a 10% fee never pays for itself.
+    await pumpApp(
+      tester,
+      debts: [
+        testDebt(id: 'a', name: 'A', aprBps: 1300),
+        testDebt(
+          id: 'b',
+          name: 'B',
+          aprBps: 1200,
+          transferOffer: const TransferOffer(
+            feeBps: 1000,
+            availableCredit: Money(500000, 'GBP'),
+          ),
+        ),
+      ],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    const reason = 'No move between your cards would save money.';
+    await tester.scrollUntilVisible(find.text(reason), 100);
+    expect(find.text(reason), findsOneWidget);
+  });
+
+  testWidgets('marks the card-transfers card cheapest when it wins', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      debts: [store, amex],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    await tester.scrollUntilVisible(find.text('Cheapest'), 100);
+    final cheapestCard = find.ancestor(
+      of: find.text('Cheapest'),
+      matching: find.byType(Card),
+    );
+    expect(
+      find.descendant(
+        of: cheapestCard,
+        matching: find.text('Move balances between your cards'),
+      ),
+      findsOneWidget,
+    );
+  });
 }

@@ -81,6 +81,7 @@ The Debts list shows a "Transfer offer" label in the subtitle of a debt that has
    - Each move uses up room on its target. A source can be moved more than once (to different targets) until it's empty.
    - A moved portion is never moved again. A card that has received money can't be a source, and a card money has been moved off can't be a target, so money never shuffles back and forth.
 4. **Nothing helps.** If no move lowers the cost, the result is `NotApplicable(noWorthwhileMoves)`.
+   - If the no-move plan is not feasible, a move that makes it feasible is kept; the Strategies card then shows the only affordable plan.
 5. **Output.** `Restructured` gains a list of card groups (§3.3), and `PlanChange.cardTransfers(moves: …, fee: …)`, where `fee` is the total of the move fees and each `CardMove` is `(fromDebtId, fromName, toDebtId, toName, amount, fee, promo: Promo?)` in the order the moves were chosen.
 
 ### 3.3 Cards made of portions (simulate)

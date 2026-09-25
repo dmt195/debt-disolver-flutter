@@ -359,6 +359,48 @@ void main() {
     expect(app.repository.stored.single.transferOffer, isNull);
   });
 
+  testWidgets('editing a card with an offer pre-fills its fields', (
+    tester,
+  ) async {
+    final app = await pumpApp(
+      tester,
+      debts: [
+        testDebt(
+          id: 'a',
+          transferOffer: const TransferOffer(
+            feeBps: 300,
+            promo: Promo(aprBps: 0, months: 12),
+            availableCredit: Money(200000, 'GBP'),
+          ),
+        ),
+      ],
+      location: Routes.editDebt('a'),
+    );
+    Future<void> expectValue(String label, String value) async {
+      await tester.scrollUntilVisible(field(label), 100, scrollable: formList);
+      expect(
+        tester.widget<TextFormField>(field(label)).controller!.text,
+        value,
+      );
+    }
+
+    await expectValue('Transfer fee (%)', '3');
+    await expectValue('Available credit', '2000');
+    await expectValue('Offer rate (APR %)', '0');
+    await expectValue('Offer length (months)', '12');
+
+    // Saving unchanged keeps the same offer.
+    await save(tester);
+    expect(
+      app.repository.stored.single.transferOffer,
+      const TransferOffer(
+        feeBps: 300,
+        promo: Promo(aprBps: 0, months: 12),
+        availableCredit: Money(200000, 'GBP'),
+      ),
+    );
+  });
+
   testWidgets('explains an offer with no available credit', (tester) async {
     final app = await pumpApp(tester, location: Routes.newDebt);
     await fill(tester);

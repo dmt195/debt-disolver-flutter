@@ -55,7 +55,11 @@ PayoffResult simulate({
     }
   }
   // A card's portions by the rate charged in [month]; ties keep list order.
+  // Every debt is its own single-member card without a move (the common
+  // case), so this is the inner loop of every strategy: skip the copy and
+  // sort when there's nothing to order.
   List<int> byRate(List<int> members, int month, {required bool highestFirst}) {
+    if (members.length == 1) return members;
     final sorted = [...members];
     mergeSort<int>(
       sorted,

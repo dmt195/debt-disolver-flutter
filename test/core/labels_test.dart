@@ -145,4 +145,29 @@ void main() {
           'the highest-rate balance first, as UK and US law requires.',
     ]);
   });
+
+  test('a 1-month promo move reads "1 month", not "1 months"', () {
+    final lines = planChangeLines(
+      l10n,
+      const PlanChange.cardTransfers(
+        moves: [
+          CardMove(
+            fromDebtId: 's',
+            fromName: 'Store',
+            toDebtId: 'a',
+            toName: 'Amex',
+            amount: Money(10000, 'GBP'),
+            fee: Money(300, 'GBP'),
+            promo: Promo(aprBps: 0, months: 1),
+          ),
+        ],
+        fee: Money(300, 'GBP'),
+      ),
+      'en_GB',
+    );
+    expect(
+      lines.first,
+      'Move £100.00 from Store to Amex (fee £3.00, 0% for 1 month)',
+    );
+  });
 }

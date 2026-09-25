@@ -128,9 +128,14 @@ bool _cheaper(PayoffPlan a, PayoffPlan b) {
 }
 
 /// Greedy search for worthwhile moves between the user's own cards: each
-/// round simulates every candidate on top of the moves kept so far and
-/// keeps the one that makes the plan cheapest, until none helps or
-/// [kMaxCardMoves] are made. A plan that isn't feasible is never preferred.
+/// round shortlists the most promising candidates on top of the moves kept
+/// so far ([shortlistCardMoves]), screens them with one cheap simulation to
+/// pick the round's likely best, then confirms it with the full (look-ahead)
+/// evaluation — keeping it only if that beats the current best. Stops when
+/// nothing helps or [kMaxCardMoves] are made. A plan that isn't feasible is
+/// never preferred. Running the full evaluation on every candidate every
+/// round (rather than just the round's screened winner) is what made this
+/// slow with many debts and offers.
 PayoffResult _cardTransfers(List<Debt> debts, Money budget, Strategy strategy) {
   if (!debts.any((d) => d.transferOffer != null)) {
     return PayoffResult.notApplicable(
@@ -154,22 +159,46 @@ PayoffResult _cardTransfers(List<Debt> debts, Money budget, Strategy strategy) {
     );
   }
 
+  // A single, no-look-ahead simulation (what _simulateBest's first pass
+  // does): cheap enough to run on every shortlisted candidate each round.
+  PayoffResult screen(List<CardMove> moves) {
+    final applied = applyCardMoves(debts, moves);
+    final fee = moves.fold(zero, (s, m) => s + m.fee);
+    return simulate(
+      strategyId: strategy.id,
+      debts: applied.debts,
+      groups: applied.groups,
+      budget: budget,
+      fees: fee,
+      change: moves.isEmpty
+          ? null
+          : PlanChange.cardTransfers(moves: moves, fee: fee),
+      order: allocationOrder(strategy, applied.debts),
+    );
+  }
+
   var moves = const <CardMove>[];
   var best = evaluate(moves);
   while (moves.length < kMaxCardMoves) {
-    List<CardMove>? roundMoves;
-    var roundBest = best;
-    for (final candidate in cardMoveCandidates(debts, moves)) {
+    final shortlisted = shortlistCardMoves(
+      debts,
+      cardMoveCandidates(debts, moves),
+    );
+    List<CardMove>? screenWinner;
+    PayoffResult? screenBest;
+    for (final candidate in shortlisted) {
       final tried = [...moves, candidate];
-      final result = evaluate(tried);
-      if (_better(result, roundBest)) {
-        roundBest = result;
-        roundMoves = tried;
+      final result = screen(tried);
+      if (screenBest == null || _better(result, screenBest)) {
+        screenBest = result;
+        screenWinner = tried;
       }
     }
-    if (roundMoves == null) break;
-    moves = roundMoves;
-    best = roundBest;
+    if (screenWinner == null) break;
+    final full = evaluate(screenWinner);
+    if (!_better(full, best)) break;
+    moves = screenWinner;
+    best = full;
   }
   if (moves.isEmpty) {
     // No move helped. If the no-move plan itself isn't feasible (e.g. the
@@ -184,8 +213,12 @@ PayoffResult _cardTransfers(List<Debt> debts, Money budget, Strategy strategy) {
   return best;
 }
 
+/// Whether [a] is a plan worth keeping over [b]: a move is only kept
+/// because it costs strictly less, never merely because it ties on
+/// totalPaid but finishes sooner (that's not a saving).
 bool _better(PayoffResult a, PayoffResult b) => switch ((a, b)) {
-  (Feasible(plan: final pa), Feasible(plan: final pb)) => _cheaper(pa, pb),
+  (Feasible(plan: final pa), Feasible(plan: final pb)) =>
+    pa.totalPaid < pb.totalPaid,
   (Feasible(), _) => true,
   _ => false,
 };

@@ -17,7 +17,9 @@ class AdBanner extends ConsumerWidget {
       valueListenable: ads.canShowAds,
       builder: (context, canShow, _) {
         if (!canShow) return const SizedBox.shrink();
-        final banner = Center(child: ads.buildBanner());
+        // Only as tall as the ad: in a Scaffold's bottomNavigationBar a
+        // plain Center would take the whole screen.
+        final banner = Center(heightFactor: 1, child: ads.buildBanner());
         return respectsSafeArea ? SafeArea(top: false, child: banner) : banner;
       },
     );

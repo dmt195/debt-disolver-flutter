@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/features/ads/presentation/ads_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,5 +50,36 @@ void main() {
     // The banner sits directly on the bottom nav: no empty strip between.
     final nav = tester.getRect(find.byType(NavigationBar));
     expect(banner.bottom, closeTo(nav.top, 1));
+  });
+
+  testWidgets('on Plans the banner sits at the bottom, under the plans', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1170, 2532)
+      ..devicePixelRatio = 3
+      ..padding = const FakeViewPadding(bottom: 102)
+      ..viewPadding = const FakeViewPadding(bottom: 102);
+    addTearDown(tester.view.reset);
+
+    await pumpApp(
+      tester,
+      location: Routes.plans,
+      debts: [
+        testDebt(id: 'a'),
+        testDebt(id: 'b', aprBps: 990),
+      ],
+      overrides: [adsServiceProvider.overrideWithValue(ads)],
+    );
+
+    final banner = tester.getRect(find.byKey(bannerKey));
+    final nav = tester.getRect(find.byType(NavigationBar));
+    // Just above the tabs (allowing for the home-indicator padding), not
+    // floating mid-screen with the plans squeezed out.
+    expect(banner.bottom, greaterThan(nav.top - 40));
+    expect(find.byType(ListView), findsWidgets);
+    final list = tester.getRect(find.byType(ListView).first);
+    expect(list.height, greaterThan(400));
+    expect(list.bottom, lessThanOrEqualTo(banner.top + 1));
   });
 }

@@ -74,6 +74,15 @@ void progressRepositoryContract(
     expect([for (final c in h.checkIns) c.at.month], [9, 10]);
   });
 
+  test('check-ins at the same moment keep the order they were made', () async {
+    final at = DateTime(2026, 9, 24);
+    for (final minor in [90000, 80000, 70000]) {
+      await progress.saveCheckIn(at: at, balances: {'a': m(minor)});
+    }
+    final h = await progress.load(gbp);
+    expect([for (final c in h.checkIns) c.total.minor], [90000, 80000, 70000]);
+  });
+
   test('start fresh deletes history, never debts', () async {
     await progress.recordStart(
       at: DateTime(2026, 9, 24),

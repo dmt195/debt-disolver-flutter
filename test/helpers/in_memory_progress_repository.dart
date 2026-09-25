@@ -23,8 +23,18 @@ class InMemoryProgressRepository implements ProgressRepository {
 
   ProgressHistory _history(String currency) {
     Money relabel(Money m) => Money(m.minor, currency);
-    final checkIns = [..._checkIns]..sort((a, b) => a.at.compareTo(b.at));
-    final starts = [..._starts]..sort((a, b) => a.at.compareTo(b.at));
+    // By time, then in the order they were made (a stable sort).
+    List<T> byTime<T>(List<T> items, DateTime Function(T) at) {
+      final indexed = [...items.indexed]
+        ..sort((a, b) {
+          final byAt = at(a.$2).compareTo(at(b.$2));
+          return byAt != 0 ? byAt : a.$1.compareTo(b.$1);
+        });
+      return [for (final (_, item) in indexed) item];
+    }
+
+    final checkIns = byTime(_checkIns, (c) => c.at);
+    final starts = byTime(_starts, (s) => s.at);
     return ProgressHistory(
       checkIns: [
         for (final c in checkIns)

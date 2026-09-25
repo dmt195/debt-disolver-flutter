@@ -129,6 +129,17 @@ void main() {
       expect(aheadBehind(const ProgressHistory(), 'GBP'), isA<NoProgressYet>());
     });
 
+    test('a check-in at the same moment as the start still counts', () {
+      final h = ProgressHistory(
+        checkIns: [
+          ci('s', DateTime(2026, 6), {'a': 100000}, start: true),
+          ci('c', DateTime(2026, 6), {'a': 80000}),
+        ],
+        starts: [sp('1', 's', DateTime(2026, 6), totals)],
+      );
+      expect(aheadBehind(h, 'GBP'), isA<AheadMonths>());
+    });
+
     test('within 1% is on track', () {
       expect(aheadBehind(at(DateTime(2026, 9), 70500), 'GBP'), isA<OnTrack>());
     });

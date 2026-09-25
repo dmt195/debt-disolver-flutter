@@ -98,10 +98,12 @@ AheadBehind aheadBehind(ProgressHistory history, String currency) {
   final start = history.latestStart;
   final last = history.lastCheckIn;
   if (start == null || last == null) return const NoProgressYet();
-  final startCheckIn = history.checkInFor(start);
-  if (last.id == startCheckIn.id || !last.at.isAfter(startCheckIn.at)) {
-    return const NoProgressYet();
-  }
+  // Check-ins are in the order they were made, so "since the start" means
+  // after its own check-in in the list, even at the same moment.
+  final startIndex = history.checkIns.indexWhere(
+    (c) => c.id == start.checkInId,
+  );
+  if (history.checkIns.length - 1 <= startIndex) return const NoProgressYet();
   final totals = start.projectedTotals;
   final m = monthIndex(start.at, last.at);
   final expected = m < totals.length ? totals[m] : 0;

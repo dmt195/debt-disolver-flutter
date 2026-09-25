@@ -32,13 +32,20 @@ class DriftProgressRepository implements ProgressRepository {
   @override
   Future<ProgressHistory> load(String currencyCode) async {
     Money money(int minor) => Money(minor, currencyCode);
-    final checkIns = await (_db.select(
-      _db.checkInRows,
-    )..orderBy([(t) => OrderingTerm(expression: t.at)])).get();
+    // By time, then in the order they were made.
+    final checkIns =
+        await (_db.select(_db.checkInRows)..orderBy([
+              (t) => OrderingTerm(expression: t.at),
+              (t) => OrderingTerm(expression: t.rowId),
+            ]))
+            .get();
     final balances = await _db.select(_db.checkInBalanceRows).get();
-    final starts = await (_db.select(
-      _db.startingPointRows,
-    )..orderBy([(t) => OrderingTerm(expression: t.at)])).get();
+    final starts =
+        await (_db.select(_db.startingPointRows)..orderBy([
+              (t) => OrderingTerm(expression: t.at),
+              (t) => OrderingTerm(expression: t.rowId),
+            ]))
+            .get();
     return ProgressHistory(
       checkIns: [
         for (final c in checkIns)

@@ -55,6 +55,7 @@ Gotchas:
 - `DriftDebtRepository.convertAmounts` also rescales saved scenarios (same database, same transaction). The in-memory test repositories don't rescale scenarios.
 - Consolidation and balance transfer are *borrowing alternatives* (`isBorrowingAlternative` in `lib/features/strategies/domain/strategy_groups.dart`): shown in their own section with a caveat, and never marked cheapest or picked as the best plan (`bestPayOffMethod`).
 - Strategy-parameter fields (Settings and the scenario editor) come from `ParameterFields` in `lib/features/settings/presentation/parameter_fields.dart`; add new parameters there once.
+- Card transfers (`Strategy.cardTransfers`): `calculate` runs a greedy search (`cardMoveCandidates`, `applyCardMoves`, at most `kMaxCardMoves`) over the look-ahead avalanche. Moved money becomes a *portion* debt (`<card>#from-<source>`) grouped with its card: `simulate(groups:)` works out one minimum on the card total (lowest rate first) and pays extra highest current rate first within a card (the UK rule). Offers live on `Debt.transferOffer` (schema 3).
 
 ## Legacy Android app (reference only)
 

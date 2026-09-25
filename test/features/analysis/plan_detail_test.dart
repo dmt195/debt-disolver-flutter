@@ -48,6 +48,27 @@ class _NoSharer implements FileSharer {
 }
 
 void main() {
+  // Store card: 1,000.00 at 29.9%. Amex: 500.00 at 12.7% with an offer of
+  // 0% for 12 months, 3% fee and 2,000.00 of room: all of the store
+  // balance moves (1,000.00 + 30.00 fee).
+  final store = testDebt(
+    id: 's',
+    name: 'Store',
+    type: DebtType.storeCard,
+    aprBps: 2990,
+  );
+  final amex = testDebt(
+    id: 'a',
+    name: 'Amex',
+    balance: 50000,
+    aprBps: 1270,
+    transferOffer: const TransferOffer(
+      feeBps: 300,
+      promo: Promo(aprBps: 0, months: 12),
+      availableCredit: Money(200000, 'GBP'),
+    ),
+  );
+
   final visa = testDebt(
     id: 'a',
     name: 'Visa',
@@ -257,5 +278,30 @@ void main() {
     await tester.pumpAndSettle();
     final (table, _, _) = exporter.calls.single;
     expect(table.notes, ['Scenario: Current']);
+  });
+
+  testWidgets('lists card moves and names the moved portion', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [store, amex],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.plan(StrategyId.cardTransfers),
+    );
+    const move =
+        'Move £1,000.00 from Store to Amex (fee £30.00, 0% for 12 months)';
+    await tester.scrollUntilVisible(
+      find.text(move),
+      100,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(find.text(move), findsOneWidget);
+    await tester.tap(find.text('Schedule'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Amex (moved from Store)'), findsWidgets);
   });
 }

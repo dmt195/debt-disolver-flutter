@@ -26,6 +26,27 @@ void main() {
     createdAt: DateTime(2026, 9),
   );
 
+  // Store card: 1,000.00 at 29.9%. Amex: 500.00 at 12.7% with an offer of
+  // 0% for 12 months, 3% fee and 2,000.00 of room: all of the store
+  // balance moves (1,000.00 + 30.00 fee).
+  final store = testDebt(
+    id: 's',
+    name: 'Store',
+    type: DebtType.storeCard,
+    aprBps: 2990,
+  );
+  final amex = testDebt(
+    id: 'a',
+    name: 'Amex',
+    balance: 50000,
+    aprBps: 1270,
+    transferOffer: const TransferOffer(
+      feeBps: 300,
+      promo: Promo(aprBps: 0, months: 12),
+      availableCredit: Money(200000, 'GBP'),
+    ),
+  );
+
   testWidgets('ranks every strategy and marks the cheapest', (tester) async {
     await pumpApp(
       tester,
@@ -367,5 +388,30 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Cheapest'), findsOneWidget);
+  });
+
+  testWidgets('shows the card moves and their fees', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [store, amex],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    await tester.scrollUntilVisible(find.text('1 move · £30.00 in fees'), 100);
+    expect(find.text('1 move · £30.00 in fees'), findsOneWidget);
+  });
+
+  testWidgets('says when no card has an offer', (tester) async {
+    await pumpApp(
+      tester,
+      debts: [store],
+      settings: {SettingsKeys.monthlyBudgetMinor: 30000},
+      location: Routes.strategies,
+    );
+    const reason =
+        'No card has a balance transfer offer yet. Add one on a '
+        "card's details.";
+    await tester.scrollUntilVisible(find.text(reason), 100);
+    expect(find.text(reason), findsOneWidget);
   });
 }

@@ -316,6 +316,11 @@ class _FeasibleDetails extends ConsumerWidget {
               style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
           ),
+        if (plan.change case CardTransferChange(:final moves, :final fee))
+          Text(
+            l10n.cardMovesSummary(moves.length, formatMoney(fee, locale)),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         if (plan.change case TransferChange(
           limitAssumed: true,
           :final creditLimit,

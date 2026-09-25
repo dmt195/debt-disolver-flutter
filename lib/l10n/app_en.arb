@@ -203,6 +203,8 @@
   "changeCardMovePromo": "Move {amount} from {from} to {to} (fee {fee}, {apr} for {months} months)",
   "@changeCardMovePromo": {"placeholders": {"amount": {"type": "String"}, "from": {"type": "String"}, "to": {"type": "String"}, "fee": {"type": "String"}, "apr": {"type": "String"}, "months": {"type": "int"}}},
   "changeCardMoveReminder": "Check your card's terms: most won't take a balance from a card by the same bank. This plan assumes payments above the minimum clear the highest-rate balance first, as UK and US law requires.",
+  "cardMovesSummary": "{count, plural, =1{1 move} other{{count} moves}} · {fee} in fees",
+  "@cardMovesSummary": {"placeholders": {"count": {"type": "int"}, "fee": {"type": "String"}}},
 
   "settingsTitle": "Settings",
   "settingsCurrency": "Currency",

@@ -3,6 +3,8 @@ import 'dart:developer';
 
 import 'package:debt_destroyer/app/app.dart';
 import 'package:debt_destroyer/core/crash_reporter.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
+import 'package:debt_destroyer/core/firebase_diagnostics.dart';
 import 'package:debt_destroyer/features/ads/presentation/ads_providers.dart';
 import 'package:debt_destroyer/features/reminders/presentation/reminder_scheduler.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -14,7 +16,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   LicenseRegistry.addLicense(_fontLicences);
-  final container = ProviderContainer();
+  // Firebase only when this build may use it and it's configured; nothing
+  // is collected until the user opts in (diagnostics spec §2.2).
+  final diagnostics = await startDiagnostics();
+  final container = ProviderContainer(
+    overrides: [diagnosticsProvider.overrideWithValue(diagnostics)],
+  );
   installErrorHandlers(container.read(crashReporterProvider));
   // Load settings before the first frame so the router knows whether to
   // show onboarding. If loading fails the app still starts; the screens show

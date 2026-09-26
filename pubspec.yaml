@@ -11,6 +11,9 @@ dependencies:
   drift: ^2.35.0
   drift_flutter: ^0.3.1
   excel: ^4.0.6
+  firebase_analytics: ^12.6.0
+  firebase_core: ^4.15.0
+  firebase_crashlytics: ^5.4.0
   fl_chart: ^1.2.0
   flutter:
     sdk: flutter

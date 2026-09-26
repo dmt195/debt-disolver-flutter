@@ -6,6 +6,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase: only once `flutterfire configure` has added google-services.json
+// (docs/release.md). Without it the app builds and runs with diagnostics off.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+}
+
 // Release signing: android/key.properties (never committed) with storeFile,
 // storePassword, keyAlias and keyPassword. Without it, release builds are
 // signed with the debug key so they still run locally.

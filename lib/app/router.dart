@@ -4,6 +4,7 @@ import 'package:debt_destroyer/features/debts/domain/debt_draft.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
+import 'package:debt_destroyer/features/loans/presentation/loan_calculator_screen.dart';
 import 'package:debt_destroyer/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:debt_destroyer/features/progress/presentation/celebration_screen.dart';
 import 'package:debt_destroyer/features/progress/presentation/check_in_result_screen.dart';
@@ -28,6 +29,7 @@ abstract final class Routes {
   static const newDebt = '/debts/new';
   static const plans = '/plans';
   static const scenarios = '/plans/scenarios';
+  static const loanCalculator = '/plans/loan-calculator';
   static const settings = '/settings';
   static const onboarding = '/onboarding';
   static const checkIn = '/check-in';
@@ -128,6 +130,11 @@ GoRouter router(Ref ref) {
                         ),
                       ),
                     ],
+                  ),
+                  GoRoute(
+                    path: 'loan-calculator',
+                    parentNavigatorKey: rootKey,
+                    builder: (context, state) => const LoanCalculatorScreen(),
                   ),
                   GoRoute(
                     path: ':strategyId',

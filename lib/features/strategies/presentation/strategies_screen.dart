@@ -95,6 +95,11 @@ class StrategiesScreen extends ConsumerWidget {
         title: Text(l10n.strategiesTitle),
         actions: [
           IconButton(
+            icon: const Icon(Icons.calculate_outlined),
+            tooltip: l10n.loanCalculatorTitle,
+            onPressed: () => context.push(Routes.loanCalculator),
+          ),
+          IconButton(
             icon: const Icon(Icons.bookmarks_outlined),
             tooltip: l10n.scenariosTitle,
             onPressed: () => context.push(Routes.scenarios),

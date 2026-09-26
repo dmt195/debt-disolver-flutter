@@ -1,10 +1,10 @@
 import 'package:collection/collection.dart';
 import 'package:payoff_engine/src/allocation_order.dart';
 import 'package:payoff_engine/src/debt.dart';
+import 'package:payoff_engine/src/interest.dart';
 import 'package:payoff_engine/src/minimum_payment.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/payoff_result.dart';
-import 'package:payoff_engine/src/rounding.dart';
 import 'package:payoff_engine/src/strategy.dart';
 
 /// A balance above this (in minor units) means the debt is growing without
@@ -74,6 +74,7 @@ PayoffResult simulate({
     return sorted;
   }
 
+  final interestOn = monthlyInterest();
   var month = 0;
   while (balances.any((b) => b > 0)) {
     if (month == kMaxMonths) {
@@ -84,10 +85,7 @@ PayoffResult simulate({
     final interest = List.filled(n, 0);
     for (var i = 0; i < n; i++) {
       if (balances[i] <= 0) continue;
-      interest[i] = divideHalfEven(
-        balances[i] * aprInMonth(debts[i], month),
-        120000,
-      );
+      interest[i] = interestOn(balances[i], aprInMonth(debts[i], month));
       balances[i] += interest[i];
       if (balances[i] > kBalanceCeilingMinor) {
         return PayoffResult.neverClears(strategyId: strategyId);

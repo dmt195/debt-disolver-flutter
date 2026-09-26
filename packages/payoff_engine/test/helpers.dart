@@ -31,3 +31,8 @@ PayoffPlan planOf(PayoffResult result) => switch (result) {
   Feasible(:final plan) => plan,
   _ => throw StateError('Expected a feasible result, got $result'),
 };
+
+/// Runs [body] with the 2013 app's APR ÷ 12 interest: for tests whose
+/// figures were worked out that way and whose subject isn't the rate.
+T nominal<T>(T Function() body) =>
+    runWithInterestMode(InterestMode.nominal, body);

@@ -114,32 +114,44 @@ void main() {
     );
   });
 
-  test('pays the other debts first while the card is at 0%', () {
-    final plan = planOf(
-      calculate(debts: debts, monthlyBudget: gbp(60000), strategy: transfer()),
-    );
-    expect(plan.monthsToClear, 6);
-    expect(plan.totalPaid, gbp(357260));
-    expect(plan.totalInterest, gbp(2760));
-    expect(plan.totalFees, gbp(4500));
-    expect(plan.payoffOrder, ['l', kBalanceTransferDebtId]);
-    expect(plan.change, isA<TransferChange>());
-  });
+  // Figures worked out with APR ÷ 12; the subject isn't the rate.
+  test(
+    'pays the other debts first while the card is at 0%',
+    () => nominal(() {
+      final plan = planOf(
+        calculate(
+          debts: debts,
+          monthlyBudget: gbp(60000),
+          strategy: transfer(),
+        ),
+      );
+      expect(plan.monthsToClear, 6);
+      expect(plan.totalPaid, gbp(357260));
+      expect(plan.totalInterest, gbp(2760));
+      expect(plan.totalFees, gbp(4500));
+      expect(plan.payoffOrder, ['l', kBalanceTransferDebtId]);
+      expect(plan.change, isA<TransferChange>());
+    }),
+  );
 
-  test('a partial transfer leaves the rest on the original card', () {
-    final plan = planOf(
-      calculate(
-        debts: debts,
-        monthlyBudget: gbp(60000),
-        strategy: transfer(limit: gbp(100000)),
-      ),
-    );
-    expect(plan.monthsToClear, 6);
-    expect(plan.totalPaid, gbp(357744));
-    expect(plan.totalInterest, gbp(4831));
-    expect(plan.totalFees, gbp(2913));
-    expect(plan.payoffOrder, ['a', 'l', kBalanceTransferDebtId]);
-  });
+  // Figures worked out with APR ÷ 12; the subject isn't the rate.
+  test(
+    'a partial transfer leaves the rest on the original card',
+    () => nominal(() {
+      final plan = planOf(
+        calculate(
+          debts: debts,
+          monthlyBudget: gbp(60000),
+          strategy: transfer(limit: gbp(100000)),
+        ),
+      );
+      expect(plan.monthsToClear, 6);
+      expect(plan.totalPaid, gbp(357744));
+      expect(plan.totalInterest, gbp(4831));
+      expect(plan.totalFees, gbp(2913));
+      expect(plan.payoffOrder, ['a', 'l', kBalanceTransferDebtId]);
+    }),
+  );
 
   test('rejects a credit limit in another currency', () {
     expect(
@@ -150,5 +162,18 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+  test('under compound interest the transfer orders hold', () {
+    PayoffPlan plan(Strategy s) =>
+        planOf(calculate(debts: debts, monthlyBudget: gbp(60000), strategy: s));
+    final whole = plan(transfer());
+    expect(whole.payoffOrder, ['l', kBalanceTransferDebtId]);
+    expect(whole.change, isA<TransferChange>());
+    expect(plan(transfer(limit: gbp(100000))).payoffOrder, [
+      'a',
+      'l',
+      kBalanceTransferDebtId,
+    ]);
   });
 }

@@ -19,17 +19,17 @@ void main() {
     });
 
     test('adds interest before paying, rounded half-even to the penny', () {
-      // 1200.00 at 12% APR: 1% a month = 12.00; then 100.00 paid.
+      // 1200.00 at 12% APR: 9,489 ppm a month = 11.39; then 100.00 paid.
       final plan = planOf(
         run([debt(id: 'a', balance: 120000, aprBps: 1200)], 10000),
       );
       final first = plan.months.first;
       expect(first.month, 1);
-      expect(first.interest, [gbp(1200)]);
+      expect(first.interest, [gbp(1139)]);
       expect(first.payments, [gbp(10000)]);
-      expect(first.closingBalances, [gbp(111200)]);
-      // Month 2: 1112.00 * 1% = 11.12.
-      expect(plan.months[1].interest, [gbp(1112)]);
+      expect(first.closingBalances, [gbp(111139)]);
+      // Month 2: 1111.39 * 9,489 ppm = 10.55.
+      expect(plan.months[1].interest, [gbp(1055)]);
     });
 
     test('the final payment is only what is owed', () {
@@ -85,20 +85,24 @@ void main() {
       expect(plan.monthsToClear, 3);
     });
 
-    test('money freed by clearing a debt moves on in the same month', () {
-      final plan = planOf(
-        run([
-          debt(id: 'a', name: 'A', balance: 3000, aprBps: 2000),
-          debt(id: 'b', name: 'B', balance: 50000, aprBps: 1000),
-        ], 10000),
-      );
-      // Month 1: A (30.00 + 0.50 interest) is cleared; the other 69.50
-      // goes to B.
-      final first = plan.months.first;
-      expect(first.payments[0], gbp(3050));
-      expect(first.payments[1], gbp(6950));
-      expect(first.closingBalances[0], gbp(0));
-    });
+    // Figures worked out with APR ÷ 12; the subject isn't the rate.
+    test(
+      'money freed by clearing a debt moves on in the same month',
+      () => nominal(() {
+        final plan = planOf(
+          run([
+            debt(id: 'a', name: 'A', balance: 3000, aprBps: 2000),
+            debt(id: 'b', name: 'B', balance: 50000, aprBps: 1000),
+          ], 10000),
+        );
+        // Month 1: A (30.00 + 0.50 interest) is cleared; the other 69.50
+        // goes to B.
+        final first = plan.months.first;
+        expect(first.payments[0], gbp(3050));
+        expect(first.payments[1], gbp(6950));
+        expect(first.closingBalances[0], gbp(0));
+      }),
+    );
 
     test('does not modify the input list or its order', () {
       final input = [
@@ -170,67 +174,79 @@ void main() {
       expect(plan.payoffOrder, ['b', 'a']);
     });
 
-    test('avalanche beats smallest-balance-first on a short promo', () {
-      // Reported case: Visa 0% for 3 more months then 15.5%; Amex 12.7%.
-      final debts = [
-        debt(
-          id: 'visa',
-          name: 'Visa red',
-          balance: 236500,
-          aprBps: 1550,
-          minPaymentPercentBps: 350,
-          minPaymentFloor: 5000,
-          promo: const Promo(aprBps: 0, months: 3),
-        ),
-        debt(
-          id: 'amex',
-          name: 'Amex Blue',
-          balance: 457700,
-          aprBps: 1270,
-          minPaymentPercentBps: 400,
-          minPaymentFloor: 10000,
-        ),
-      ];
-      final avalanche = planOf(run(debts, 30000));
-      final snowball = planOf(run(debts, 30000, const Strategy.snowball()));
-      expect(avalanche.totalPaid <= snowball.totalPaid, isTrue);
-      // Paying Visa from month 1 costs 1,016.06 in interest; paying the
-      // Amex while Visa is at 0% costs 1,018.79.
-      expect(avalanche.totalInterest, gbp(101606));
-    });
+    // Figures worked out with APR ÷ 12; the subject isn't the rate.
+    test(
+      'avalanche beats smallest-balance-first on a short promo',
+      () => nominal(() {
+        // Reported case: Visa 0% for 3 more months then 15.5%; Amex 12.7%.
+        final debts = [
+          debt(
+            id: 'visa',
+            name: 'Visa red',
+            balance: 236500,
+            aprBps: 1550,
+            minPaymentPercentBps: 350,
+            minPaymentFloor: 5000,
+            promo: const Promo(aprBps: 0, months: 3),
+          ),
+          debt(
+            id: 'amex',
+            name: 'Amex Blue',
+            balance: 457700,
+            aprBps: 1270,
+            minPaymentPercentBps: 400,
+            minPaymentFloor: 10000,
+          ),
+        ];
+        final avalanche = planOf(run(debts, 30000));
+        final snowball = planOf(run(debts, 30000, const Strategy.snowball()));
+        expect(avalanche.totalPaid <= snowball.totalPaid, isTrue);
+        // Paying Visa from month 1 costs 1,016.06 in interest; paying the
+        // Amex while Visa is at 0% costs 1,018.79.
+        expect(avalanche.totalInterest, gbp(101606));
+      }),
+    );
 
-    test('snowball pays the smallest starting balance first', () {
-      final plan = planOf(
-        run(
-          [
-            debt(id: 'a', balance: 50000, aprBps: 2000),
-            debt(id: 'b', balance: 30000, aprBps: 500),
-          ],
-          10000,
-          const Strategy.snowball(),
-        ),
-      );
-      expect(plan.months.first.payments[col(plan, 'b')], gbp(10000));
-      expect(plan.payoffOrder, ['b', 'a']);
-      expect(plan.monthsToClear, 9);
-      expect(plan.totalPaid, gbp(85737));
-    });
+    // Figures worked out with APR ÷ 12; the subject isn't the rate.
+    test(
+      'snowball pays the smallest starting balance first',
+      () => nominal(() {
+        final plan = planOf(
+          run(
+            [
+              debt(id: 'a', balance: 50000, aprBps: 2000),
+              debt(id: 'b', balance: 30000, aprBps: 500),
+            ],
+            10000,
+            const Strategy.snowball(),
+          ),
+        );
+        expect(plan.months.first.payments[col(plan, 'b')], gbp(10000));
+        expect(plan.payoffOrder, ['b', 'a']);
+        expect(plan.monthsToClear, 9);
+        expect(plan.totalPaid, gbp(85737));
+      }),
+    );
 
-    test('custom order follows the list', () {
-      final plan = planOf(
-        run(
-          [
-            debt(id: 'a', balance: 50000, aprBps: 500),
-            debt(id: 'b', balance: 30000, aprBps: 2000),
-          ],
-          10000,
-          const Strategy.customOrder(),
-        ),
-      );
-      expect(plan.months.first.payments[col(plan, 'a')], gbp(10000));
-      expect(plan.payoffOrder, ['a', 'b']);
-      expect(plan.totalPaid, gbp(84467));
-    });
+    // Figures worked out with APR ÷ 12; the subject isn't the rate.
+    test(
+      'custom order follows the list',
+      () => nominal(() {
+        final plan = planOf(
+          run(
+            [
+              debt(id: 'a', balance: 50000, aprBps: 500),
+              debt(id: 'b', balance: 30000, aprBps: 2000),
+            ],
+            10000,
+            const Strategy.customOrder(),
+          ),
+        );
+        expect(plan.months.first.payments[col(plan, 'a')], gbp(10000));
+        expect(plan.payoffOrder, ['a', 'b']);
+        expect(plan.totalPaid, gbp(84467));
+      }),
+    );
   });
 
   group('calculateBaseline', () {
@@ -272,6 +288,58 @@ void main() {
         result,
         const PayoffResult.neverClears(strategyId: StrategyId.avalanche),
       );
+    });
+  });
+
+  group('under compound interest (behaviour only)', () {
+    test('avalanche is still no dearer than snowball on a short promo', () {
+      final debts = [
+        debt(
+          id: 'visa',
+          name: 'Visa red',
+          balance: 236500,
+          aprBps: 1550,
+          minPaymentPercentBps: 350,
+          minPaymentFloor: 5000,
+          promo: const Promo(aprBps: 0, months: 3),
+        ),
+        debt(
+          id: 'amex',
+          name: 'Amex Blue',
+          balance: 457700,
+          aprBps: 1270,
+          minPaymentPercentBps: 400,
+          minPaymentFloor: 10000,
+        ),
+      ];
+      final avalanche = planOf(run(debts, 30000));
+      final snowball = planOf(run(debts, 30000, const Strategy.snowball()));
+      expect(avalanche.totalPaid <= snowball.totalPaid, isTrue);
+    });
+
+    test('snowball and your order keep their orders', () {
+      final snowball = planOf(
+        run(
+          [
+            debt(id: 'a', balance: 50000, aprBps: 2000),
+            debt(id: 'b', balance: 30000, aprBps: 500),
+          ],
+          10000,
+          const Strategy.snowball(),
+        ),
+      );
+      expect(snowball.payoffOrder, ['b', 'a']);
+      final custom = planOf(
+        run(
+          [
+            debt(id: 'a', balance: 50000, aprBps: 500),
+            debt(id: 'b', balance: 30000, aprBps: 2000),
+          ],
+          10000,
+          const Strategy.customOrder(),
+        ),
+      );
+      expect(custom.payoffOrder, ['a', 'b']);
     });
   });
 }

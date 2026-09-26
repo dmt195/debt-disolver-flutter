@@ -25,9 +25,10 @@ void main() {
       );
     });
 
+    // Figures worked out with APR ÷ 12; the subject isn't the rate.
     test(
       'is infeasible in a later month if the minimums grow past the budget',
-      () {
+      () => nominal(() {
         // The minimum (2% of balance) is below the interest (3% a month),
         // so the balance and its minimum both keep growing.
         final result = run([
@@ -48,7 +49,7 @@ void main() {
             month: 22,
           ),
         );
-      },
+      }),
     );
 
     test('never clears when payments cannot outpace interest', () {
@@ -84,4 +85,21 @@ void main() {
       );
     });
   });
+
+  test(
+    'under compound interest a growing minimum still runs out of budget',
+    () {
+      // 36% APR is 2.60% a month, still above the 2% minimum.
+      final result = run([
+        debt(
+          id: 'a',
+          balance: 100000,
+          aprBps: 3600,
+          minPaymentPercentBps: 200,
+          allowsOverpayment: false,
+        ),
+      ], 2500);
+      expect(result, isA<Infeasible>());
+    },
+  );
 }

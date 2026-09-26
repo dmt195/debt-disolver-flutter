@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:payoff_engine/src/debt.dart';
 import 'package:payoff_engine/src/debt_kind.dart';
 import 'package:payoff_engine/src/fee_fit.dart';
+import 'package:payoff_engine/src/interest.dart';
 import 'package:payoff_engine/src/money.dart';
 import 'package:payoff_engine/src/payoff_result.dart';
 import 'package:payoff_engine/src/rounding.dart';
@@ -86,8 +87,9 @@ List<CardMove> cardMoveCandidates(List<Debt> debts, List<CardMove> moves) {
 
 /// The best [kCardMoveShortlist] of [candidates] to actually simulate this
 /// round, ranked by a cheap estimate of a year's saving: for each of the
-/// next 12 months, how much lower the moved money's rate is than the
-/// source's (promos included; never negative), times the amount moved,
+/// next 12 months, how much lower the moved money's true monthly rate is
+/// than the source's (promos included; never negative), times the amount
+/// moved,
 /// less the fee. Highest estimate first;
 /// ties keep [candidates]' order (source name, then target name, as
 /// [cardMoveCandidates] returns them).
@@ -98,10 +100,12 @@ List<CardMove> shortlistCardMoves(List<Debt> debts, List<CardMove> candidates) {
     final to = byId[move.toDebtId]!;
     var rateMonths = 0;
     for (var m = 1; m <= 12; m++) {
-      final cut = aprInMonth(from, m) - _movedRate(to, move.promo, m);
+      final cut =
+          monthlyRatePpm(aprInMonth(from, m)) -
+          monthlyRatePpm(_movedRate(to, move.promo, m));
       if (cut > 0) rateMonths += cut;
     }
-    final yearSaved = divideHalfEven(rateMonths * move.amount.minor, 120000);
+    final yearSaved = divideHalfEven(rateMonths * move.amount.minor, 1000000);
     return yearSaved - move.fee.minor;
   }
 

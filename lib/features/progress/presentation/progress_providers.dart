@@ -216,10 +216,13 @@ class ProgressController extends _$ProgressController {
         ? minimumPayment(debt) + extra
         : minimumPayment(debt);
     final totalCount = clearedBefore.length + debts.length;
+    // The freed money rolls on to the first debt still open in the plan's
+    // order, which isn't always one planned after the debt just cleared.
     String? nextAfter(String id) {
-      final start = order.indexOf(id);
-      for (final other in order.skip(start < 0 ? order.length : start + 1)) {
-        if (current.containsKey(other) && !clearing.contains(other)) {
+      for (final other in order) {
+        if (other != id &&
+            current.containsKey(other) &&
+            !clearing.contains(other)) {
           return current[other]!.name;
         }
       }

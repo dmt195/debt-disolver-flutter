@@ -34,31 +34,35 @@ void main() {
     expect(plan.totalPaid, gbp(1040));
   });
 
-  test('lists debts in the order they are cleared', () {
-    // The loan's fixed 100.00 clears it in month 2; the card takes longer.
-    final plan = planOf(
-      simulate(
-        strategyId: StrategyId.avalanche,
-        debts: [
-          debt(id: 'high', balance: 100000, aprBps: 2000),
-          debt(
-            id: 'loan',
-            balance: 20000,
-            minPaymentFloor: 10000,
-            allowsOverpayment: false,
-          ),
-        ],
-        budget: gbp(30000),
-        fees: gbp(0),
-        order: (_) => [0, 1],
-      ),
-    );
-    expect(plan.payoffOrder, ['loan', 'high']);
-    // Columns follow the same order: the loan's minimum, then the rest.
-    expect(plan.months.first.payments, [gbp(10000), gbp(20000)]);
-    expect(plan.monthsToClear, 5);
-    expect(plan.totalPaid, gbp(124723));
-  });
+  // Figures worked out with APR ÷ 12; the subject isn't the rate.
+  test(
+    'lists debts in the order they are cleared',
+    () => nominal(() {
+      // The loan's fixed 100.00 clears it in month 2; the card takes longer.
+      final plan = planOf(
+        simulate(
+          strategyId: StrategyId.avalanche,
+          debts: [
+            debt(id: 'high', balance: 100000, aprBps: 2000),
+            debt(
+              id: 'loan',
+              balance: 20000,
+              minPaymentFloor: 10000,
+              allowsOverpayment: false,
+            ),
+          ],
+          budget: gbp(30000),
+          fees: gbp(0),
+          order: (_) => [0, 1],
+        ),
+      );
+      expect(plan.payoffOrder, ['loan', 'high']);
+      // Columns follow the same order: the loan's minimum, then the rest.
+      expect(plan.months.first.payments, [gbp(10000), gbp(20000)]);
+      expect(plan.monthsToClear, 5);
+      expect(plan.totalPaid, gbp(124723));
+    }),
+  );
 
   test(
     "debts clearing in the same month keep that month's allocation order",
@@ -127,16 +131,20 @@ void main() {
 
     int col(PayoffPlan p, String id) => p.debts.indexWhere((d) => d.id == id);
 
-    test('one minimum on the card total, lowest rate first', () {
-      // Month 1: own +1.00 interest; card total 201.00; 10% minimum is
-      // 20.10, all to the 0% portion. The extra 10.00 goes to the 12% one.
-      final plan = run(3010);
-      final first = plan.months.first;
-      expect(first.interest[col(plan, 'card')], gbp(100));
-      expect(first.interest[col(plan, 'card#from-x')], gbp(0));
-      expect(first.payments[col(plan, 'card#from-x')], gbp(2010));
-      expect(first.payments[col(plan, 'card')], gbp(1000));
-    });
+    // Figures worked out with APR ÷ 12; the subject isn't the rate.
+    test(
+      'one minimum on the card total, lowest rate first',
+      () => nominal(() {
+        // Month 1: own +1.00 interest; card total 201.00; 10% minimum is
+        // 20.10, all to the 0% portion. The extra 10.00 goes to the 12% one.
+        final plan = run(3010);
+        final first = plan.months.first;
+        expect(first.interest[col(plan, 'card')], gbp(100));
+        expect(first.interest[col(plan, 'card#from-x')], gbp(0));
+        expect(first.payments[col(plan, 'card#from-x')], gbp(2010));
+        expect(first.payments[col(plan, 'card')], gbp(1000));
+      }),
+    );
 
     test('the 0% portion is cleared last', () {
       final plan = run(3010);
@@ -161,6 +169,64 @@ void main() {
           month: 1,
         ),
       );
+    });
+  });
+
+  group('under compound interest (behaviour only)', () {
+    test('debts are listed in the order they are cleared', () {
+      final plan = planOf(
+        simulate(
+          strategyId: StrategyId.avalanche,
+          debts: [
+            debt(id: 'high', balance: 100000, aprBps: 2000),
+            debt(
+              id: 'loan',
+              balance: 20000,
+              minPaymentFloor: 10000,
+              allowsOverpayment: false,
+            ),
+          ],
+          budget: gbp(30000),
+          fees: gbp(0),
+          order: (_) => [0, 1],
+        ),
+      );
+      expect(plan.payoffOrder, ['loan', 'high']);
+    });
+
+    test('a card pays one minimum on its total, lowest rate first', () {
+      final plan = planOf(
+        simulate(
+          strategyId: StrategyId.cardTransfers,
+          debts: [
+            debt(
+              id: 'card',
+              balance: 10000,
+              aprBps: 1200,
+              minPaymentPercentBps: 1000,
+            ),
+            debt(
+              id: 'card#from-x',
+              balance: 10000,
+              aprBps: 1200,
+              promo: const Promo(aprBps: 0, months: 12),
+            ),
+          ],
+          budget: gbp(3010),
+          fees: gbp(0),
+          order: (_) => [0, 1],
+          groups: [
+            [0, 1],
+          ],
+        ),
+      );
+      int col(String id) => plan.debts.indexWhere((d) => d.id == id);
+      final first = plan.months.first;
+      // The minimum goes to the 0% portion; everything else to the 12% one.
+      expect(first.interest[col('card#from-x')], gbp(0));
+      final minimum = first.payments[col('card#from-x')];
+      expect(minimum > gbp(0), isTrue);
+      expect(first.payments[col('card')], gbp(3010) - minimum);
     });
   });
 }

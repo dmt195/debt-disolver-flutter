@@ -85,7 +85,7 @@ void main() {
     await container.read(debtActionsProvider.notifier).add(testDebt(id: ''));
     final plans = await settledPlans();
     expect(plans.baseline.strategyId, StrategyId.minimumsOnly);
-    expect((plans.baseline as Feasible).plan.monthsToClear, 62);
+    expect((plans.baseline as Feasible).plan.monthsToClear, 59);
   });
 
   test('plan finds the baseline by id', () async {

@@ -70,10 +70,11 @@ void main() {
         strategy: const Strategy.avalanche(),
       ),
     );
-    // Months 1-2 are free; month 3 charges 1% of 1,000; month 4 1% of 910.
+    // Months 1-2 are free; month 3 charges 9,489 ppm of 1,000; month 4 of
+    // 909.49.
     expect(
       [for (final r in plan.months.take(4)) r.interest.single],
-      [gbp(0), gbp(0), gbp(1000), gbp(910)],
+      [gbp(0), gbp(0), gbp(949), gbp(863)],
     );
   });
 }

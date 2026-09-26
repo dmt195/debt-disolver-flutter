@@ -54,9 +54,9 @@ void main() {
       promo: const Promo(aprBps: 0, months: 2),
     );
     // Months 1-2 at 0%, months 3-5 at 30%.
-    expect(aprMonthsUntil(promo, 1, 5), 9000);
+    expect(aprMonthsUntil(promo, 1, 5), 66312); // 3 × 22,104 ppm
     // From month 4: months 4-5 at 30%.
-    expect(aprMonthsUntil(promo, 4, 5), 6000);
+    expect(aprMonthsUntil(promo, 4, 5), 44208); // 2 × 22,104 ppm
     // Past the horizon nothing is saved.
     expect(aprMonthsUntil(promo, 6, 5), 0);
   });

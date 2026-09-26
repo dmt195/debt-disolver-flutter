@@ -121,13 +121,13 @@ void main() {
     // highest interest first in both.
     expect(
       find.text(
-        'Highest interest first: debt-free in 4 months, £37.82 interest',
+        'Highest interest first: debt-free in 4 months, £34.65 interest',
       ),
       findsOneWidget,
     );
     expect(
       find.text(
-        'Highest interest first: debt-free in 3 months, £25.57 interest',
+        'Highest interest first: debt-free in 3 months, £23.44 interest',
       ),
       findsOneWidget,
     );

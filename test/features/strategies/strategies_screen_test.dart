@@ -185,20 +185,20 @@ void main() {
       location: Routes.plans,
     );
     expect(
-      find.text('Minimums only: 5 years 2 months · £587.88 interest'),
+      find.text('Minimums only: 4 years 11 months · £505.43 interest'),
       findsOneWidget,
     );
-    // Highest interest first: 1,037.82 over 4 months against 1,587.88 over 62.
+    // Highest interest first: 1,034.65 over 4 months against 1,505.43 over 59.
     // (With a single debt, several strategies tie, so more than one card
     // shows this text; scroll to the first.)
     await tester.scrollUntilVisible(
       find
-          .text('Saves £550.06 · 4 years 10 months sooner than minimums only')
+          .text('Saves £470.78 · 4 years 7 months sooner than minimums only')
           .first,
       100,
     );
     expect(
-      find.text('Saves £550.06 · 4 years 10 months sooner than minimums only'),
+      find.text('Saves £470.78 · 4 years 7 months sooner than minimums only'),
       findsWidgets,
     );
   });
@@ -256,9 +256,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('baseline')));
     await tester.pumpAndSettle();
     expect(app.router.location, Routes.plan(StrategyId.minimumsOnly));
-    // 5 years 2 months from 24 Sep 2026.
-    expect(find.text('November 2031'), findsOneWidget);
-    expect(find.text('62'), findsOneWidget);
+    // 4 years 11 months from 24 Sep 2026.
+    expect(find.text('August 2031'), findsOneWidget);
+    expect(find.text('59'), findsOneWidget);
   });
 
   testWidgets('the slider pays more each month', (tester) async {

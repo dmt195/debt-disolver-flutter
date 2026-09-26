@@ -1,4 +1,5 @@
 import 'package:payoff_engine/src/debt.dart';
+import 'package:payoff_engine/src/interest.dart';
 
 /// Highest rate charged in [month] first (a promotional rate counts while it
 /// lasts); ties broken by name, then id.
@@ -8,8 +9,9 @@ int compareHighestAprInMonth(Debt a, Debt b, int month) {
 }
 
 /// The rate-months [debt] charges from [month] to [horizon] inclusive: in
-/// basis-point-months, what one pound paid off it in [month] saves by the
-/// end of a plan that clears in [horizon]. Zero past the horizon.
+/// parts-per-million-months of the true monthly rate, what one pound paid
+/// off it in [month] saves by the end of a plan that clears in [horizon].
+/// Zero past the horizon.
 int aprMonthsUntil(Debt debt, int month, int horizon) {
   if (month > horizon) return 0;
   final months = horizon - month + 1;
@@ -19,7 +21,8 @@ int aprMonthsUntil(Debt debt, int month, int horizon) {
       ? 0
       : (promo.months - month + 1).clamp(0, months);
   final promoRate = promo?.aprBps ?? 0;
-  return atPromo * promoRate + (months - atPromo) * debt.aprBps;
+  return atPromo * monthlyRatePpm(promoRate) +
+      (months - atPromo) * monthlyRatePpm(debt.aprBps);
 }
 
 /// Most interest saved per pound between [month] and [horizon] first; ties

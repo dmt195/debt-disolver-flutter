@@ -150,36 +150,19 @@ class _LoanCalculatorScreenState extends ConsumerState<LoanCalculatorScreen> {
         children: [
           Text(l10n.calcWorkOut, style: TextStyle(fontSize: 13, color: c.ink2)),
           const SizedBox(height: 6),
-          // Four equal segments across the width.
-          SegmentedButton<LoanUnknown>(
-            key: const ValueKey('unknown'),
-            showSelectedIcon: false,
-            expandedInsets: EdgeInsets.zero,
-            segments: [
-              ButtonSegment(
-                value: LoanUnknown.payment,
-                label: Text(l10n.calcPayment),
-              ),
-              ButtonSegment(
-                value: LoanUnknown.amount,
-                label: Text(l10n.calcAmount),
-              ),
-              ButtonSegment(
-                value: LoanUnknown.rate,
-                label: Text(l10n.calcRate),
-              ),
-              ButtonSegment(
-                value: LoanUnknown.term,
-                label: Text(l10n.calcTerm),
-              ),
-            ],
-            selected: {_unknown},
-            onSelectionChanged: (s) => setState(() => _unknown = s.single),
+          _UnknownPicker(
+            selected: _unknown,
+            onChanged: (u) => setState(() => _unknown = u),
           ),
           const SizedBox(height: 12),
           HiVisBlock(
             key: const ValueKey('hero'),
-            child: _Answer(unknown: _unknown, result: result, locale: locale),
+            // Announced as it changes: the answer is what this screen is
+            // for, and it's above the fields being typed in.
+            child: Semantics(
+              liveRegion: true,
+              child: _Answer(unknown: _unknown, result: result, locale: locale),
+            ),
           ),
           const SizedBox(height: 16),
           ...inputs,
@@ -260,7 +243,20 @@ class _Answer extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(figure, style: displayStyle(44, color: c.onHiVis)),
+            // A money or rate figure shrinks to stay on one line rather than
+            // split mid-number; a duration wraps at its spaces.
+            if (unknown == LoanUnknown.term)
+              Text(figure, style: displayStyle(44, color: c.onHiVis))
+            else
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  figure,
+                  maxLines: 1,
+                  style: displayStyle(44, color: c.onHiVis),
+                ),
+              ),
             const SizedBox(height: 4),
             Text(caption, style: const TextStyle(fontSize: 15)),
             if (unknown == LoanUnknown.rate) ...[
@@ -332,6 +328,52 @@ class _Totals extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// What to work out: four equal segments across the width, or wrapping
+/// chips once text is large enough that the segments would break words.
+class _UnknownPicker extends StatelessWidget {
+  const _UnknownPicker({required this.selected, required this.onChanged});
+
+  final LoanUnknown selected;
+  final ValueChanged<LoanUnknown> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final labels = {
+      LoanUnknown.payment: l10n.calcPayment,
+      LoanUnknown.amount: l10n.calcAmount,
+      LoanUnknown.rate: l10n.calcRate,
+      LoanUnknown.term: l10n.calcTerm,
+    };
+    if (MediaQuery.textScalerOf(context).scale(1) > 1.3) {
+      return Wrap(
+        key: const ValueKey('unknown'),
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final MapEntry(key: unknown, value: label) in labels.entries)
+            ChoiceChip(
+              label: Text(label),
+              selected: unknown == selected,
+              onSelected: (_) => onChanged(unknown),
+            ),
+        ],
+      );
+    }
+    return SegmentedButton<LoanUnknown>(
+      key: const ValueKey('unknown'),
+      showSelectedIcon: false,
+      expandedInsets: EdgeInsets.zero,
+      segments: [
+        for (final MapEntry(key: unknown, value: label) in labels.entries)
+          ButtonSegment(value: unknown, label: Text(label)),
+      ],
+      selected: {selected},
+      onSelectionChanged: (s) => onChanged(s.single),
     );
   }
 }

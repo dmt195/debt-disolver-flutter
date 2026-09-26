@@ -189,4 +189,52 @@ void main() {
     await paymentCase(tester);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('at large text the choices keep whole words', (tester) async {
+    tester.view
+      ..devicePixelRatio = 3
+      ..physicalSize = const Size(360 * 3, 740 * 3);
+    addTearDown(tester.view.reset);
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    await pumpApp(tester, location: Routes.loanCalculator);
+    for (final label in ['Payment', 'Amount', 'Rate', 'Term']) {
+      final text = find.descendant(
+        of: find.byKey(const ValueKey('unknown')),
+        matching: find.text(label),
+      );
+      // One line of 14pt text at 2×: well under two lines' height.
+      expect(tester.getSize(text).height, lessThan(45), reason: label);
+    }
+  });
+
+  testWidgets('a big answer stays on one line', (tester) async {
+    await open(tester);
+    await workOut(tester, 'Amount');
+    await type(tester, 'calcRate', '5');
+    await type(tester, 'calcTerm', '25');
+    await type(tester, 'calcPayment', '9000');
+    final figure = find
+        .descendant(
+          of: find.byKey(const ValueKey('hero')),
+          matching: find.byType(Text),
+        )
+        .first;
+    expect(tester.widget<Text>(figure).data, startsWith('£1,'));
+    // One line of the 44pt figure.
+    expect(tester.getSize(figure).height, lessThan(60));
+  });
+
+  testWidgets('the answer is announced as it changes', (tester) async {
+    await open(tester);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('hero')),
+        matching: find.byWidgetPredicate(
+          (w) => w is Semantics && (w.properties.liveRegion ?? false),
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
 }

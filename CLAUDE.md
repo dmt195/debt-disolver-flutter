@@ -9,6 +9,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - **Design spec (source of truth):** `docs/superpowers/specs/2026-09-24-flutter-rebuild-design.md`. Read it before any Flutter work; if a decision here conflicts with it, the spec wins.
 - **v2 spec:** docs/superpowers/specs/2026-09-24-v2-planning-design.md (builds on the v1 spec).
 - **v3 spec:** `docs/superpowers/specs/2026-09-25-v3-ux-redesign-design.md`: three-tab navigation, charts first, illustrations, progress check-ins, reminders (builds on v1 and v2).
+- **Rates and loans spec:** `docs/superpowers/specs/2026-09-26-rates-and-loans-design.md`: compound APR, rate entry per year or per month, the loan helper and the loan calculator.
 - **Implementation plans:** `docs/superpowers/plans/`.
 - **Target architecture:** feature-first with clean layers (`lib/features/<feature>/{domain,data,presentation}`). State uses Riverpod with codegen, storage uses Drift (SQLite) plus shared_preferences for settings, navigation uses go_router, models use freezed, and charts use fl_chart. The payoff calculator lives in a pure-Dart package, `packages/payoff_engine/`, with no Flutter imports.
 - **Money is never a float:** amounts are integer minor units (`Money`), APRs are integer basis points, and rounding is half-even, once per month.
@@ -28,6 +29,10 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - [x] Plan 8: progress — followed plan, check-ins, starting points, restart, cleared debts, celebration (`docs/superpowers/plans/2026-09-26-plan-8-progress.md`)
 - [x] Plan 9: reminders (local notifications) (`docs/superpowers/plans/2026-09-26-plan-9-reminders.md`)
 - [x] Plan 10: illustrations and motion — brick wall, welcome pages, debt-type tiles, empty states, check-in count-up, wrecking-ball celebration, charts drawing in (`docs/superpowers/plans/2026-09-26-plan-10-illustrations.md`). v3 is complete.
+
+- [x] Plan 11: compound APR and loan solvers (`docs/superpowers/plans/2026-09-26-plan-11-compound-interest-and-loan-solvers.md`)
+- [ ] Plan 12: rate field (per year / per month) and the loan helper in the debt form
+- [ ] Plan 13: the loan calculator
 
 Update this checklist as the phases complete.
 
@@ -62,6 +67,7 @@ Gotchas:
   - **Android** needs core library desugaring and the plugin's two receivers in the manifest.
 - Ads and crash reporting go through `AdsService` (`lib/features/ads/`) and `CrashReporter` (`lib/core/crash_reporter.dart`). Widget tests that need ads override `adsServiceProvider` with `FakeAdsService`. Ads appear only on the Debts and Plans screens (anchored above the bottom nav, never between list items), behind consent.
 - Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes. The database records which currency its amounts are in (`DebtRepository.convertAmounts`, idempotent), and the controller reconciles it at startup, so an interrupted switch is repaired. Settings are saved as one JSON value under `SettingsKeys.settings`.
+- Interest: an APR is the true, compounded rate. The engine charges `monthlyRatePpm(apr)` parts per million a month (`packages/payoff_engine/lib/src/interest.dart`, exact integer maths), not APR ÷ 12. The 2013 figures, and engine tests whose figures were worked out that way, run inside `runWithInterestMode(InterestMode.nominal, …)` (test helper `nominal`). Loan maths (any one of payment, months, balance or APR from the other three) go through `loanPayment`/`loanMonths`/`loanBalance`/`loanApr` (`lib/src/loan.dart`), which return `LoanSolved` or `LoanImpossible`.
 - The engine runs in three stages: `restructure` (transfer/consolidation turn the user's debts into the debts actually paid), `allocationOrder` (avalanche-style strategies re-rank every month by the interest a pound saves from that month to the end of the plan, so a short 0% promo doesn't delay paying a debt that will cost more later; the calculator finds the end month in a few passes and keeps the cheapest plan) and `simulate`. `PayoffPlan.debts` is in the order debts are *cleared*, not the priority order.
 - Promotions are stored as their last calendar month (`promoEndsYearMonth`, `yyyymm`) and read as "months left" using the repository's clock; an ended promo reads back as none. Widget tests fix the clock at 24 Sep 2026.
 - Navigation (`lib/app/router.dart`): a `StatefulShellRoute` with three branches, Home (`/`), Debts (`/debts`) and Plans (`/plans`), in `AppShell`. The debt form, Settings and onboarding use the root navigator (full screen, no tabs). `/plans/scenarios` is declared before `/plans/:strategyId`. User-facing copy says "Plans"; code keeps `StrategyId`, `strategies/` and `StrategiesScreen`.

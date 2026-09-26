@@ -75,7 +75,9 @@ class PrivacySection extends ConsumerWidget {
                 .setShareDiagnostics(on: on),
           ),
         ),
-        if (share ?? false) const _AppInstanceId(),
+        // Shown whenever there is one, switch on or off, so someone who
+        // opted out can still quote it to have their data deleted.
+        const _AppInstanceId(),
         if (ref.watch(privacyOptionsRequiredProvider).value ?? false)
           ListTile(
             contentPadding: EdgeInsets.zero,

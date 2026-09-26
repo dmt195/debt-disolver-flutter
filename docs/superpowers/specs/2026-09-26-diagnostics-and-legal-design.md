@@ -51,7 +51,7 @@ Builds on the earlier specs: v1 (`2026-09-24-flutter-rebuild-design.md`), v2, v3
   - always logs locally, as `LogCrashReporter` does now;
   - also forwards to `diagnosticsProvider.recordError`.
 
-  Crashlytics drops the report itself while collection is disabled.
+  (Corrected after review: Crashlytics doesn't drop reports while collection is off; it stores them on the device and sends them once it's on. So `GatedDiagnostics` stops them reaching Firebase at all while off, sends only an error's type (never its message) and its stack trace, and opting in, off to on, first deletes any stored reports with `deleteUnsentReports`.)
 - **Off before the app has read the setting**, set in the native config:
   - iOS `Info.plist`: `FIREBASE_ANALYTICS_COLLECTION_ENABLED` false, and `FirebaseCrashlyticsCollectionEnabled` false.
   - Android `AndroidManifest.xml`: meta-data `firebase_analytics_collection_enabled` false, and `firebase_crashlytics_collection_enabled` false.

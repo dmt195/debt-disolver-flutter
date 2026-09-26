@@ -15,7 +15,14 @@ void diagnosticsSettingSync(Ref ref) {
   final service = ref.watch(diagnosticsProvider);
   ref.listen(
     settingsControllerProvider.select((s) => s.value?.shareDiagnostics),
-    (_, on) => unawaited(service.setCollectionEnabled(enabled: on ?? false)),
+    (before, on) => unawaited(
+      service.setCollectionEnabled(
+        enabled: on ?? false,
+        // Only a real opt-in (off to on) discards what was stored while it
+        // was off; someone already opted in keeps their pending reports.
+        discardPending: before == false && on == true,
+      ),
+    ),
     fireImmediately: true,
   );
 }

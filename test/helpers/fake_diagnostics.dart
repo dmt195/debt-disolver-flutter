@@ -6,13 +6,20 @@ class FakeDiagnostics implements DiagnosticsService {
 
   final String? appId;
   final enabled = <bool>[];
+  final discarded = <bool>[];
   final events = <UsageEvent>[];
   final screens = <String>[];
   final errors = <Object>[];
+  final reasons = <String?>[];
 
   @override
-  Future<void> setCollectionEnabled({required bool enabled}) async =>
-      this.enabled.add(enabled);
+  Future<void> setCollectionEnabled({
+    required bool enabled,
+    bool discardPending = false,
+  }) async {
+    this.enabled.add(enabled);
+    discarded.add(discardPending);
+  }
 
   @override
   void recordError(
@@ -20,7 +27,10 @@ class FakeDiagnostics implements DiagnosticsService {
     StackTrace stack, {
     bool fatal = false,
     String? reason,
-  }) => errors.add(error);
+  }) {
+    errors.add(error);
+    reasons.add(reason);
+  }
 
   @override
   void logScreen(String name) => screens.add(name);

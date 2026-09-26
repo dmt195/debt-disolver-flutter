@@ -226,7 +226,9 @@ void main() {
       );
       final toggle = find.byKey(const ValueKey('shareDiagnostics'));
       await scrollTo(tester, toggle);
-      expect(find.text('Your app ID: abc123'), findsNothing);
+      // Shown even while off, so someone who opted out can still ask for
+      // their data to be deleted.
+      expect(find.text('Your app ID: abc123'), findsOneWidget);
       await tester.tap(toggle);
       await tester.pumpAndSettle();
       expect(

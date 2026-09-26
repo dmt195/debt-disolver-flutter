@@ -25,6 +25,21 @@ void main() {
       await controller.setShareDiagnostics(on: false);
       await pumpEventQueue();
       expect(fake.enabled, [false, true, false]);
+      // Opting in discards reports stored while it was off.
+      expect(fake.discarded, [false, true, false]);
+    });
+
+    test('already opted in: on at start, keeping what is pending', () async {
+      final fake = FakeDiagnostics();
+      final container = createTestContainer(
+        diagnostics: fake,
+        prefs: storedSettings({'shareDiagnostics': true}),
+      );
+      await container.read(settingsControllerProvider.future);
+      container.listen(diagnosticsSettingSyncProvider, (_, _) {});
+      await pumpEventQueue();
+      expect(fake.enabled.last, isTrue);
+      expect(fake.discarded, everyElement(isFalse));
     });
   });
 

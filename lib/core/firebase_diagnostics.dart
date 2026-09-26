@@ -8,15 +8,38 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 /// Diagnostics through Firebase Analytics and Crashlytics. Collection starts
-/// off and follows the user's choice (`setCollectionEnabled`).
+/// off and follows the user's choice (`setCollectionEnabled`); always used
+/// behind [GatedDiagnostics], which blocks and redacts.
 class FirebaseDiagnostics implements DiagnosticsService {
   FirebaseAnalytics get _analytics => FirebaseAnalytics.instance;
   FirebaseCrashlytics get _crashlytics => FirebaseCrashlytics.instance;
 
   @override
-  Future<void> setCollectionEnabled({required bool enabled}) async {
+  Future<void> setCollectionEnabled({
+    required bool enabled,
+    bool discardPending = false,
+  }) async {
+    // Crashlytics keeps reports made while collection is off and sends them
+    // once it's on: on opting in, those go first.
+    if (discardPending) await _crashlytics.deleteUnsentReports();
+    if (enabled) {
+      // Analytics only: never ad storage, ad user data or personalisation
+      // (the privacy policy).
+      await _analytics.setConsent(
+        analyticsStorageConsentGranted: true,
+        adStorageConsentGranted: false,
+        adUserDataConsentGranted: false,
+        adPersonalizationSignalsConsentGranted: false,
+      );
+    }
     await _analytics.setAnalyticsCollectionEnabled(enabled);
     await _crashlytics.setCrashlyticsCollectionEnabled(enabled);
+    if (enabled) {
+      // The same random ID on crash reports, so a deletion request quoting
+      // it covers them too.
+      final id = await _analytics.appInstanceId;
+      if (id != null) await _crashlytics.setUserIdentifier(id);
+    }
   }
 
   @override
@@ -68,7 +91,7 @@ Future<DiagnosticsService> startDiagnostics({
     log('Diagnostics off: Firebase did not start', error: error);
     return NoDiagnostics();
   }
-  final service = FirebaseDiagnostics();
+  final service = GatedDiagnostics(FirebaseDiagnostics());
   await service.setCollectionEnabled(enabled: false);
   return service;
 }

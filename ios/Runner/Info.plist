@@ -7,6 +7,14 @@
 	<false/>
 	<key>FirebaseCrashlyticsCollectionEnabled</key>
 	<false/>
+	<!-- Analytics never uses ad personalisation or the vendor ID, and records
+	     only the app's own screen names (the privacy policy). -->
+	<key>GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS</key>
+	<false/>
+	<key>GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED</key>
+	<false/>
+	<key>FirebaseAutomaticScreenReportingEnabled</key>
+	<false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

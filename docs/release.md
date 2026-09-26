@@ -73,8 +73,14 @@ The app is built for Firebase Analytics and Crashlytics but runs without them. U
 
 To set it up:
 
-1. **Create the project:** in the Firebase console, create a project and enable Analytics (Google Analytics data retention: 14 months or less) and Crashlytics.
-2. **Configure the apps:** `dart pub global activate flutterfire_cli`, then `flutterfire configure --project=<project-id>`. Register:
+1. **Create the project:** in the Firebase console, create a project and enable Analytics and Crashlytics. In the Google Analytics property:
+   - set data retention to 14 months or less;
+   - turn **Google signals** off;
+   - accept the Google Analytics and Firebase data processing terms (Admin → Account settings);
+   - turn off the data-sharing options for Google products and services, so Google acts as our processor, as the privacy policy says.
+
+   Don't link the Firebase project to AdMob. The app also turns off the advertising ID, ad personalisation and automatic screen reporting, in both manifests, and sets Analytics consent to analytics storage only.
+2. **Configure the apps:** `dart pub global activate flutterfire_cli`, then `flutterfire configure --project=<project-id>`. Then download `google-services.json` from the console's project settings, so that it includes both Android apps. A file generated for one package makes the other flavor's build fail with "No matching client found". Register:
    - Android `dev.countersunk.debt_destroyer` and `dev.countersunk.debt_destroyer.dev`;
    - iOS `dev.countersunk.debtDestroyer`.
 

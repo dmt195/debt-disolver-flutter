@@ -193,4 +193,20 @@ void main() {
     );
     expect(() => controller.setCheckInNudgeMonths(4), throwsArgumentError);
   });
+
+  test('the diagnostics choice is saved', () async {
+    final controller = container.read(settingsControllerProvider.notifier);
+    await controller.setShareDiagnostics(on: true);
+    expect(
+      (await container.read(settingsControllerProvider.future))
+          .shareDiagnostics,
+      isTrue,
+    );
+    await controller.setShareDiagnostics(on: false);
+    expect(
+      (await container.read(settingsControllerProvider.future))
+          .shareDiagnostics,
+      isFalse,
+    );
+  });
 }

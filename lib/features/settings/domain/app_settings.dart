@@ -29,6 +29,10 @@ abstract class AppSettings with _$AppSettings {
     /// on (every 2 months) together with the pay-day reminder, once the
     /// phone has allowed notifications.
     @Default(0) int checkInNudgeMonths,
+
+    /// Anonymous usage statistics and crash reports go to Firebase only when
+    /// this is on; off until the user opts in (diagnostics spec §2.1).
+    @Default(false) bool shareDiagnostics,
   }) = _AppSettings;
 
   factory AppSettings.defaults(String currencyCode) => AppSettings(

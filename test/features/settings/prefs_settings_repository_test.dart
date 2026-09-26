@@ -164,4 +164,16 @@ void main() {
       expect((odd.payDay, odd.checkInNudgeMonths), (28, 0));
     },
   );
+
+  test('sharing diagnostics: off by default, saved, read back', () async {
+    final defaults = await repositoryWith({}).load();
+    expect(defaults.shareDiagnostics, isFalse);
+    final repo = repositoryWith({});
+    await repo.save(defaults.copyWith(shareDiagnostics: true));
+    expect((await repo.load()).shareDiagnostics, isTrue);
+    final odd = await repositoryWith(
+      storedSettings({SettingsKeys.shareDiagnostics: 'yes'}),
+    ).load();
+    expect(odd.shareDiagnostics, isFalse);
+  });
 }

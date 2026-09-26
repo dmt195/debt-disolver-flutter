@@ -113,6 +113,11 @@ class SettingsController extends _$SettingsController {
     });
   }
 
+  /// Whether anonymous usage statistics and crash reports may be sent.
+  Future<void> setShareDiagnostics({required bool on}) => _serialised(() async {
+    await _save((await future).copyWith(shareDiagnostics: on));
+  });
+
   Future<void> completeOnboarding() => _serialised(() async {
     await _save((await future).copyWith(onboardingComplete: true));
   });

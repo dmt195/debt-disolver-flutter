@@ -26,6 +26,7 @@ abstract final class SettingsKeys {
   static const payDayReminder = 'payDayReminder';
   static const payDay = 'payDay';
   static const checkInNudgeMonths = 'checkInNudgeMonths';
+  static const shareDiagnostics = 'shareDiagnostics';
 }
 
 class PrefsSettingsRepository implements SettingsRepository {
@@ -94,6 +95,7 @@ class PrefsSettingsRepository implements SettingsRepository {
         final months? when months >= 0 && months <= 3 => months,
         _ => 0,
       },
+      shareDiagnostics: field<bool>(SettingsKeys.shareDiagnostics) ?? false,
     );
   }
 
@@ -117,6 +119,7 @@ class PrefsSettingsRepository implements SettingsRepository {
         SettingsKeys.payDayReminder: settings.payDayReminder,
         SettingsKeys.payDay: settings.payDay,
         SettingsKeys.checkInNudgeMonths: settings.checkInNudgeMonths,
+        SettingsKeys.shareDiagnostics: settings.shareDiagnostics,
       }),
     );
   }

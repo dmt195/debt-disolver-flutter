@@ -182,21 +182,23 @@ class RateField extends ConsumerWidget {
   String? _validate(AppLocalizations l10n, String text, String locale) {
     final monthly = controller.unit == RateUnit.month;
     if (!required && text.trim().isEmpty) return null;
-    final bps = controller.aprBps(locale);
-    if (bps == null) {
+    if (controller.aprBps(locale) == null) {
       return l10n.errorInvalidRate(
         monthly
             ? formatMonthlyRateInput(19000, locale)
             : formatPercentInput(1990, locale),
       );
     }
-    if (bps > 10000) {
-      return monthly
-          ? l10n.errorRateRangeMonthly(
-              formatMonthlyRate(monthlyRatePpm(10000), locale),
-            )
-          : l10n.errorRateRange;
-    }
+    // A rate over 100% APR is left to the save, which reports it with every
+    // other problem at once (worded by [rateRangeMessage]).
     return null;
   }
 }
+
+/// The message for a rate over 100% APR, worded in the unit it was typed in.
+String rateRangeMessage(AppLocalizations l10n, RateUnit unit, String locale) =>
+    unit == RateUnit.month
+    ? l10n.errorRateRangeMonthly(
+        formatMonthlyRate(monthlyRatePpm(10000), locale),
+      )
+    : l10n.errorRateRange;

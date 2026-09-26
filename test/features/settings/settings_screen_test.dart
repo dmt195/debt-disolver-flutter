@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
+import 'package:debt_destroyer/features/settings/presentation/parameter_fields.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -44,6 +45,8 @@ void main() {
       100,
       scrollable: settingsList,
     );
+    await tester.ensureVisible(field(label));
+    await tester.pumpAndSettle();
     await tester.enterText(field(label), text);
   }
 
@@ -184,5 +187,22 @@ void main() {
       find.text('Enter a limit above zero, or leave it empty'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the consolidation rate can be entered per month', (
+    tester,
+  ) async {
+    final app = await pumpApp(tester, location: Routes.settings);
+    final unit = find.byKey(
+      ValueKey('${ParameterField.consolidationApr}-unit'),
+    );
+    await tester.scrollUntilVisible(unit, 100, scrollable: settingsList);
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: unit, matching: find.text('a month')));
+    await tester.pumpAndSettle();
+    await enter(tester, 'Loan interest rate (% a month)', '0.5');
+    await save(tester);
+    final settings = app.container.read(settingsControllerProvider).value!;
+    expect(settings.strategyParameters.consolidationAprBps, 617);
   });
 }

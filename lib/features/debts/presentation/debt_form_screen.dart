@@ -3,6 +3,7 @@ import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/core/widgets/rate_field.dart';
 import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_type_tiles.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
@@ -125,23 +126,23 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       _Field.balance: TextEditingController(
         text: d == null ? '' : money(d.balance),
       ),
-      _Field.apr: TextEditingController(
-        text: d == null ? '' : percent(d.aprBps),
-      ),
+      _Field.apr: RateController(aprBps: d?.aprBps, locale: locale),
       _Field.minPercent: TextEditingController(
         text: d == null ? '' : percent(d.minPaymentPercentBps),
       ),
       _Field.minFloor: TextEditingController(
         text: d == null ? '' : money(d.minPaymentFloor),
       ),
-      _Field.promoApr: TextEditingController(
-        text: percent(d?.promo?.aprBps ?? 0),
+      _Field.promoApr: RateController(
+        aprBps: d?.promo?.aprBps ?? 0,
+        locale: locale,
       ),
       _Field.offerFee: TextEditingController(
         text: offer == null ? '' : percent(offer.feeBps),
       ),
-      _Field.offerPromoApr: TextEditingController(
-        text: percent(offer?.promo?.aprBps ?? 0),
+      _Field.offerPromoApr: RateController(
+        aprBps: offer?.promo?.aprBps ?? 0,
+        locale: locale,
       ),
       _Field.offerPromoMonths: TextEditingController(
         text: offer?.promo == null ? '' : '${offer!.promo!.months}',
@@ -229,6 +230,22 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       ),
     );
 
+    Widget rate(_Field f, String aprLabel, String monthlyLabel) => Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: RateField(
+        controller: _controllers[f]! as RateController,
+        fieldKey: ValueKey(f),
+        aprLabel: aprLabel,
+        monthlyLabel: monthlyLabel,
+        forceErrorText: _errors[f],
+        onChanged: (_) {
+          if (_errors.containsKey(f)) {
+            setState(() => _errors = {..._errors}..remove(f));
+          }
+        },
+      ),
+    );
+
     const numberKeyboard = TextInputType.numberWithOptions(decimal: true);
     return Form(
       key: _formKey,
@@ -256,12 +273,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
             keyboard: numberKeyboard,
             validator: (v) => amount(v, required: true),
           ),
-          field(
-            _Field.apr,
-            l10n.fieldApr,
-            keyboard: numberKeyboard,
-            validator: (v) => percent(v, required: true),
-          ),
+          rate(_Field.apr, l10n.fieldApr, l10n.fieldAprMonthly),
           if (_fixedPayment)
             field(
               _Field.minFloor,
@@ -304,11 +316,10 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
             onChanged: (v) => setState(() => _hasPromo = v),
           ),
           if (_hasPromo) ...[
-            field(
+            rate(
               _Field.promoApr,
               l10n.fieldPromoApr,
-              keyboard: numberKeyboard,
-              validator: (v) => percent(v, required: true),
+              l10n.fieldPromoAprMonthly,
             ),
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -358,11 +369,10 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
                 onChanged: (v) => setState(() => _hasOfferPromo = v),
               ),
               if (_hasOfferPromo) ...[
-                field(
+                rate(
                   _Field.offerPromoApr,
                   l10n.fieldOfferPromoApr,
-                  keyboard: numberKeyboard,
-                  validator: (v) => percent(v, required: true),
+                  l10n.fieldOfferPromoAprMonthly,
                 ),
                 field(
                   _Field.offerPromoMonths,
@@ -424,6 +434,8 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         0;
     int percent(_Field f) =>
         parsePercentBps(_controllers[f]!.text, locale) ?? 0;
+    int rate(_Field f) =>
+        (_controllers[f]! as RateController).aprBps(locale) ?? 0;
 
     final now = ref.read(clockProvider)();
     final debt = Debt(
@@ -431,13 +443,13 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       name: _controllers[_Field.name]!.text.trim(),
       type: _type,
       balance: Money(amount(_Field.balance), code),
-      aprBps: percent(_Field.apr),
+      aprBps: rate(_Field.apr),
       minPaymentPercentBps: _fixedPayment ? 0 : percent(_Field.minPercent),
       minPaymentFloor: Money(amount(_Field.minFloor), code),
       allowsOverpayment: _allowsOverpayment,
       promo: _hasPromo
           ? Promo(
-              aprBps: percent(_Field.promoApr),
+              aprBps: rate(_Field.promoApr),
               months: promoMonthsLeft(_promoUntil, now),
             )
           : null,
@@ -446,7 +458,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
               feeBps: percent(_Field.offerFee),
               promo: _hasOfferPromo
                   ? Promo(
-                      aprBps: percent(_Field.offerPromoApr),
+                      aprBps: rate(_Field.offerPromoApr),
                       months:
                           parseWholeNumber(
                             _controllers[_Field.offerPromoMonths]!.text,
@@ -482,6 +494,13 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     Set<DebtListValidationError> listErrors,
   ) {
     final l10n = context.l10n;
+    final locale = ref.read(formatLocaleProvider);
+    // A rate over 100% APR, worded in the unit it was typed in.
+    String rateRange(_Field f) => rateRangeMessage(
+      l10n,
+      (_controllers[f]! as RateController).unit,
+      locale,
+    );
     final byField = <_Field, String>{};
     for (final e in errors) {
       switch (e) {
@@ -492,7 +511,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         case DebtValidationError.balanceTooLarge:
           byField[_Field.balance] = l10n.errorTooLarge;
         case DebtValidationError.aprOutOfRange:
-          byField[_Field.apr] = l10n.errorRateRange;
+          byField[_Field.apr] = rateRange(_Field.apr);
         case DebtValidationError.minPaymentPercentOutOfRange:
           byField[_Field.minPercent] = l10n.errorPercentRange;
         case DebtValidationError.minPaymentFloorNegative:
@@ -502,7 +521,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         case DebtValidationError.offerFeeOutOfRange:
           byField[_Field.offerFee] = l10n.errorPercentRange;
         case DebtValidationError.offerPromoAprOutOfRange:
-          byField[_Field.offerPromoApr] = l10n.errorRateRange;
+          byField[_Field.offerPromoApr] = rateRange(_Field.offerPromoApr);
         case DebtValidationError.offerPromoMonthsOutOfRange:
           byField[_Field.offerPromoMonths] = l10n.errorOfferMonths(
             kMaxPromoMonths,
@@ -518,7 +537,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         case DebtValidationError.floorCurrencyMismatch:
           break; // not reachable from this form: one currency throughout
         case DebtValidationError.promoAprOutOfRange:
-          byField[_Field.promoApr] = l10n.errorRateRange;
+          byField[_Field.promoApr] = rateRange(_Field.promoApr);
         case DebtValidationError.promoMonthsOutOfRange:
           break; // the month list only offers 1 to kMaxPromoMonths months
       }

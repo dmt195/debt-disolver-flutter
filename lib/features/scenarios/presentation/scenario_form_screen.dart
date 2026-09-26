@@ -193,6 +193,7 @@ class _ScenarioFormState extends ConsumerState<_ScenarioForm> {
             l10n,
             parameterErrors,
             locale,
+            controllers: _parameters,
           );
         });
       case null:

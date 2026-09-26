@@ -25,11 +25,20 @@ void main() {
     String minPercent = '3',
     String minFloor = '25',
   }) async {
-    await tester.enterText(field('Name'), name);
-    await tester.enterText(field('Balance'), balance);
-    await tester.enterText(field('Interest rate (APR %)'), apr);
-    await tester.enterText(field('Minimum payment (% of balance)'), minPercent);
-    await tester.enterText(field('Minimum payment (at least)'), minFloor);
+    for (final (label, text) in [
+      ('Name', name),
+      ('Balance', balance),
+      ('Interest rate (APR %)', apr),
+      ('Minimum payment (% of balance)', minPercent),
+      ('Minimum payment (at least)', minFloor),
+    ]) {
+      // The form is longer than the screen: build each field before typing.
+      await tester.scrollUntilVisible(field(label), 100, scrollable: formList);
+      await tester.ensureVisible(field(label));
+      await tester.pumpAndSettle();
+      await tester.enterText(field(label), text);
+    }
+    await tester.scrollUntilVisible(field('Name'), -100, scrollable: formList);
   }
 
   Future<void> save(WidgetTester tester) async {
@@ -222,8 +231,13 @@ void main() {
       debts: [testDebt(id: 'a', type: DebtType.loan)],
       location: Routes.editDebt('a'),
     );
-    expect(field('Minimum payment (% of balance)'), findsOneWidget);
-    expect(field('Minimum payment (at least)'), findsOneWidget);
+    for (final label in [
+      'Minimum payment (% of balance)',
+      'Minimum payment (at least)',
+    ]) {
+      await tester.scrollUntilVisible(field(label), 100, scrollable: formList);
+      expect(field(label), findsOneWidget);
+    }
   });
 
   testWidgets(
@@ -245,6 +259,11 @@ void main() {
   testWidgets('explains minimums only for a student loan', (tester) async {
     await pumpApp(tester, location: Routes.newDebt);
     await chooseType(tester, 'Student loan');
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('minimumsOnly')),
+      100,
+      scrollable: formList,
+    );
     final toggle = tester.widget<SwitchListTile>(
       find.byKey(const ValueKey('minimumsOnly')),
     );
@@ -564,5 +583,58 @@ void main() {
       ),
     );
     expect(icon.color, DestroyerColors.dark.ink);
+  });
+
+  group('rates per month', () {
+    Finder unitOf(String field) => find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value == '$field-unit',
+    );
+
+    Future<void> perMonth(WidgetTester tester, String field) async {
+      await tester.scrollUntilVisible(unitOf(field), 100, scrollable: formList);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: unitOf(field), matching: find.text('a month')),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a rate entered per month saves as its APR', (tester) async {
+      final app = await pumpApp(tester, location: Routes.newDebt);
+      await fill(tester);
+      await perMonth(tester, '_Field.apr');
+      await tester.enterText(field('Interest rate (% a month)'), '1.9');
+      await save(tester);
+      expect(app.repository.stored.single.aprBps, 2534);
+    });
+
+    testWidgets('reopening shows the APR, and the monthly rate under it', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        debts: [testDebt(id: 'a', aprBps: 2534)],
+        location: Routes.editDebt('a'),
+      );
+      expect(find.text('25.34'), findsOneWidget);
+      expect(find.text('= 1.9% a month'), findsOneWidget);
+    });
+
+    testWidgets('over 100% APR per month is refused on the field', (
+      tester,
+    ) async {
+      final app = await pumpApp(tester, location: Routes.newDebt);
+      await fill(tester);
+      await perMonth(tester, '_Field.apr');
+      await tester.enterText(field('Interest rate (% a month)'), '6');
+      await save(tester);
+      expect(
+        find.text("That's more than 100% APR. Enter up to 5.946% a month."),
+        findsOneWidget,
+      );
+      expect(app.repository.stored, isEmpty);
+    });
   });
 }

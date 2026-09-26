@@ -185,7 +185,12 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           : budgetErrors.contains(BudgetValidationError.tooLarge)
           ? l10n.errorTooLarge
           : null;
-      _parameterErrors = parameterErrorMessages(l10n, parameterErrors, locale);
+      _parameterErrors = parameterErrorMessages(
+        l10n,
+        parameterErrors,
+        locale,
+        controllers: _parameters,
+      );
     });
     if (budgetErrors.isEmpty && parameterErrors.isEmpty) {
       messenger.showSnackBar(SnackBar(content: Text(l10n.settingsSaved)));

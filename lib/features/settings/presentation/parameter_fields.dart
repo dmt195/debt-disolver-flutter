@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
+import 'package:debt_destroyer/core/widgets/rate_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -19,8 +20,9 @@ enum ParameterField {
 class ParameterControllers {
   ParameterControllers(StrategyParameters p, {required String locale})
     : _controllers = {
-        ParameterField.consolidationApr: TextEditingController(
-          text: formatPercentInput(p.consolidationAprBps, locale),
+        ParameterField.consolidationApr: RateController(
+          aprBps: p.consolidationAprBps,
+          locale: locale,
         ),
         ParameterField.consolidationTerm: TextEditingController(
           text: '${p.consolidationTermMonths}',
@@ -34,8 +36,9 @@ class ParameterControllers {
         ParameterField.transferFee: TextEditingController(
           text: formatPercentInput(p.transferFeeBps, locale),
         ),
-        ParameterField.revertApr: TextEditingController(
-          text: formatPercentInput(p.revertAprBps, locale),
+        ParameterField.revertApr: RateController(
+          aprBps: p.revertAprBps,
+          locale: locale,
         ),
         ParameterField.creditLimit: TextEditingController(
           text: switch (p.transferCreditLimit) {
@@ -50,6 +53,10 @@ class ParameterControllers {
   TextEditingController operator [](ParameterField field) =>
       _controllers[field]!;
 
+  /// A rate field's controller.
+  RateController rate(ParameterField field) =>
+      _controllers[field]! as RateController;
+
   /// The typed values. Call only after every field's validator passed.
   StrategyParameters parse({
     required String locale,
@@ -58,10 +65,8 @@ class ParameterControllers {
     String text(ParameterField f) => _controllers[f]!.text;
     final limit = text(ParameterField.creditLimit).trim();
     return StrategyParameters(
-      consolidationAprBps: parsePercentBps(
-        text(ParameterField.consolidationApr),
-        locale,
-      )!,
+      consolidationAprBps: rate(ParameterField.consolidationApr)
+          .aprBps(locale)!,
       consolidationTermMonths: parseWholeNumber(
         text(ParameterField.consolidationTerm),
       )!,
@@ -74,7 +79,7 @@ class ParameterControllers {
         text(ParameterField.transferFee),
         locale,
       )!,
-      revertAprBps: parsePercentBps(text(ParameterField.revertApr), locale)!,
+      revertAprBps: rate(ParameterField.revertApr).aprBps(locale)!,
       transferCreditLimit: limit.isEmpty
           ? null
           : Money(
@@ -157,6 +162,19 @@ class ParameterFields extends ConsumerWidget {
       ),
     );
 
+    Widget rate(ParameterField f, String aprLabel, String monthlyLabel) =>
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: RateField(
+            controller: controllers.rate(f),
+            fieldKey: ValueKey(f),
+            aprLabel: aprLabel,
+            monthlyLabel: monthlyLabel,
+            forceErrorText: errors[f],
+            onChanged: (_) => onEdited(f),
+          ),
+        );
+
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 12),
       child: Text(text, style: Theme.of(context).textTheme.titleMedium),
@@ -166,10 +184,10 @@ class ParameterFields extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         heading(l10n.settingsConsolidation),
-        field(
+        rate(
           ParameterField.consolidationApr,
           l10n.settingsConsolidationApr,
-          percent,
+          l10n.settingsConsolidationAprMonthly,
         ),
         field(
           ParameterField.consolidationTerm,
@@ -190,7 +208,11 @@ class ParameterFields extends ConsumerWidget {
           keyboard: TextInputType.number,
         ),
         field(ParameterField.transferFee, l10n.settingsTransferFee, percent),
-        field(ParameterField.revertApr, l10n.settingsRevertApr, percent),
+        rate(
+          ParameterField.revertApr,
+          l10n.settingsRevertApr,
+          l10n.settingsRevertAprMonthly,
+        ),
         field(
           ParameterField.creditLimit,
           l10n.settingsCreditLimit,
@@ -206,14 +228,21 @@ class ParameterFields extends ConsumerWidget {
 Map<ParameterField, String> parameterErrorMessages(
   AppLocalizations l10n,
   Set<StrategyParametersValidationError> errors,
-  String locale,
-) {
+  String locale, {
+  ParameterControllers? controllers,
+}) {
   final messages = <ParameterField, String>{};
+  // A rate over 100% APR, worded in the unit it was typed in.
+  String rateRange(ParameterField f) => rateRangeMessage(
+    l10n,
+    controllers?.rate(f).unit ?? RateUnit.year,
+    locale,
+  );
   for (final e in errors) {
     final (field, message) = switch (e) {
       StrategyParametersValidationError.consolidationAprOutOfRange => (
         ParameterField.consolidationApr,
-        l10n.errorRateRange,
+        rateRange(ParameterField.consolidationApr),
       ),
       StrategyParametersValidationError.consolidationTermOutOfRange => (
         ParameterField.consolidationTerm,
@@ -238,7 +267,7 @@ Map<ParameterField, String> parameterErrorMessages(
       ),
       StrategyParametersValidationError.revertAprOutOfRange => (
         ParameterField.revertApr,
-        l10n.errorRateRange,
+        rateRange(ParameterField.revertApr),
       ),
       StrategyParametersValidationError.creditLimitNotPositive => (
         ParameterField.creditLimit,

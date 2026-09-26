@@ -107,13 +107,9 @@ void main() {
     formKey.currentState!.validate();
     await tester.pump();
     expect(find.text('Enter a rate, e.g. 1.9'), findsOneWidget);
+    // Over 100% APR is reported by the save with every other problem.
     await tester.enterText(find.byKey(key), '6');
-    formKey.currentState!.validate();
-    await tester.pump();
-    expect(
-      find.text("That's more than 100% APR. Enter up to 5.946% a month."),
-      findsOneWidget,
-    );
+    expect(formKey.currentState!.validate(), isTrue);
   });
 
   testWidgets('setAprBps writes in the unit showing', (tester) async {

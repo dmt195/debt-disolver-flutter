@@ -2,6 +2,7 @@ import 'package:debt_destroyer/app/app.dart';
 import 'package:debt_destroyer/app/dependencies.dart';
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/core/diagnostics.dart';
+import 'package:debt_destroyer/core/links.dart';
 import 'package:debt_destroyer/features/scenarios/domain/scenario.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/strategies/presentation/plans_providers.dart';
@@ -30,6 +31,7 @@ Future<AppHarness> pumpApp(
   DateTime Function()? clock,
   FakeNotificationsService? notifications,
   DiagnosticsService? diagnostics,
+  LinkOpener? linkOpener,
 }) async {
   final repository = InMemoryDebtRepository(debts);
   final progress = InMemoryProgressRepository(repository);
@@ -43,6 +45,7 @@ Future<AppHarness> pumpApp(
           clock: clock,
           notifications: notifications,
           diagnostics: diagnostics,
+          linkOpener: linkOpener,
           prefs: storedSettings({
             SettingsKeys.onboardingComplete: true,
             ...settings,

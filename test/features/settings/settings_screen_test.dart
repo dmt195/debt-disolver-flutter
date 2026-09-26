@@ -1,4 +1,5 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/core/links.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:debt_destroyer/features/settings/presentation/parameter_fields.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
@@ -7,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 import '../../helpers/debts.dart';
+import '../../helpers/fake_diagnostics.dart';
+import '../../helpers/fake_link_opener.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -204,5 +207,58 @@ void main() {
     await save(tester);
     final settings = app.container.read(settingsControllerProvider).value!;
     expect(settings.strategyParameters.consolidationAprBps, 617);
+  });
+
+  group('privacy', () {
+    Future<void> scrollTo(WidgetTester tester, Finder target) async {
+      await tester.scrollUntilVisible(target, 100, scrollable: settingsList);
+      await tester.ensureVisible(target);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('the diagnostics switch saves at once, with the app id', (
+      tester,
+    ) async {
+      final app = await pumpApp(
+        tester,
+        location: Routes.settings,
+        diagnostics: FakeDiagnostics(appId: 'abc123'),
+      );
+      final toggle = find.byKey(const ValueKey('shareDiagnostics'));
+      await scrollTo(tester, toggle);
+      expect(find.text('Your app ID: abc123'), findsNothing);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(
+        app.container.read(settingsControllerProvider).value!.shareDiagnostics,
+        isTrue,
+      );
+      expect(find.text('Your app ID: abc123'), findsOneWidget);
+    });
+
+    testWidgets('the legal pages open, and the version shows', (tester) async {
+      final links = FakeLinkOpener();
+      await pumpApp(tester, location: Routes.settings, linkOpener: links);
+      for (final label in ['Privacy policy', 'Terms of use']) {
+        await scrollTo(tester, find.text(label));
+        await tester.tap(find.text(label));
+        await tester.pumpAndSettle();
+      }
+      expect(links.opened, [LegalLinks.privacyPolicy, LegalLinks.terms]);
+      await scrollTo(tester, find.text('Version 0.1.0 (2001)'));
+      expect(find.text('Version 0.1.0 (2001)'), findsOneWidget);
+    });
+
+    testWidgets('large text fits', (tester) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = const Size(360 * 3, 740 * 3);
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, location: Routes.settings);
+      await scrollTo(tester, find.text('Version 0.1.0 (2001)'));
+      expect(tester.takeException(), isNull);
+    });
   });
 }

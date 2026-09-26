@@ -6,11 +6,13 @@ import 'package:debt_destroyer/core/illustrations/illustration.dart';
 import 'package:debt_destroyer/core/illustrations/welcome_art.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
+import 'package:debt_destroyer/core/links.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/core/notifications.dart';
 import 'package:debt_destroyer/core/widgets/outlined_card.dart';
 import 'package:debt_destroyer/features/reminders/domain/reminder_schedule.dart';
 import 'package:debt_destroyer/features/settings/presentation/currency_picker.dart';
+import 'package:debt_destroyer/features/settings/presentation/privacy_section.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -37,6 +39,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   /// The pay-day reminder: on by default (spec §4.1).
   bool _remind = true;
+
+  /// Anonymous usage statistics and crash reports: off until chosen.
+  bool _share = false;
   int _day = 28;
 
   @override
@@ -225,7 +230,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          OutlinedCard(
+            child: ShareDiagnosticsTile(
+              value: _share,
+              onChanged: (on) => setState(() => _share = on),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.setupAgreement, style: const TextStyle(fontSize: 13)),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton(
+                key: const ValueKey('termsLink'),
+                onPressed: () => openLegalPage(context, ref, LegalLinks.terms),
+                child: Text(l10n.termsOfUse),
+              ),
+              TextButton(
+                key: const ValueKey('privacyLink'),
+                onPressed: () =>
+                    openLegalPage(context, ref, LegalLinks.privacyPolicy),
+                child: Text(l10n.privacyPolicy),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           FilledButton(
             onPressed: _saving ? null : () => _start(addDebt: true),
             child: Text(l10n.setupAddFirstDebt),
@@ -290,6 +320,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       await controller.setPayDayReminder(on: on, day: _day);
       // The check-in nudge comes with the reminders, never without leave.
       await controller.setCheckInNudgeMonths(on ? 2 : 0);
+      await controller.setShareDiagnostics(on: _share);
       await controller.completeOnboarding();
       return true;
     });

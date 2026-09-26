@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:debt_destroyer/app/dependencies.dart';
+import 'package:debt_destroyer/core/app_version.dart';
 import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/core/l10n.dart';
+import 'package:debt_destroyer/core/links.dart';
 import 'package:debt_destroyer/core/notifications.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
@@ -13,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
+import 'fake_link_opener.dart';
 import 'fake_notifications_service.dart';
 
 /// Test doubles for the app's platform dependencies: in-memory preferences
@@ -25,6 +28,7 @@ List<Override> testOverrides({
   DateTime Function()? clock,
   NotificationsService? notifications,
   DiagnosticsService? diagnostics,
+  LinkOpener? linkOpener,
 }) {
   SharedPreferencesAsyncPlatform.instance =
       InMemorySharedPreferencesAsync.withData(prefs);
@@ -39,6 +43,8 @@ List<Override> testOverrides({
       notifications ?? FakeNotificationsService(),
     ),
     diagnosticsProvider.overrideWithValue(diagnostics ?? NoDiagnostics()),
+    linkOpenerProvider.overrideWithValue(linkOpener ?? FakeLinkOpener()),
+    appVersionProvider.overrideWith((ref) async => '0.1.0 (2001)'),
   ];
 }
 

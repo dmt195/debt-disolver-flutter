@@ -1,6 +1,7 @@
 import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/illustrations/illustration.dart';
 import 'package:debt_destroyer/core/illustrations/welcome_art.dart';
+import 'package:debt_destroyer/core/links.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
+import '../../helpers/fake_link_opener.dart';
 import '../../helpers/fake_notifications_service.dart';
 import '../../helpers/pump_app.dart';
 
@@ -178,11 +180,22 @@ void main() {
 
   testWidgets('does not continue with an invalid budget', (tester) async {
     final app = await open(tester);
-    await tester.enterText(find.byType(TextFormField), '0');
+    // The buttons are below the fold: come back up to the budget after each.
+    final budget = find.byKey(const ValueKey('budget'));
+    Future<void> backToBudget() => tester.scrollUntilVisible(
+      budget,
+      -100,
+      scrollable: find.byWidgetPredicate(
+        (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+      ),
+    );
+    await tester.enterText(budget, '0');
     await start(tester);
+    await backToBudget();
     expect(find.text('Enter a budget above zero'), findsOneWidget);
-    await tester.enterText(find.byType(TextFormField), 'abc');
+    await tester.enterText(budget, 'abc');
     await start(tester);
+    await backToBudget();
     expect(find.text('Enter an amount, e.g. 300'), findsOneWidget);
     final settings = app.container.read(settingsControllerProvider).value!;
     expect(settings.onboardingComplete, isFalse);
@@ -239,5 +252,95 @@ void main() {
     final settings = app.container.read(settingsControllerProvider).value!;
     expect(settings.payDayReminder, isFalse);
     expect(settings.checkInNudgeMonths, 0);
+  });
+
+  group('diagnostics and the legal pages', () {
+    Future<void> scrollTo(WidgetTester tester, Finder target) async {
+      await tester.scrollUntilVisible(
+        target,
+        100,
+        scrollable: find.byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        ),
+      );
+      await tester.ensureVisible(target);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('sharing is off unless turned on', (tester) async {
+      final app = await open(tester);
+      final toggle = find.byKey(const ValueKey('shareDiagnostics'));
+      await scrollTo(tester, toggle);
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      await start(tester);
+      expect(
+        app.container.read(settingsControllerProvider).value!.shareDiagnostics,
+        isFalse,
+      );
+    });
+
+    testWidgets('turned on, it is saved with setup', (tester) async {
+      final app = await open(tester);
+      final toggle = find.byKey(const ValueKey('shareDiagnostics'));
+      await scrollTo(tester, toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await start(tester);
+      expect(
+        app.container.read(settingsControllerProvider).value!.shareDiagnostics,
+        isTrue,
+      );
+    });
+
+    testWidgets('the terms and privacy policy open', (tester) async {
+      final links = FakeLinkOpener();
+      await pumpApp(
+        tester,
+        settings: {SettingsKeys.onboardingComplete: false},
+        linkOpener: links,
+      );
+      await openSetup(tester);
+      for (final key in ['termsLink', 'privacyLink']) {
+        await scrollTo(tester, find.byKey(ValueKey(key)));
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+      }
+      expect(links.opened, [LegalLinks.terms, LegalLinks.privacyPolicy]);
+      expect(
+        find.text(
+          'By continuing you agree to the Terms of use and have read the '
+          'Privacy policy.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets("a page that won't open shows its address", (tester) async {
+      await pumpApp(
+        tester,
+        settings: {SettingsKeys.onboardingComplete: false},
+        linkOpener: FakeLinkOpener(succeed: false),
+      );
+      await openSetup(tester);
+      await scrollTo(tester, find.byKey(const ValueKey('termsLink')));
+      await tester.tap(find.byKey(const ValueKey('termsLink')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text("Couldn't open the page. It's at ${LegalLinks.terms}"),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('large text fits the new card and the links', (tester) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = const Size(360 * 3, 740 * 3);
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await open(tester);
+      await scrollTo(tester, find.byKey(const ValueKey('privacyLink')));
+      expect(tester.takeException(), isNull);
+    });
   });
 }

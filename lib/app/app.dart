@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/app/diagnostics_sync.dart';
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/l10n.dart';
@@ -15,7 +16,9 @@ class DebtDestroyerApp extends ConsumerWidget {
     ref
       ..watch(progressReconcilerProvider)
       // Keeps reminders in step with the plan (spec §7).
-      ..watch(reminderSchedulerProvider);
+      ..watch(reminderSchedulerProvider)
+      // Diagnostics follow the user's choice (diagnostics spec §2.2).
+      ..watch(diagnosticsSettingSyncProvider);
     return MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

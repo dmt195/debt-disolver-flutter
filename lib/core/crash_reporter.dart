@@ -1,13 +1,13 @@
 import 'dart:developer';
 
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'crash_reporter.g.dart';
 
-/// Where unexpected errors go. The app logs them locally; a remote service
-/// (for example Firebase Crashlytics, once a project is set up) can be
-/// plugged in by overriding [crashReporterProvider].
+/// Where unexpected errors go. The app logs them locally, and forwards them
+/// to Crashlytics only with the user's consent ([ConsentingCrashReporter]).
 abstract interface class CrashReporter {
   void recordError(
     Object error,
@@ -33,8 +33,29 @@ class LogCrashReporter implements CrashReporter {
   );
 }
 
+/// Logs every error locally, and forwards it to [DiagnosticsService],
+/// which sends it only while the user has chosen to share crash reports.
+class ConsentingCrashReporter implements CrashReporter {
+  ConsentingCrashReporter(this._local, this._diagnostics);
+
+  final CrashReporter _local;
+  final DiagnosticsService _diagnostics;
+
+  @override
+  void recordError(
+    Object error,
+    StackTrace stackTrace, {
+    bool fatal = false,
+    String? reason,
+  }) {
+    _local.recordError(error, stackTrace, fatal: fatal, reason: reason);
+    _diagnostics.recordError(error, stackTrace, fatal: fatal, reason: reason);
+  }
+}
+
 @Riverpod(keepAlive: true)
-CrashReporter crashReporter(Ref ref) => LogCrashReporter();
+CrashReporter crashReporter(Ref ref) =>
+    ConsentingCrashReporter(LogCrashReporter(), ref.watch(diagnosticsProvider));
 
 /// Sends uncaught framework and platform errors to [reporter], keeping any
 /// handler that was already installed.

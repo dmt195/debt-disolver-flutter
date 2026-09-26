@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:debt_destroyer/app/dependencies.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/notifications.dart';
 import 'package:debt_destroyer/features/debts/data/app_database.dart';
@@ -23,6 +24,7 @@ List<Override> testOverrides({
   Map<String, Object> prefs = const {},
   DateTime Function()? clock,
   NotificationsService? notifications,
+  DiagnosticsService? diagnostics,
 }) {
   SharedPreferencesAsyncPlatform.instance =
       InMemorySharedPreferencesAsync.withData(prefs);
@@ -36,6 +38,7 @@ List<Override> testOverrides({
     notificationsServiceProvider.overrideWithValue(
       notifications ?? FakeNotificationsService(),
     ),
+    diagnosticsProvider.overrideWithValue(diagnostics ?? NoDiagnostics()),
   ];
 }
 
@@ -44,8 +47,17 @@ List<Override> testOverrides({
 ProviderContainer createTestContainer({
   Map<String, Object> prefs = const {},
   NotificationsService? notifications,
+  DiagnosticsService? diagnostics,
+  List<Override> overrides = const [],
 }) => ProviderContainer.test(
-  overrides: testOverrides(prefs: prefs, notifications: notifications),
+  overrides: [
+    ...testOverrides(
+      prefs: prefs,
+      notifications: notifications,
+      diagnostics: diagnostics,
+    ),
+    ...overrides,
+  ],
   retry: (_, _) => null,
 );
 

@@ -218,8 +218,13 @@ LoanResult loanBalance({
   );
 }
 
-/// The highest APR, in basis points, at which [payment] a month clears
-/// [balance] within [months] months.
+/// The APR, in basis points, that makes [payment] the monthly payment for
+/// [balance] over [months] months (spec §2.4).
+///
+/// Many APRs round to the same whole-penny payment. Among those, this is the
+/// roundest: a whole percent, then a tenth of one, then the middle of the
+/// range. So a real 0% loan reads as 0%, and a loan worked out at 19.9% reads
+/// back as 19.9%. Any APR it returns still clears the loan within [months].
 LoanResult loanApr({
   required Money balance,
   required Money payment,
@@ -231,24 +236,61 @@ LoanResult loanApr({
     return _outOfRange;
   }
   final interestOn = monthlyInterest();
-  bool clearsAt(int aprBps) =>
-      _run(balance.minor, aprBps, payment.minor, months, interestOn) != null;
-  if (!clearsAt(0)) return const LoanImpossible(LoanProblem.rateBelowZero);
-  if (clearsAt(10001)) return const LoanImpossible(LoanProblem.rateTooHigh);
+  bool clears(int pay, int aprBps) =>
+      _run(balance.minor, aprBps, pay, months, interestOn) != null;
+  if (!clears(payment.minor, 0)) {
+    return const LoanImpossible(LoanProblem.rateBelowZero);
+  }
+  // Searched past 100%, so a loan at exactly 100% can be told apart from one
+  // above it.
+  const cap = 20000;
+  // The highest APR at which the payment still clears.
   var low = 0;
-  var high = 10000;
+  var high = cap;
   while (low < high) {
     final mid = low + (high - low + 1) ~/ 2;
-    if (clearsAt(mid)) {
+    if (clears(payment.minor, mid)) {
       low = mid;
     } else {
       high = mid - 1;
     }
   }
+  final highest = low;
+  // The lowest APR at which a penny less no longer clears: from there up to
+  // [highest], this payment is exactly the one needed.
+  final less = payment.minor - 1;
+  var lowest = 0;
+  if (less > 0 && clears(less, 0)) {
+    low = 0;
+    high = cap + 1;
+    while (low < high) {
+      final mid = low + (high - low) ~/ 2;
+      if (clears(less, mid)) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    lowest = low;
+  }
+  if (lowest > 10000) return const LoanImpossible(LoanProblem.rateTooHigh);
+  final top = highest < 10000 ? highest : 10000;
+  // More than enough even at the highest rate: no range to choose from.
+  final aprBps = lowest > top ? top : _roundest(lowest, top);
   return _solved(
     balance,
-    low,
+    aprBps,
     payment.minor,
-    _run(balance.minor, low, payment.minor, months, interestOn)!,
+    _run(balance.minor, aprBps, payment.minor, months, interestOn)!,
   );
+}
+
+/// The roundest APR in [low]..[high]: a multiple of 100 bps, then of 10,
+/// else the middle.
+int _roundest(int low, int high) {
+  for (final step in const [100, 10]) {
+    final candidate = (low + step - 1) ~/ step * step;
+    if (candidate <= high) return candidate;
+  }
+  return low + (high - low) ~/ 2;
 }

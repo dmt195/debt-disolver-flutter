@@ -91,6 +91,28 @@ void main() {
     },
   );
 
+  test('the money rolls on to a debt that can take it', () async {
+    // The car loan clears on its own fixed payment before Visa, but it
+    // can't take extra: Amex's money goes to Visa.
+    final amex = await addDebt('Amex', balance: 30000, aprBps: 2990);
+    final car = await actions().add(
+      testDebt(
+        id: '',
+        name: 'Car loan',
+        type: DebtType.loan,
+        balance: 20000,
+        aprBps: 2500,
+        minPaymentFloor: 10000,
+        allowsOverpayment: false,
+      ),
+    );
+    expect(car, isA<DebtSaved>());
+    await addDebt('Visa', aprBps: 990);
+    await settled();
+    final outcome = await progress().saveCheckIn({amex: const Money(0, 'GBP')});
+    expect(outcome.cleared.single.next, 'Visa');
+  });
+
   test('a check-in clears a debt without restarting', () async {
     final visa = await addDebt('Visa');
     final amex = await addDebt('Amex', balance: 30000);

@@ -109,14 +109,35 @@ void main() {
   });
 
   group('loanApr', () {
-    test('the highest APR at which the payment clears in the term', () {
+    test('the roundest APR that gives exactly this payment', () {
+      // 106.28 is the payment for 12% (and for a sliver above and below).
       expect(
         solved(
           loanApr(balance: gbp(120000), payment: gbp(10628), months: 12),
         ).aprBps,
-        1201,
+        1200,
       );
     });
+
+    for (final (label, balance, apr, months) in [
+      ('an interest-free loan reads as 0%', 100000, 0, 12),
+      ('19.9% reads as 19.9%', 1000000, 1990, 36),
+      ('12.68% reads as 12.68%', 500000, 1268, 24),
+      ('exactly 100% is allowed', 100000, 10000, 60),
+      ('exactly 100% over ten years', 100000, 10000, 120),
+    ]) {
+      test(label, () {
+        final payment = solved(
+          loanPayment(balance: gbp(balance), aprBps: apr, months: months),
+        ).payment;
+        expect(
+          solved(
+            loanApr(balance: gbp(balance), payment: payment, months: months),
+          ).aprBps,
+          apr,
+        );
+      });
+    }
 
     test('0% when the payments exactly add up to the balance', () {
       expect(
@@ -179,15 +200,23 @@ void main() {
           ).balance.minor,
           greaterThanOrEqualTo(balance),
         );
+        // The rate worked out gives back exactly this payment.
+        final byApr = solved(
+          loanApr(
+            balance: gbp(balance),
+            payment: byPayment.payment,
+            months: months,
+          ),
+        );
         expect(
           solved(
-            loanApr(
+            loanPayment(
               balance: gbp(balance),
-              payment: byPayment.payment,
+              aprBps: byApr.aprBps,
               months: months,
             ),
-          ).aprBps,
-          greaterThanOrEqualTo(apr),
+          ).payment,
+          byPayment.payment,
         );
       });
     }

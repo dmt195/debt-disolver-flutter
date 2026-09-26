@@ -217,16 +217,20 @@ class ProgressController extends _$ProgressController {
         : minimumPayment(debt);
     final totalCount = clearedBefore.length + debts.length;
     // The freed money rolls on to the first debt still open in the plan's
-    // order, which isn't always one planned after the debt just cleared.
+    // order that takes extra payments (a fixed loan can't), which isn't
+    // always one planned after the debt just cleared. Failing that, the
+    // first still open.
     String? nextAfter(String id) {
-      for (final other in order) {
-        if (other != id &&
-            current.containsKey(other) &&
-            !clearing.contains(other)) {
-          return current[other]!.name;
-        }
-      }
-      return null;
+      final open = [
+        for (final other in order)
+          if (other != id &&
+              current.containsKey(other) &&
+              !clearing.contains(other))
+            current[other]!,
+      ];
+      return (open.where((d) => d.allowsOverpayment).firstOrNull ??
+              open.firstOrNull)
+          ?.name;
     }
 
     final outcome = (

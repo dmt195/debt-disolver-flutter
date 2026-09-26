@@ -9,6 +9,7 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - **Design spec (source of truth):** `docs/superpowers/specs/2026-09-24-flutter-rebuild-design.md`. Read it before any Flutter work; if a decision here conflicts with it, the spec wins.
 - **v2 spec:** docs/superpowers/specs/2026-09-24-v2-planning-design.md (builds on the v1 spec).
 - **v3 spec:** `docs/superpowers/specs/2026-09-25-v3-ux-redesign-design.md`: three-tab navigation, charts first, illustrations, progress check-ins, reminders (builds on v1 and v2).
+- **Diagnostics and legal spec:** `docs/superpowers/specs/2026-09-26-diagnostics-and-legal-design.md`: Firebase Analytics and Crashlytics behind one opt-in, and the privacy policy and terms on countersunk.dev.
 - **Rates and loans spec:** `docs/superpowers/specs/2026-09-26-rates-and-loans-design.md`: compound APR, rate entry per year or per month, the loan helper and the loan calculator.
 - **Implementation plans:** `docs/superpowers/plans/`.
 - **Target architecture:** feature-first with clean layers (`lib/features/<feature>/{domain,data,presentation}`). State uses Riverpod with codegen, storage uses Drift (SQLite) plus shared_preferences for settings, navigation uses go_router, models use freezed, and charts use fl_chart. The payoff calculator lives in a pure-Dart package, `packages/payoff_engine/`, with no Flutter imports.
@@ -33,6 +34,8 @@ This repo is being migrated from a 2013 Android app ("Debt Destroyer") to a mode
 - [x] Plan 11: compound APR and loan solvers (`docs/superpowers/plans/2026-09-26-plan-11-compound-interest-and-loan-solvers.md`)
 - [x] Plan 12: rate field (per year / per month) and the loan helper in the debt form (`docs/superpowers/plans/2026-09-26-plan-12-rate-field-and-loan-helper.md`)
 - [x] Plan 13: the loan calculator (`docs/superpowers/plans/2026-09-26-plan-13-loan-calculator.md`). Rates and loans are complete.
+
+- [x] Plan 14: diagnostics (Firebase, opt-in), privacy policy and terms (`docs/superpowers/plans/2026-09-26-plan-14-diagnostics-and-legal.md`)
 
 Update this checklist as the phases complete.
 
@@ -65,7 +68,12 @@ Gotchas:
   - **Taps and launch:** a tap, or a launch from a reminder (`openLaunchReminder` in `main.dart`), goes to `/check-in`.
   - **Times** are wall-clock times built in `tz.local`, and scheduled inexactly (no exact-alarm permission).
   - **Android** needs core library desugaring and the plugin's two receivers in the manifest.
-- Ads and crash reporting go through `AdsService` (`lib/features/ads/`) and `CrashReporter` (`lib/core/crash_reporter.dart`). Widget tests that need ads override `adsServiceProvider` with `FakeAdsService`. Ads appear only on the Debts and Plans screens (anchored above the bottom nav, never between list items), behind consent.
+- Ads go through `AdsService` (`lib/features/ads/`); widget tests that need ads override `adsServiceProvider` with `FakeAdsService`. Ads appear only on the Debts and Plans screens (anchored above the bottom nav, never between list items), behind consent.
+- Diagnostics go through `DiagnosticsService` (`lib/core/diagnostics.dart`):
+  - **Consent:** nothing is collected unless `AppSettings.shareDiagnostics` ("Help improve Debt Destroyer", off by default; setup and Settings → Privacy). `diagnosticsSettingSyncProvider` applies it.
+  - **What's sent:** events are the closed `DiagnosticEvent` catalogue (`lib/app/diagnostic_events.dart`), with enum names only, never amounts or names. Screen views are route templates (`lib/app/screen_names.dart`). Crashes go through `ConsentingCrashReporter`.
+  - **Firebase is optional:** `startDiagnostics` falls back to `NoDiagnostics` in debug builds (unless `--dart-define=DIAGNOSTICS_ENABLED=true`) and without config files (docs/release.md §6). Collection is also off in both native manifests.
+  - **Tests** use `FakeDiagnostics` via `pumpApp(diagnostics:)` / `createTestContainer(diagnostics:)`, and `FakeLinkOpener` for the legal links.
 - Every amount is in minor units of the one app-wide currency (`AppSettings.currencyCode`). Change currency only through `SettingsController.setCurrency`, which rescales stored amounts when the number of decimal digits changes. The database records which currency its amounts are in (`DebtRepository.convertAmounts`, idempotent), and the controller reconciles it at startup, so an interrupted switch is repaired. Settings are saved as one JSON value under `SettingsKeys.settings`.
 - Rates are entered through `RateField` (`lib/core/widgets/rate_field.dart`) and its `RateController`: per year or per month, always read with `aprBps(locale)`, never `parsePercentBps` on the text. A rate over 100% APR is reported by Save (with every other problem), worded by `rateRangeMessage` in the unit showing. The loan helper's logic is `workOutLoan` (`lib/features/debts/domain/loan_helper.dart`); its Last payment is an input only, never stored.
 - The loan calculator (`lib/features/loans/`, `Routes.loanCalculator`, opened from the Plans app bar, no ad) keeps no state beyond the screen. `solveLoan` maps its unknown onto the engine's loan solvers; 'Add as a debt' pushes `Routes.newDebt` with a `DebtDraft` as `extra`, which the debt form opens as a filled-in Loan.

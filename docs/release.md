@@ -48,9 +48,13 @@ Android has two flavors: `dev` (`dev.countersunk.debt_destroyer.dev`, "Debt Dest
 
 ## 4. Store listings
 
-- **Privacy policy:** publish `docs/privacy-policy.md` at a public URL (for example with GitHub Pages) and link it from both listings.
-- **Google Play data safety:** the app itself collects no data. Declare what the Google Mobile Ads SDK collects, following Google's current guidance (https://developers.google.com/admob/android/privacy/play-data-disclosure): device or other IDs, approximate location (from IP address), app interactions, diagnostics and performance data, used for advertising and analytics and shared with Google. In the Play Console, answer **Yes** to the Advertising ID declaration: the SDK adds the `AD_ID` permission.
-- **App Store privacy details:** follow Google's guidance (https://developers.google.com/admob/ios/privacy/data-disclosure): Identifiers (Device ID), Location (Coarse Location), Usage Data (Product Interaction, Advertising Data) and Diagnostics (Crash Data, Performance Data), used for third-party advertising and analytics; Device ID is used for tracking only when ATT permission is given.
+- **Privacy policy and terms:** hosted on countersunk.dev (`countersunkweb` repo, `apps/debt-destroyer/`): https://countersunk.dev/apps/debt-destroyer/privacy-policy/ and https://countersunk.dev/apps/debt-destroyer/tos/. Link the privacy policy from both listings. The app links both from setup and Settings (`LegalLinks`).
+- **Google Play data safety:**
+  - **Ads (always):** declare what the Google Mobile Ads SDK collects, following Google's current guidance (https://developers.google.com/admob/android/privacy/play-data-disclosure): device or other IDs, approximate location (from IP address), app interactions, and diagnostics and performance data, used for advertising and analytics and shared with Google. Answer **Yes** to the Advertising ID declaration: the SDK adds the `AD_ID` permission.
+  - **Optional diagnostics (only with the user's consent):** Firebase Analytics collects app interactions and device or other IDs (the app instance ID), and Firebase Crashlytics collects crash logs and diagnostics. Mark them optional (the user can choose), used for analytics and app functionality, not shared except with Google as processor, and never containing financial information.
+- **App Store privacy details:**
+  - **Ads:** follow Google's guidance (https://developers.google.com/admob/ios/privacy/data-disclosure): Identifiers (Device ID), Location (Coarse Location), Usage Data (Product Interaction, Advertising Data) and Diagnostics (Crash Data, Performance Data), used for third-party advertising and analytics. Device ID is used for tracking only when ATT permission is given.
+  - **Optional diagnostics:** Usage Data (Product Interaction) and Identifiers (User ID: the app instance ID) for analytics, and Diagnostics (Crash Data) for app functionality. They're not linked to identity, not used for tracking, and collected only when the user opts in.
 - **Screenshots:** the images in `legacy/resources` show the 2013 app; take new ones from the current build.
 
 ## 5. Notifications
@@ -63,6 +67,21 @@ Android has two flavors: `dev` (`dev.countersunk.debt_destroyer.dev`, "Debt Dest
   2. Restart the phone and confirm it's still scheduled.
   3. Deny permission once and check the switch turns itself off.
 
-## 6. Crash reporting (optional follow-up)
+## 6. Firebase (analytics and crash reports)
 
-Errors currently go to `LogCrashReporter`, which only writes to the device log. To collect crashes remotely, create a Firebase project, run `flutterfire configure`, add a `CrashReporter` backed by `FirebaseCrashlytics`, and override `crashReporterProvider` with it in `lib/main.dart`, enabled only after the user's consent. Then update the privacy policy's "Crash information" section.
+The app is built for Firebase Analytics and Crashlytics but runs without them. Until the config files exist, `startDiagnostics` (`lib/core/firebase_diagnostics.dart`) falls back to `NoDiagnostics`, and nothing is sent. Nothing is ever sent unless the user turns on **Help improve Debt Destroyer** (in setup or Settings → Privacy). Collection is off in both native manifests until the app applies that choice.
+
+To set it up:
+
+1. **Create the project:** in the Firebase console, create a project and enable Analytics (Google Analytics data retention: 14 months or less) and Crashlytics.
+2. **Configure the apps:** `dart pub global activate flutterfire_cli`, then `flutterfire configure --project=<project-id>`. Register:
+   - Android `dev.countersunk.debt_destroyer` and `dev.countersunk.debt_destroyer.dev`;
+   - iOS `dev.countersunk.debtDestroyer`.
+
+   This writes `android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist`. The app starts Firebase from these files, so the generated `firebase_options.dart` isn't needed and can be deleted.
+3. **Check the iOS file is in the target:** make sure `GoogleService-Info.plist` is added to the Runner target in Xcode, with "Copy items if needed" ticked.
+4. **Nothing else to change:** the Google Services and Crashlytics Gradle plugins apply automatically once `google-services.json` exists (`android/app/build.gradle.kts`).
+5. **Test in debug:** `flutter run --flavor dev --dart-define=DIAGNOSTICS_ENABLED=true` (debug builds send nothing without it). Enable Firebase DebugView (`adb shell setprop debug.firebase.analytics.app dev.countersunk.debt_destroyer.dev`). Check that:
+   - nothing arrives with the switch off;
+   - screen views and the events in `lib/app/diagnostic_events.dart` arrive with it on, and none carry an amount or a name.
+6. **Keep the config out of the repo:** whether to commit the two config files is your call. They aren't secret, but they're project-specific. If you keep them out, add them to `.gitignore` and to your release checklist.

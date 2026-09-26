@@ -143,4 +143,28 @@ void main() {
     expect(parseWholeNumber('-1'), isNull);
     expect(parseWholeNumber(''), isNull);
   });
+
+  group('monthly rates', () {
+    test('as input text, up to three decimals', () {
+      expect(formatMonthlyRateInput(18973, 'en_GB'), '1.897');
+      expect(formatMonthlyRateInput(15239, 'en_GB'), '1.524');
+      expect(formatMonthlyRateInput(59463, 'en_GB'), '5.946');
+      expect(formatMonthlyRateInput(19000, 'en_GB'), '1.9');
+      expect(formatMonthlyRateInput(0, 'en_GB'), '0');
+      expect(formatMonthlyRateInput(19000, 'de_DE'), '1,9');
+    });
+
+    test('as a percentage', () {
+      expect(formatMonthlyRate(18973, 'en_GB'), '1.897%');
+      expect(formatMonthlyRate(19000, 'en_GB'), '1.9%');
+    });
+
+    test('parsed into ppm', () {
+      expect(parseMonthlyRatePpm('1.9', 'en_GB'), 19000);
+      expect(parseMonthlyRatePpm('1,9', 'de_DE'), 19000);
+      expect(parseMonthlyRatePpm('1.897', 'en_GB'), 18970);
+      expect(parseMonthlyRatePpm('1.8975', 'en_GB'), isNull);
+      expect(parseMonthlyRatePpm('', 'en_GB'), isNull);
+    });
+  });
 }

@@ -17,5 +17,14 @@ int promoEndYearMonth(int months, DateTime now) {
   return (index ~/ 12) * 100 + index % 12 + 1;
 }
 
+/// Whole months from [now]'s month to [yearMonth]: next month is 1, this
+/// month 0, last month −1.
+int monthsUntil(int yearMonth, DateTime now) =>
+    _index(yearMonth) - _index(yearMonthOf(now));
+
+/// The calendar month (`yyyymm`) [months] after [now]'s month.
+int yearMonthAfter(int months, DateTime now) =>
+    promoEndYearMonth(months + 1, now);
+
 /// Months since year 0, so months can be subtracted.
 int _index(int yearMonth) => (yearMonth ~/ 100) * 12 + yearMonth % 100 - 1;

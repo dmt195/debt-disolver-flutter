@@ -50,6 +50,30 @@ int? parsePercentBps(String text, String locale) => _parseScaled(
   allowGrouping: false,
 );
 
+/// A monthly rate in parts per million as a plain number for an input
+/// field, with up to three decimals: 18973 → `1.897`.
+String formatMonthlyRateInput(int ppm, String locale) =>
+    _plainNumber(divideHalfEven(ppm, 10), digits: 3, locale: locale);
+
+/// A monthly rate in parts per million as a percentage for display:
+/// 18973 → `1.897%`.
+String formatMonthlyRate(int ppm, String locale) =>
+    (NumberFormat.percentPattern(
+      locale,
+    )..maximumFractionDigits = 3).format(divideHalfEven(ppm, 10) / 100000);
+
+/// Parses a monthly rate with up to three decimals into parts per million.
+/// Either '.' or ',' may be the decimal point; grouping is never accepted.
+int? parseMonthlyRatePpm(String text, String locale) {
+  final thousandths = _parseScaled(
+    text,
+    maxFractionDigits: 3,
+    locale: locale,
+    allowGrouping: false,
+  );
+  return thousandths == null ? null : thousandths * 10;
+}
+
 /// Parses a non-negative whole number.
 int? parseWholeNumber(String text) {
   final trimmed = text.trim();

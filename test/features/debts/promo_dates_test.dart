@@ -29,4 +29,18 @@ void main() {
       );
     }
   });
+
+  test('months until a calendar month', () {
+    expect(monthsUntil(202609, sep2026), 0);
+    expect(monthsUntil(202610, sep2026), 1);
+    expect(monthsUntil(202909, sep2026), 36);
+    expect(monthsUntil(202608, sep2026), -1);
+  });
+
+  test('the calendar month a number of months on', () {
+    expect(yearMonthAfter(4, sep2026), 202701);
+    expect(yearMonthAfter(12, sep2026), 202709);
+    expect(yearMonthAfter(27, sep2026), 202812);
+    expect(monthsUntil(yearMonthAfter(1200, sep2026), sep2026), 1200);
+  });
 }

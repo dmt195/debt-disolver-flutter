@@ -1,9 +1,11 @@
 import 'package:debt_destroyer/app/router.dart';
+import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/core/widgets/rate_field.dart';
+import 'package:debt_destroyer/features/debts/domain/loan_helper.dart';
 import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_type_tiles.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
@@ -106,6 +108,22 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
   late bool _hasOfferPromo;
   Map<_Field, String> _errors = const {};
   bool _saving = false;
+
+  /// The loan helper's Last payment (month 1–12, and year); an input only,
+  /// never saved.
+  int? _lastMonth;
+  int? _lastYear;
+  String? _lastPaymentError;
+
+  /// The figure the loan helper last filled in, until any of the four is
+  /// edited.
+  LoanFigure? _workedOut;
+
+  static const Set<_Field> _loanFields = {
+    _Field.balance,
+    _Field.apr,
+    _Field.minFloor,
+  };
 
   /// Loans are entered as one fixed monthly payment, unless an existing
   /// loan was saved with a percentage minimum.
@@ -217,16 +235,13 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         controller: _controllers[f],
         decoration: InputDecoration(
           labelText: label,
+          helperText: _workedOutHere(f) ? l10n.loanWorkedOut : null,
           border: const OutlineInputBorder(),
         ),
         keyboardType: keyboard,
         validator: validator,
         forceErrorText: _errors[f],
-        onChanged: (_) {
-          if (_errors.containsKey(f)) {
-            setState(() => _errors = {..._errors}..remove(f));
-          }
-        },
+        onChanged: (_) => _edited(f),
       ),
     );
 
@@ -238,11 +253,8 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         aprLabel: aprLabel,
         monthlyLabel: monthlyLabel,
         forceErrorText: _errors[f],
-        onChanged: (_) {
-          if (_errors.containsKey(f)) {
-            setState(() => _errors = {..._errors}..remove(f));
-          }
-        },
+        helperText: _workedOutHere(f) ? l10n.loanWorkedOut : null,
+        onChanged: (_) => _edited(f),
       ),
     );
 
@@ -274,14 +286,16 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
             validator: (v) => amount(v, required: true),
           ),
           rate(_Field.apr, l10n.fieldApr, l10n.fieldAprMonthly),
-          if (_fixedPayment)
+          if (_fixedPayment) ...[
             field(
               _Field.minFloor,
               l10n.fieldMonthlyPayment,
               keyboard: numberKeyboard,
               validator: (v) => amount(v, required: true),
-            )
-          else ...[
+            ),
+            _lastPayment(context, locale, now),
+            _helperButton(context),
+          ] else ...[
             field(
               _Field.minPercent,
               l10n.fieldMinPercent,
@@ -406,6 +420,222 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         ],
       ),
     );
+  }
+
+  bool _workedOutHere(_Field f) => switch (_workedOut) {
+    LoanFigure.balance => f == _Field.balance,
+    LoanFigure.rate => f == _Field.apr,
+    LoanFigure.payment => f == _Field.minFloor,
+    _ => false,
+  };
+
+  /// A field was typed in: clear its forced error, and the helper's note if
+  /// it's one of the loan's figures (which also re-counts the filled ones).
+  void _edited(_Field f) {
+    final loan = _fixedPayment && _loanFields.contains(f);
+    if (!_errors.containsKey(f) && !loan) return;
+    setState(() {
+      _errors = {..._errors}..remove(f);
+      if (loan) _workedOut = null;
+    });
+  }
+
+  bool get _hasLastPayment => _lastMonth != null && _lastYear != null;
+
+  int _filledLoanFigures() => [
+    for (final f in _loanFields) _controllers[f]!.text.trim().isNotEmpty,
+    _hasLastPayment,
+  ].where((filled) => filled).length;
+
+  Widget _lastPayment(BuildContext context, String locale, DateTime now) {
+    final l10n = context.l10n;
+    void picked(void Function() change) => setState(() {
+      change();
+      _lastPaymentError = null;
+      _workedOut = null;
+    });
+    final note = _workedOut == LoanFigure.lastPayment
+        ? l10n.loanWorkedOut
+        : null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: l10n.fieldLastPayment,
+          helperText: note,
+          errorText: _lastPaymentError,
+          border: const OutlineInputBorder(),
+        ),
+        // Side by side, sharing the width: long month names shorten rather
+        // than overflow at large text.
+        child: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: DropdownButton<int>(
+                key: const ValueKey('lastPaymentMonth'),
+                isExpanded: true,
+                value: _lastMonth,
+                hint: Text(l10n.fieldMonth),
+                items: [
+                  for (var m = 1; m <= 12; m++)
+                    DropdownMenuItem(
+                      value: m,
+                      child: Text(
+                        DateFormat.MMMM(locale).format(DateTime(2000, m)),
+                      ),
+                    ),
+                ],
+                onChanged: (m) => picked(() => _lastMonth = m),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: DropdownButton<int>(
+                key: const ValueKey('lastPaymentYear'),
+                isExpanded: true,
+                value: _lastYear,
+                hint: Text(l10n.fieldYear),
+                items: [
+                  for (var y = now.year; y <= now.year + 100; y++)
+                    DropdownMenuItem(value: y, child: Text('$y')),
+                ],
+                onChanged: (y) => picked(() => _lastYear = y),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _helperButton(BuildContext context) {
+    final l10n = context.l10n;
+    final filled = _filledLoanFigures();
+    if (filled == 4) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            l10n.loanHelperHint,
+            style: TextStyle(fontSize: 13, color: context.colors.ink2),
+          ),
+          const SizedBox(height: 6),
+          OutlinedButton(
+            key: const ValueKey('workItOut'),
+            onPressed: filled == 3 ? _workItOut : null,
+            child: Text(
+              filled == 3 ? l10n.loanWorkItOut : l10n.loanFillAnyThree,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Fills in the one missing loan figure (spec §3.2).
+  void _workItOut() {
+    final l10n = context.l10n;
+    final locale = ref.read(formatLocaleProvider);
+    final code = widget.currencyCode;
+    final now = ref.read(clockProvider)();
+    final example = formatAmountInput(Money(123400, code), locale);
+    final rateController = _controllers[_Field.apr]! as RateController;
+
+    // The three filled in must each be valid first.
+    final problems = <_Field, String>{};
+    Money? money(_Field f) {
+      final text = _controllers[f]!.text;
+      if (text.trim().isEmpty) return null;
+      final minor = parseAmountMinor(text, currencyCode: code, locale: locale);
+      if (minor == null) problems[f] = l10n.errorInvalidAmount(example);
+      return minor == null ? null : Money(minor, code);
+    }
+
+    final balance = money(_Field.balance);
+    final payment = money(_Field.minFloor);
+    int? aprBps;
+    if (rateController.text.trim().isNotEmpty) {
+      aprBps = rateController.aprBps(locale);
+      if (aprBps == null) {
+        problems[_Field.apr] = l10n.errorInvalidRate(
+          rateController.unit == RateUnit.month
+              ? formatMonthlyRateInput(19000, locale)
+              : formatPercentInput(1990, locale),
+        );
+      }
+    }
+    if (problems.isNotEmpty) {
+      setState(() => _errors = {..._errors, ...problems});
+      return;
+    }
+    final result = workOutLoan(
+      now: now,
+      balance: balance,
+      aprBps: aprBps,
+      payment: payment,
+      lastPaymentYearMonth: _hasLastPayment
+          ? _lastYear! * 100 + _lastMonth!
+          : null,
+    );
+    switch (result) {
+      case LoanFilled(:final figure):
+        setState(() {
+          switch (figure) {
+            case LoanFigure.balance:
+              _controllers[_Field.balance]!.text = formatAmountInput(
+                result.balance!,
+                locale,
+              );
+            case LoanFigure.rate:
+              rateController.setAprBps(result.aprBps!, locale);
+            case LoanFigure.payment:
+              _controllers[_Field.minFloor]!.text = formatAmountInput(
+                result.payment!,
+                locale,
+              );
+            case LoanFigure.lastPayment:
+              _lastYear = result.lastPaymentYearMonth! ~/ 100;
+              _lastMonth = result.lastPaymentYearMonth! % 100;
+          }
+          _workedOut = figure;
+          _lastPaymentError = null;
+          _errors = {..._errors}
+            ..remove(_Field.balance)
+            ..remove(_Field.apr)
+            ..remove(_Field.minFloor);
+        });
+      case LoanNotPossible(:final figure, :final problem):
+        final message = switch (problem) {
+          LoanProblem.neverClears => l10n.loanNeverClears,
+          LoanProblem.rateTooHigh => l10n.loanRateTooHigh,
+          LoanProblem.rateBelowZero => l10n.loanRateBelowZero,
+          LoanProblem.outOfRange =>
+            figure == LoanFigure.lastPayment &&
+                    _hasLastPayment &&
+                    monthsUntil(_lastYear! * 100 + _lastMonth!, now) < 1
+                ? l10n.loanLastPaymentTooSoon
+                : l10n.loanOutOfRange,
+        };
+        setState(() {
+          _workedOut = null;
+          switch (figure) {
+            case LoanFigure.balance:
+              _errors = {..._errors, _Field.balance: message};
+            case LoanFigure.rate:
+              _errors = {..._errors, _Field.apr: message};
+            case LoanFigure.payment:
+              _errors = {..._errors, _Field.minFloor: message};
+            case LoanFigure.lastPayment:
+              _lastPaymentError = message;
+          }
+        });
+      case null:
+        break; // the button only works with exactly three filled in
+    }
   }
 
   /// The same as a check-in with this debt at 0 (spec §4.4).

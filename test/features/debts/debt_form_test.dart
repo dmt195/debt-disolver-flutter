@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
@@ -635,6 +636,175 @@ void main() {
         findsOneWidget,
       );
       expect(app.repository.stored, isEmpty);
+    });
+  });
+
+  group('the loan helper', () {
+    Future<void> newLoan(WidgetTester tester) async {
+      await pumpApp(tester, location: Routes.newDebt);
+      await chooseType(tester, 'Loan');
+      await tester.enterText(field('Name'), 'Car loan');
+    }
+
+    Future<void> type(WidgetTester tester, String label, String text) async {
+      await tester.scrollUntilVisible(field(label), 100, scrollable: formList);
+      await tester.ensureVisible(field(label));
+      await tester.pumpAndSettle();
+      await tester.enterText(field(label), text);
+      await tester.pump();
+    }
+
+    Future<void> pick(WidgetTester tester, String key, String item) async {
+      final dropdown = find.byKey(ValueKey(key));
+      await tester.scrollUntilVisible(dropdown, 100, scrollable: formList);
+      await tester.ensureVisible(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(item).last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> lastPayment(WidgetTester tester, String month, String year) =>
+        pick(
+          tester,
+          'lastPaymentMonth',
+          month,
+        ).then((_) => pick(tester, 'lastPaymentYear', year));
+
+    final workItOut = find.byKey(const ValueKey('workItOut'));
+
+    Future<void> tapWorkItOut(WidgetTester tester) async {
+      await tester.scrollUntilVisible(workItOut, 100, scrollable: formList);
+      await tester.ensureVisible(workItOut);
+      await tester.pumpAndSettle();
+      await tester.tap(workItOut);
+      await tester.pumpAndSettle();
+    }
+
+    String textOf(WidgetTester tester, String label) =>
+        tester.widget<TextFormField>(field(label)).controller!.text;
+
+    testWidgets('works out the monthly payment', (tester) async {
+      await newLoan(tester);
+      await type(tester, 'Balance', '5000');
+      await type(tester, 'Interest rate (APR %)', '6.9');
+      await lastPayment(tester, 'September', '2029');
+      await tapWorkItOut(tester);
+      expect(textOf(tester, 'Monthly payment'), '153.69');
+      expect(find.text('Worked out'), findsOneWidget);
+    });
+
+    testWidgets('works out when it ends', (tester) async {
+      await newLoan(tester);
+      await type(tester, 'Balance', '5000');
+      await type(tester, 'Interest rate (APR %)', '6.9');
+      await type(tester, 'Monthly payment', '200');
+      await tapWorkItOut(tester);
+      expect(find.text('December'), findsOneWidget);
+      expect(find.text('2028'), findsOneWidget);
+      expect(find.text('Worked out'), findsOneWidget);
+    });
+
+    testWidgets('works out the balance', (tester) async {
+      await newLoan(tester);
+      await type(tester, 'Interest rate (APR %)', '6.9');
+      await type(tester, 'Monthly payment', '153.69');
+      await lastPayment(tester, 'September', '2029');
+      await tapWorkItOut(tester);
+      expect(textOf(tester, 'Balance'), '5000');
+    });
+
+    testWidgets('works out the rate', (tester) async {
+      await newLoan(tester);
+      await type(tester, 'Balance', '5000');
+      await type(tester, 'Monthly payment', '153.69');
+      await lastPayment(tester, 'September', '2029');
+      await tapWorkItOut(tester);
+      expect(textOf(tester, 'Interest rate (APR %)'), '6.9');
+    });
+
+    testWidgets('asks for three, and goes once all four are in', (
+      tester,
+    ) async {
+      await newLoan(tester);
+      await type(tester, 'Balance', '5000');
+      await type(tester, 'Interest rate (APR %)', '6.9');
+      await tester.scrollUntilVisible(workItOut, 100, scrollable: formList);
+      expect(find.text('Fill in any three'), findsOneWidget);
+      expect(tester.widget<OutlinedButton>(workItOut).onPressed, isNull);
+      await type(tester, 'Monthly payment', '200');
+      expect(find.text('Work it out'), findsOneWidget);
+      await lastPayment(tester, 'January', '2029');
+      expect(workItOut, findsNothing);
+    });
+
+    testWidgets('a payment too small never clears', (tester) async {
+      await newLoan(tester);
+      await type(tester, 'Balance', '1200');
+      await type(tester, 'Interest rate (APR %)', '12');
+      await type(tester, 'Monthly payment', '11.39');
+      await tapWorkItOut(tester);
+      await tester.scrollUntilVisible(
+        find.text('This payment never clears the balance at this rate.'),
+        -100,
+        scrollable: formList,
+      );
+      expect(
+        find.text('This payment never clears the balance at this rate.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('editing clears Worked out', (tester) async {
+      await newLoan(tester);
+      await type(tester, 'Balance', '5000');
+      await type(tester, 'Interest rate (APR %)', '6.9');
+      await lastPayment(tester, 'September', '2029');
+      await tapWorkItOut(tester);
+      expect(find.text('Worked out'), findsOneWidget);
+      await type(tester, 'Balance', '5100');
+      expect(find.text('Worked out'), findsNothing);
+    });
+
+    testWidgets("cards don't get the helper", (tester) async {
+      await pumpApp(tester, location: Routes.newDebt);
+      expect(find.byKey(const ValueKey('lastPaymentMonth')), findsNothing);
+      expect(workItOut, findsNothing);
+    });
+
+    testWidgets('the loan it saves clears when it said', (tester) async {
+      useTallScreen(tester);
+      // A budget of just the payment, so nothing extra clears it sooner.
+      final app = await pumpApp(
+        tester,
+        location: Routes.newDebt,
+        settings: {SettingsKeys.monthlyBudgetMinor: 15369},
+      );
+      await chooseType(tester, 'Loan');
+      await tester.enterText(field('Name'), 'Car loan');
+      await type(tester, 'Balance', '5000');
+      await type(tester, 'Interest rate (APR %)', '6.9');
+      await lastPayment(tester, 'September', '2029');
+      await tapWorkItOut(tester);
+      await save(tester);
+      expect(app.repository.stored.single.minPaymentFloor.minor, 15369);
+      await app.router.go(tester, Routes.home);
+      // Debt-free by September 2029 ("Sep" or "Sept", by locale).
+      expect(find.textContaining(RegExp(r'^Sept?\n2029$')), findsOneWidget);
+    });
+
+    testWidgets('large text fits a small phone', (tester) async {
+      tester.view
+        ..devicePixelRatio = 3
+        ..physicalSize = const Size(360 * 3, 740 * 3);
+      addTearDown(tester.view.reset);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, location: Routes.newDebt);
+      await chooseType(tester, 'Loan');
+      await tester.scrollUntilVisible(workItOut, 100, scrollable: formList);
+      expect(tester.takeException(), isNull);
     });
   });
 }

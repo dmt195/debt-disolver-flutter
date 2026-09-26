@@ -1,5 +1,6 @@
 import 'package:debt_destroyer/app/app_shell.dart';
 import 'package:debt_destroyer/features/analysis/presentation/plan_detail_screen.dart';
+import 'package:debt_destroyer/features/debts/domain/debt_draft.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_form_screen.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_screen.dart';
 import 'package:debt_destroyer/features/home/presentation/home_screen.dart';
@@ -95,7 +96,8 @@ GoRouter router(Ref ref) {
                   GoRoute(
                     path: 'new',
                     parentNavigatorKey: rootKey,
-                    builder: (context, state) => const DebtFormScreen(),
+                    builder: (context, state) =>
+                        DebtFormScreen(draft: state.extra as DebtDraft?),
                   ),
                   GoRoute(
                     path: ':debtId',

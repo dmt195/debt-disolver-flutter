@@ -5,6 +5,7 @@ import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/money_format.dart';
 import 'package:debt_destroyer/core/widgets/rate_field.dart';
+import 'package:debt_destroyer/features/debts/domain/debt_draft.dart';
 import 'package:debt_destroyer/features/debts/domain/loan_helper.dart';
 import 'package:debt_destroyer/features/debts/domain/promo_dates.dart';
 import 'package:debt_destroyer/features/debts/presentation/debt_type_tiles.dart';
@@ -19,9 +20,12 @@ import 'package:payoff_engine/payoff_engine.dart';
 
 /// Adds a debt, or edits the one with [debtId].
 class DebtFormScreen extends ConsumerWidget {
-  const DebtFormScreen({this.debtId, super.key});
+  const DebtFormScreen({this.debtId, this.draft, super.key});
 
   final String? debtId;
+
+  /// A new loan to start from (ignored when editing).
+  final DebtDraft? draft;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,6 +67,7 @@ class DebtFormScreen extends ConsumerWidget {
       appBar: AppBar(title: title),
       body: _DebtForm(
         key: ValueKey(debtId),
+        draft: debtId == null ? draft : null,
         existing: existing,
         currencyCode: currency,
       ),
@@ -87,10 +92,12 @@ class _DebtForm extends ConsumerStatefulWidget {
   const _DebtForm({
     required this.existing,
     required this.currencyCode,
+    this.draft,
     super.key,
   });
 
   final Debt? existing;
+  final DebtDraft? draft;
   final String currencyCode;
 
   @override
@@ -183,6 +190,31 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     );
     _hasOffer = offer != null;
     _hasOfferPromo = offer?.promo != null;
+    if (widget.draft case final draft? when d == null) {
+      _applyDraft(draft, locale);
+    }
+  }
+
+  /// Starts a new debt from [DebtDraft]: a loan with its figures filled in.
+  void _applyDraft(DebtDraft draft, String locale) {
+    _type = DebtType.loan;
+    _allowsOverpayment = defaultAllowsOverpayment(DebtType.loan);
+    _controllers[_Field.balance]!.text = formatAmountInput(
+      draft.balance,
+      locale,
+    );
+    (_controllers[_Field.apr]! as RateController).setAprBps(
+      draft.aprBps,
+      locale,
+    );
+    _controllers[_Field.minFloor]!.text = formatAmountInput(
+      draft.payment,
+      locale,
+    );
+    if (draft.lastPaymentYearMonth case final ym?) {
+      _lastYear = ym ~/ 100;
+      _lastMonth = ym % 100;
+    }
   }
 
   @override

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/features/debts/domain/debt_draft.dart';
 import 'package:debt_destroyer/features/settings/data/prefs_settings_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -837,5 +840,43 @@ void main() {
       await tester.scrollUntilVisible(workItOut, 100, scrollable: formList);
       expect(tester.takeException(), isNull);
     });
+  });
+
+  testWidgets('a draft opens as a filled-in loan', (tester) async {
+    useTallScreen(tester);
+    final app = await pumpApp(tester);
+    unawaited(
+      app.container
+          .read(routerProvider)
+          .push(
+            Routes.newDebt,
+            extra: const DebtDraft(
+              balance: Money(1000000, 'GBP'),
+              aprBps: 1290,
+              payment: Money(22343, 'GBP'),
+              lastPaymentYearMonth: 203109,
+            ),
+          ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('type-loan'))),
+      isSemantics(isSelected: true),
+    );
+    String textOf(String label) =>
+        tester.widget<TextFormField>(field(label)).controller!.text;
+    expect(textOf('Balance'), '10000');
+    expect(textOf('Interest rate (APR %)'), '12.9');
+    expect(textOf('Monthly payment'), '223.43');
+    expect(find.text('September'), findsOneWidget);
+    expect(find.text('2031'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workItOut')), findsNothing);
+    await tester.enterText(field('Name'), 'New car');
+    await save(tester);
+    final saved = app.repository.stored.single;
+    expect(saved.type, DebtType.loan);
+    expect(saved.balance.minor, 1000000);
+    expect(saved.aprBps, 1290);
+    expect(saved.minPaymentFloor.minor, 22343);
   });
 }

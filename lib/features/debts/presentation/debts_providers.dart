@@ -1,4 +1,6 @@
 import 'package:debt_destroyer/app/dependencies.dart';
+import 'package:debt_destroyer/app/diagnostic_events.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/features/debts/domain/cleared_debt.dart';
 import 'package:debt_destroyer/features/settings/presentation/settings_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,7 +64,12 @@ class DebtActions extends _$DebtActions {
     final debt = draft.copyWith(id: _uuid.v4());
     final existing = await _stored();
     final outcome = _validate(debt, [...existing, debt]);
-    if (outcome is DebtSaved) await ref.read(debtRepositoryProvider).add(debt);
+    if (outcome is DebtSaved) {
+      await ref.read(debtRepositoryProvider).add(debt);
+      ref
+          .read(diagnosticsProvider)
+          .logEvent(DiagnosticEvent.debtAdded(debt.type));
+    }
     return outcome;
   });
 

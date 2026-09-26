@@ -1,3 +1,4 @@
+import 'package:debt_destroyer/app/diagnostic_events.dart';
 import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/charts/hazard.dart';
 import 'package:debt_destroyer/core/charts/segment_bar.dart';
@@ -5,6 +6,7 @@ import 'package:debt_destroyer/core/charts/stacked_balance_chart.dart';
 import 'package:debt_destroyer/core/currency.dart';
 import 'package:debt_destroyer/core/debt_colors.dart';
 import 'package:debt_destroyer/core/debt_icons.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
@@ -244,9 +246,8 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
       builder: (buttonContext) => PopupMenuButton<ExportFormat>(
         icon: const Icon(Icons.share_outlined),
         tooltip: l10n.share,
-        onSelected: (format) => runGuarded(
-          context,
-          () => ref
+        onSelected: (format) => runGuarded(context, () async {
+          final file = await ref
               .read(planExporterProvider)
               .export(
                 table,
@@ -254,9 +255,12 @@ class _PlanPageState extends ConsumerState<_PlanPage> {
                 baseName: 'debt-plan-${widget.strategyId.name}',
                 subject: strategyName(l10n, widget.strategyId),
                 origin: _globalRect(buttonContext),
-              ),
-          failureMessage: l10n.exportFailed,
-        ),
+              );
+          ref
+              .read(diagnosticsProvider)
+              .logEvent(DiagnosticEvent.scheduleExported(format));
+          return file;
+        }, failureMessage: l10n.exportFailed),
         itemBuilder: (context) => [
           PopupMenuItem(value: ExportFormat.csv, child: Text(l10n.exportCsv)),
           PopupMenuItem(value: ExportFormat.xlsx, child: Text(l10n.exportXlsx)),

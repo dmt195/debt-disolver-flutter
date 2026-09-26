@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:debt_destroyer/app/dependencies.dart';
+import 'package:debt_destroyer/app/diagnostic_events.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/features/analysis/domain/plan_series.dart';
 import 'package:debt_destroyer/features/debts/presentation/debts_providers.dart';
@@ -256,6 +258,11 @@ class ProgressController extends _$ProgressController {
     await ref
         .read(progressRepositoryProvider)
         .saveCheckIn(at: ref.read(clockProvider)(), balances: balances);
+    final diagnostics = ref.read(diagnosticsProvider)
+      ..logEvent(DiagnosticEvent.checkInSaved);
+    for (final _ in outcome.cleared) {
+      diagnostics.logEvent(DiagnosticEvent.debtCleared);
+    }
     state = outcome;
     return outcome;
   }
@@ -273,8 +280,10 @@ class ProgressController extends _$ProgressController {
   }
 
   /// Follows [id]; the reconciler records the switch.
-  Future<void> follow(StrategyId id) =>
-      ref.read(settingsControllerProvider.notifier).followStrategy(id);
+  Future<void> follow(StrategyId id) async {
+    await ref.read(settingsControllerProvider.notifier).followStrategy(id);
+    ref.read(diagnosticsProvider).logEvent(DiagnosticEvent.planFollowed(id));
+  }
 
   /// Restart from here (spec §6.8). Clearing history leaves the reconciler to
   /// record a new first starting point.

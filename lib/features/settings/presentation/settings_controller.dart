@@ -1,5 +1,7 @@
 import 'package:debt_destroyer/app/dependencies.dart';
+import 'package:debt_destroyer/app/diagnostic_events.dart';
 import 'package:debt_destroyer/core/currency.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/features/settings/domain/app_settings.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -102,6 +104,11 @@ class SettingsController extends _$SettingsController {
       await _save(
         current.copyWith(payDayReminder: on, payDay: day ?? current.payDay),
       );
+      if (on && !current.payDayReminder) {
+        ref
+            .read(diagnosticsProvider)
+            .logEvent(DiagnosticEvent.remindersTurnedOn);
+      }
     });
   }
 

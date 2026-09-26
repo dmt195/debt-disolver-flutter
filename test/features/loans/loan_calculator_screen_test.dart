@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/debts.dart';
+import '../../helpers/fake_diagnostics.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -235,6 +236,26 @@ void main() {
         ),
       ),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('counts a use per unknown, not per keystroke', (tester) async {
+    useTallScreen(tester);
+    final fake = FakeDiagnostics();
+    await pumpApp(tester, location: Routes.loanCalculator, diagnostics: fake);
+    await paymentCase(tester);
+    await type(tester, 'calcTerm', '4');
+    await type(tester, 'calcTerm', '3');
+    expect(
+      [
+        for (final e in fake.events) [e.name, e.parameters],
+      ],
+      [
+        [
+          'loan_calculator_used',
+          {'unknown': 'payment'},
+        ],
+      ],
     );
   });
 }

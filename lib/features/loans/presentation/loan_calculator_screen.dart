@@ -1,6 +1,8 @@
+import 'package:debt_destroyer/app/diagnostic_events.dart';
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
 import 'package:debt_destroyer/core/charts/balance_line_chart.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/core/l10n.dart';
 import 'package:debt_destroyer/core/labels.dart';
 import 'package:debt_destroyer/core/money_format.dart';
@@ -35,6 +37,10 @@ class _LoanCalculatorScreenState extends ConsumerState<LoanCalculatorScreen> {
   late final RateController _rate;
   LoanUnknown _unknown = LoanUnknown.payment;
   var _termInYears = true;
+
+  /// The unknowns already solved this visit: each is counted once, not per
+  /// keystroke.
+  final _counted = <LoanUnknown>{};
 
   @override
   void initState() {
@@ -81,6 +87,11 @@ class _LoanCalculatorScreenState extends ConsumerState<LoanCalculatorScreen> {
       months: termNumber == null ? null : termNumber * (_termInYears ? 12 : 1),
     );
     final solved = result is LoanSolved ? result : null;
+    if (solved != null && _counted.add(_unknown)) {
+      ref
+          .read(diagnosticsProvider)
+          .logEvent(DiagnosticEvent.loanCalculatorUsed(_unknown));
+    }
 
     Widget input(String key, String label, TextEditingController controller) =>
         Padding(

@@ -17,6 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 import '../../helpers/debts.dart';
+import '../../helpers/fake_diagnostics.dart';
 import '../../helpers/pump_app.dart';
 
 class _RecordingExporter extends PlanExporter {
@@ -84,8 +85,10 @@ void main() {
   Future<AppHarness> open(
     WidgetTester tester, {
     _RecordingExporter? exporter,
+    FakeDiagnostics? diagnostics,
   }) => pumpApp(
     tester,
+    diagnostics: diagnostics,
     debts: [visa],
     settings: {SettingsKeys.monthlyBudgetMinor: 25000},
     location: Routes.plan(StrategyId.avalanche),
@@ -456,4 +459,24 @@ void main() {
       expect(labelColour('Car loan'), c.ink2);
     });
   }
+
+  testWidgets('counts an export, by format only', (tester) async {
+    final fake = FakeDiagnostics();
+    await open(tester, exporter: _RecordingExporter(), diagnostics: fake);
+    await tester.tap(find.byTooltip('Share'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Excel workbook (XLSX)'));
+    await tester.pumpAndSettle();
+    expect(
+      [
+        for (final e in fake.events) [e.name, e.parameters],
+      ],
+      [
+        [
+          'schedule_exported',
+          {'format': 'xlsx'},
+        ],
+      ],
+    );
+  });
 }

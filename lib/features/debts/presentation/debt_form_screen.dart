@@ -1,5 +1,7 @@
+import 'package:debt_destroyer/app/diagnostic_events.dart';
 import 'package:debt_destroyer/app/router.dart';
 import 'package:debt_destroyer/app/theme.dart';
+import 'package:debt_destroyer/core/diagnostics.dart';
 import 'package:debt_destroyer/core/error_view.dart';
 import 'package:debt_destroyer/core/guarded.dart';
 import 'package:debt_destroyer/core/l10n.dart';
@@ -668,6 +670,9 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           }
           _workedOut = figure;
           _helperMessage = null;
+          ref
+              .read(diagnosticsProvider)
+              .logEvent(DiagnosticEvent.loanHelperUsed(figure));
           _errors = {..._errors}
             ..remove(_Field.balance)
             ..remove(_Field.apr)

@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:payoff_engine/payoff_engine.dart';
 
 import '../../helpers/debts.dart';
+import '../../helpers/fake_diagnostics.dart';
 import '../../helpers/pump_app.dart';
 
 void main() {
@@ -709,6 +710,28 @@ void main() {
       await tapWorkItOut(tester);
       expect(textOf(tester, 'Monthly payment'), '153.69');
       expect(find.text('Worked out'), findsOneWidget);
+    });
+
+    testWidgets('counts a use of the helper, by figure only', (tester) async {
+      final fake = FakeDiagnostics();
+      await pumpApp(tester, location: Routes.newDebt, diagnostics: fake);
+      await chooseType(tester, 'Loan');
+      await tester.enterText(field('Name'), 'Car loan');
+      await type(tester, 'Balance', '5000');
+      await type(tester, 'Interest rate (APR %)', '6.9');
+      await lastPayment(tester, 'September', '2029');
+      await tapWorkItOut(tester);
+      expect(
+        [
+          for (final e in fake.events) [e.name, e.parameters],
+        ],
+        [
+          [
+            'loan_helper_used',
+            {'figure': 'payment'},
+          ],
+        ],
+      );
     });
 
     testWidgets('works out when it ends', (tester) async {

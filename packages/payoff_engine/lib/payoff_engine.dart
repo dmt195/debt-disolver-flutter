@@ -9,6 +9,7 @@ export 'src/debt_kind.dart';
 export 'src/debt_ordering.dart';
 export 'src/fee_fit.dart';
 export 'src/fixed_loan_payment.dart';
+export 'src/interest.dart';
 export 'src/minimum_payment.dart';
 export 'src/money.dart';
 export 'src/payoff_result.dart';

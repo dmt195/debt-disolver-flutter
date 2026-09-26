@@ -611,6 +611,19 @@ void main() {
       expect(app.repository.stored.single.aprBps, 2534);
     });
 
+    testWidgets('saving while showing the monthly rate keeps the APR', (
+      tester,
+    ) async {
+      final app = await pumpApp(
+        tester,
+        debts: [testDebt(id: 'a', aprBps: 1500)],
+        location: Routes.editDebt('a'),
+      );
+      await perMonth(tester, '_Field.apr');
+      await save(tester);
+      expect(app.repository.stored.single.aprBps, 1500);
+    });
+
     testWidgets('reopening shows the APR, and the monthly rate under it', (
       tester,
     ) async {
@@ -754,6 +767,24 @@ void main() {
         find.text('This payment never clears the balance at this rate.'),
         findsOneWidget,
       );
+    });
+
+    testWidgets("the helper's message never blocks Save", (tester) async {
+      final app = await pumpApp(tester, location: Routes.newDebt);
+      await chooseType(tester, 'Loan');
+      await tester.enterText(field('Name'), 'Car loan');
+      await type(tester, 'Balance', '1200');
+      await type(tester, 'Interest rate (APR %)', '12');
+      await type(tester, 'Monthly payment', '11.39');
+      await tapWorkItOut(tester);
+      // Fix the rate instead: the payment's message goes, and Save works.
+      await type(tester, 'Interest rate (APR %)', '6');
+      expect(
+        find.text('This payment never clears the balance at this rate.'),
+        findsNothing,
+      );
+      await save(tester);
+      expect(app.repository.stored.single.aprBps, 600);
     });
 
     testWidgets('editing clears Worked out', (tester) async {

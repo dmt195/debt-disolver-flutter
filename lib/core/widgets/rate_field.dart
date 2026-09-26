@@ -12,9 +12,16 @@ enum RateUnit { year, month }
 /// rate is always read as APR basis points, whichever unit is showing.
 class RateController extends TextEditingController {
   RateController({required String locale, int? aprBps})
-    : super(text: aprBps == null ? '' : formatPercentInput(aprBps, locale));
+    : super(text: aprBps == null ? '' : formatPercentInput(aprBps, locale)) {
+    if (aprBps != null) _exact = (bps: aprBps, text: text);
+  }
 
   RateUnit _unit = RateUnit.year;
+
+  /// The exact rate behind the text, for as long as the text is unedited.
+  /// A monthly rate is shown to three decimals, so reading the text back
+  /// could move the APR by a basis point: just looking must never do that.
+  ({int bps, String text})? _exact;
 
   /// What to show if the unit is switched straight back: the unit and text
   /// before the last switch, and the text the switch left.
@@ -23,7 +30,11 @@ class RateController extends TextEditingController {
   RateUnit get unit => _unit;
 
   /// The typed rate as APR basis points; null if the text isn't a rate.
-  int? aprBps(String locale) => switch (_unit) {
+  int? aprBps(String locale) => _exact != null && _exact!.text == text
+      ? _exact!.bps
+      : _parsedAprBps(locale);
+
+  int? _parsedAprBps(String locale) => switch (_unit) {
     RateUnit.year => parsePercentBps(text, locale),
     RateUnit.month => switch (parseMonthlyRatePpm(text, locale)) {
       final ppm? => aprBpsFromMonthlyPpm(ppm),
@@ -45,6 +56,7 @@ class RateController extends TextEditingController {
   /// before any edit restores the exact earlier text, so rates never drift.
   void switchTo(RateUnit to, String locale) {
     if (to == _unit) return;
+    final bps = aprBps(locale);
     final from = (unit: _unit, text: text);
     final restore = _restore;
     final String next;
@@ -64,6 +76,7 @@ class RateController extends TextEditingController {
     }
     _unit = to;
     _restore = (unit: from.unit, text: from.text, left: next);
+    _exact = bps == null ? null : (bps: bps, text: next);
     value = TextEditingValue(
       text: next,
       selection: TextSelection.collapsed(offset: next.length),
@@ -77,6 +90,7 @@ class RateController extends TextEditingController {
       RateUnit.year => formatPercentInput(aprBps, locale),
       RateUnit.month => formatMonthlyRateInput(monthlyRatePpm(aprBps), locale),
     };
+    _exact = (bps: aprBps, text: text);
   }
 }
 
@@ -91,6 +105,7 @@ class RateField extends ConsumerWidget {
     this.required = true,
     this.forceErrorText,
     this.helperText,
+    this.helperStyle,
     this.onChanged,
     super.key,
   });
@@ -106,6 +121,7 @@ class RateField extends ConsumerWidget {
 
   /// Shown under the field, e.g. "Worked out".
   final String? helperText;
+  final TextStyle? helperStyle;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -136,6 +152,8 @@ class RateField extends ConsumerWidget {
               decoration: InputDecoration(
                 labelText: monthly ? monthlyLabel : aprLabel,
                 helperText: helperText,
+                helperStyle: helperStyle,
+                helperMaxLines: 3,
                 border: const OutlineInputBorder(),
               ),
               validator: (text) => _validate(l10n, text ?? '', locale),

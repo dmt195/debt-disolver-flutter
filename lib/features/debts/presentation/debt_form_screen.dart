@@ -113,7 +113,11 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
   /// never saved.
   int? _lastMonth;
   int? _lastYear;
-  String? _lastPaymentError;
+
+  /// Why the loan helper couldn't work it out, and the figure it's about.
+  /// Advice shown under that field, never a form error: it can't block
+  /// Save, and editing any of the loan's figures clears it.
+  ({LoanFigure figure, String message})? _helperMessage;
 
   /// The figure the loan helper last filled in, until any of the four is
   /// edited.
@@ -235,7 +239,10 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         controller: _controllers[f],
         decoration: InputDecoration(
           labelText: label,
-          helperText: _workedOutHere(f) ? l10n.loanWorkedOut : null,
+          helperText:
+              _helperFor(f) ?? (_workedOutHere(f) ? l10n.loanWorkedOut : null),
+          helperStyle: _helperFor(f) == null ? null : _adviceStyle(context),
+          helperMaxLines: 3,
           border: const OutlineInputBorder(),
         ),
         keyboardType: keyboard,
@@ -253,7 +260,9 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         aprLabel: aprLabel,
         monthlyLabel: monthlyLabel,
         forceErrorText: _errors[f],
-        helperText: _workedOutHere(f) ? l10n.loanWorkedOut : null,
+        helperText:
+            _helperFor(f) ?? (_workedOutHere(f) ? l10n.loanWorkedOut : null),
+        helperStyle: _helperFor(f) == null ? null : _adviceStyle(context),
         onChanged: (_) => _edited(f),
       ),
     );
@@ -422,6 +431,22 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     );
   }
 
+  /// The helper's advice for [f], if it's about that field.
+  String? _helperFor(_Field f) {
+    final advice = _helperMessage;
+    if (advice == null) return null;
+    final here = switch (advice.figure) {
+      LoanFigure.balance => f == _Field.balance,
+      LoanFigure.rate => f == _Field.apr,
+      LoanFigure.payment => f == _Field.minFloor,
+      LoanFigure.lastPayment => false,
+    };
+    return here ? advice.message : null;
+  }
+
+  TextStyle _adviceStyle(BuildContext context) =>
+      TextStyle(color: Theme.of(context).colorScheme.error);
+
   bool _workedOutHere(_Field f) => switch (_workedOut) {
     LoanFigure.balance => f == _Field.balance,
     LoanFigure.rate => f == _Field.apr,
@@ -436,7 +461,10 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     if (!_errors.containsKey(f) && !loan) return;
     setState(() {
       _errors = {..._errors}..remove(f);
-      if (loan) _workedOut = null;
+      if (loan) {
+        _workedOut = null;
+        _helperMessage = null;
+      }
     });
   }
 
@@ -451,7 +479,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     final l10n = context.l10n;
     void picked(void Function() change) => setState(() {
       change();
-      _lastPaymentError = null;
+      _helperMessage = null;
       _workedOut = null;
     });
     final note = _workedOut == LoanFigure.lastPayment
@@ -462,8 +490,13 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: l10n.fieldLastPayment,
-          helperText: note,
-          errorText: _lastPaymentError,
+          helperText: _helperMessage?.figure == LoanFigure.lastPayment
+              ? _helperMessage!.message
+              : note,
+          helperStyle: _helperMessage?.figure == LoanFigure.lastPayment
+              ? _adviceStyle(context)
+              : null,
+          helperMaxLines: 3,
           border: const OutlineInputBorder(),
         ),
         // Side by side, sharing the width: long month names shorten rather
@@ -602,7 +635,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
               _lastMonth = result.lastPaymentYearMonth! % 100;
           }
           _workedOut = figure;
-          _lastPaymentError = null;
+          _helperMessage = null;
           _errors = {..._errors}
             ..remove(_Field.balance)
             ..remove(_Field.apr)
@@ -622,16 +655,7 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         };
         setState(() {
           _workedOut = null;
-          switch (figure) {
-            case LoanFigure.balance:
-              _errors = {..._errors, _Field.balance: message};
-            case LoanFigure.rate:
-              _errors = {..._errors, _Field.apr: message};
-            case LoanFigure.payment:
-              _errors = {..._errors, _Field.minFloor: message};
-            case LoanFigure.lastPayment:
-              _lastPaymentError = message;
-          }
+          _helperMessage = (figure: figure, message: message);
         });
       case null:
         break; // the button only works with exactly three filled in

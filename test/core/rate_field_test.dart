@@ -134,4 +134,21 @@ void main() {
     await tapUnit(tester, 'a month');
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('looking at the monthly rate never changes the APR', (
+    tester,
+  ) async {
+    // 15% a year shows as 1.172% a month; that text alone would read back
+    // as 15.01%.
+    final c = await show(tester, aprBps: 1500);
+    await tapUnit(tester, 'a month');
+    expect(c.aprBps(locale), 1500);
+    expect(find.text('= 15% APR'), findsOneWidget);
+    c.setAprBps(690, locale);
+    await tester.pump();
+    expect(c.aprBps(locale), 690);
+    // Once edited, the typed monthly rate is what counts.
+    await tester.enterText(find.byKey(key), '1.9');
+    expect(c.aprBps(locale), 2534);
+  });
 }

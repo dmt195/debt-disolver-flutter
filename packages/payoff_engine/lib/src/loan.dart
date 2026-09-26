@@ -184,8 +184,14 @@ LoanResult loanMonths({
   return _solved(balance, aprBps, payment.minor, run);
 }
 
-/// The largest balance that [payment] a month clears at [aprBps] within
+/// The balance for which [payment] is the monthly payment at [aprBps] over
 /// [months] months.
+///
+/// Many balances round to the same whole-penny payment. Among those, this is
+/// the roundest: a multiple of 100,000, 10,000, 1,000 or 100 minor units
+/// (£1,000, £100, £10, £1), then the middle of the range. So the payment for
+/// a £5,000.00 loan reads back as £5,000.00, not £5,000.31. The payment
+/// always clears the balance it returns within [months].
 LoanResult loanBalance({
   required int aprBps,
   required Money payment,
@@ -195,27 +201,59 @@ LoanResult loanBalance({
     return _outOfRange;
   }
   final interestOn = monthlyInterest();
-  bool clears(int balance) =>
-      _run(balance, aprBps, payment.minor, months, interestOn) != null;
-  // Interest is never negative, so no more than payment × months.
+  bool clears(int balance, int pay) =>
+      _run(balance, aprBps, pay, months, interestOn) != null;
+  // Interest is never negative, so no more than payment × months; anything
+  // past the largest valid amount is out of range anyway.
+  final ceiling = payment.minor * months;
   var low = 0;
-  var high = payment.minor * months;
+  var high = ceiling < kMaxAmountMinor + 1 ? ceiling : kMaxAmountMinor + 1;
   while (low < high) {
     final mid = low + (high - low + 1) ~/ 2;
-    if (clears(mid)) {
+    if (clears(mid, payment.minor)) {
       low = mid;
     } else {
       high = mid - 1;
     }
   }
-  if (!_amountOk(low)) return _outOfRange;
-  final balance = Money(low, payment.currency);
+  final largest = low;
+  // The smallest balance a penny less no longer clears: from there up to
+  // [largest], this payment is exactly the one needed.
+  final less = payment.minor - 1;
+  var smallest = 1;
+  if (less > 0) {
+    low = 0;
+    high = largest + 1;
+    while (low < high) {
+      final mid = low + (high - low) ~/ 2;
+      if (clears(mid, less)) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    smallest = low;
+  }
+  final chosen = smallest > largest
+      ? largest
+      : _roundestAmount(smallest, largest);
+  if (!_amountOk(chosen)) return _outOfRange;
   return _solved(
-    balance,
+    Money(chosen, payment.currency),
     aprBps,
     payment.minor,
-    _run(low, aprBps, payment.minor, months, interestOn)!,
+    _run(chosen, aprBps, payment.minor, months, interestOn)!,
   );
+}
+
+/// The roundest amount in [low]..[high]: a multiple of 100,000, 10,000,
+/// 1,000 or 100 minor units, else the middle.
+int _roundestAmount(int low, int high) {
+  for (final step in const [100000, 10000, 1000, 100]) {
+    final candidate = (low + step - 1) ~/ step * step;
+    if (candidate <= high) return candidate;
+  }
+  return low + (high - low) ~/ 2;
 }
 
 /// The APR, in basis points, that makes [payment] the monthly payment for

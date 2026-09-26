@@ -92,12 +92,21 @@ void main() {
   });
 
   group('loanBalance', () {
-    test('the largest balance the payment clears in the term', () {
+    test('the roundest balance with exactly this payment', () {
       final r = solved(
         loanBalance(aprBps: 1200, payment: gbp(10628), months: 12),
       );
-      expect(r.balance, gbp(120006));
+      expect(r.balance, gbp(120000));
       expect(r.months, lessThanOrEqualTo(12));
+    });
+
+    test('a £5,000 loan reads back as £5,000', () {
+      expect(
+        solved(
+          loanBalance(aprBps: 690, payment: gbp(15369), months: 36),
+        ).balance,
+        gbp(500000),
+      );
     });
 
     test('at 0% it is payment × months', () {
@@ -190,15 +199,19 @@ void main() {
           ).months,
           byPayment.months,
         );
+        // The balance worked out gives back exactly this payment.
+        final byBalance = solved(
+          loanBalance(aprBps: apr, payment: byPayment.payment, months: months),
+        );
         expect(
           solved(
-            loanBalance(
+            loanPayment(
+              balance: byBalance.balance,
               aprBps: apr,
-              payment: byPayment.payment,
               months: months,
             ),
-          ).balance.minor,
-          greaterThanOrEqualTo(balance),
+          ).payment,
+          byPayment.payment,
         );
         // The rate worked out gives back exactly this payment.
         final byApr = solved(
